@@ -12,7 +12,7 @@ import re
 from groq import Groq
 from news_engine import fetch_multiple_stocks_parallel
 from fuzzywuzzy import fuzz
-from streamlit-keyup import st_keyup
+from st_keyup import st_keyup
 import time
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from scraper import scrape_all_sources
