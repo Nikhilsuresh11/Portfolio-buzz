@@ -12,7 +12,6 @@ import re
 from groq import Groq
 from news_engine import fetch_multiple_stocks_parallel
 from fuzzywuzzy import fuzz
-from streamlit_searchbox import st_searchbox
 from st_keyup import st_keyup
 import time
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
