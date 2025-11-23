@@ -9,6 +9,7 @@ __pycache__/
 # Distribution / packaging
 build/
 porfoliobuzz/
+.streamlit/
 dist/
 *.egg-info/
 .eggs/

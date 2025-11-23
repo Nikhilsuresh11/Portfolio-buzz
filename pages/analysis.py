@@ -18,7 +18,7 @@ if "authenticated" not in st.session_state or not st.session_state.authenticated
 selected_stock = st.session_state.get("selected_stock", None)
 
 load_dotenv()
-groq_api_key = os.getenv("GROQ_API_KEY")
+groq_api_key = st.secrets.get("GROQ_API_KEY", os.getenv("GROQ_API_KEY"))
 
 # Fixed settings (no user control)
 max_articles = 10

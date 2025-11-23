@@ -12,7 +12,7 @@ import re
 from groq import Groq
 from news_engine import fetch_multiple_stocks_parallel
 from fuzzywuzzy import fuzz
-from st_keyup import st_keyup
+from streamlit-keyup import st_keyup
 import time
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from scraper import scrape_all_sources
@@ -74,7 +74,7 @@ if "authenticated" not in st.session_state or not st.session_state.authenticated
 load_dotenv()
 
 # MongoDB connection
-MONGO_URI = os.getenv("MONGODB_URI")
+MONGO_URI = st.secrets.get("MONGODB_URI", os.getenv("MONGODB_URI"))
 DB_NAME = "portfolio_buzz"
 WATCHLIST_COLLECTION = "watchlists"
 MAPPINGS_COLLECTION = "stock_mappings"
@@ -713,7 +713,8 @@ OUTPUT NOW:"""
 
     # ── 4. Optimal Groq Settings (Speed + Precision)
     try:
-        client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+        groq_api_key = st.secrets.get("GROQ_API_KEY", os.getenv("GROQ_API_KEY"))
+        client = Groq(api_key=groq_api_key)
         
         response = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
@@ -829,7 +830,7 @@ def filter_articles_by_timeframe(articles, hours_range=(24, 48)):
         return []
     
     try:
-        groq_api_key = os.getenv("GROQ_API_KEY")
+        groq_api_key = st.secrets.get("GROQ_API_KEY", os.getenv("GROQ_API_KEY"))
         if not groq_api_key:
             # No API key, return top articles as-is
             return articles[:5]

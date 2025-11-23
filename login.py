@@ -9,7 +9,7 @@ import time
 load_dotenv()
 
 # MongoDB Setup
-MONGO_URI = os.getenv("MONGODB_URI")
+MONGO_URI = st.secrets.get("MONGODB_URI", os.getenv("MONGODB_URI"))
 DB_NAME = "portfolio_buzz"
 COLLECTION_NAME = "users"
 

@@ -5,9 +5,10 @@ from scraper import scrape_all_sources
 from groq import Groq
 import os
 from dotenv import load_dotenv
+import streamlit as st
 
 load_dotenv()
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+GROQ_API_KEY = st.secrets.get("GROQ_API_KEY", os.getenv("GROQ_API_KEY"))
 client = Groq(api_key=GROQ_API_KEY)
 
 TIME_24H = timedelta(hours=24)
