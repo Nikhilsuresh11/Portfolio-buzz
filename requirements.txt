@@ -1,0 +1,13 @@
+streamlit
+groq
+pymongo
+python-dotenv
+requests
+beautifulsoup4
+fuzzywuzzy
+python-levenshtein
+streamlit-searchbox
+st-keyup
+dateparser
+trafilatura
+newsapi-python
