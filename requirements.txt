@@ -10,3 +10,4 @@ streamlit-searchbox
 streamlit-keyup
 trafilatura
 newsapi-python
+pandas

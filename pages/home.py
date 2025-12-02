@@ -14,6 +14,7 @@ from news_engine import fetch_multiple_stocks_parallel
 from fuzzywuzzy import fuzz
 from st_keyup import st_keyup
 import time
+import requests
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from scraper import scrape_all_sources
 
@@ -83,6 +84,10 @@ MAPPINGS_COLLECTION = "stock_mappings"
 MAX_WORKERS = 5  # Parallel threads for news fetching
 CACHE_DURATION = 3600  # Cache for 1 hour
 SEARCH_CACHE_SIZE = 128  # LRU cache size for search results
+
+# API keys (use secrets if available)
+ALPHA_VANTAGE_KEY = st.secrets.get("ALPHA_VANTAGE_API_KEY", os.getenv("ALPHA_VANTAGE_API_KEY"))
+FINNHUB_KEY = st.secrets.get("FINNHUB_API_KEY", os.getenv("FINNHUB_API_KEY"))
 
 # Page configuration
 st.set_page_config(
@@ -935,6 +940,121 @@ def fetch_stock_data_parallel(watchlist):
     
     return stock_data_cache
 
+
+# ----------------------
+# Price fetching (lightweight copy of logic from price.py)
+# ----------------------
+
+@st.cache_data(ttl=300, show_spinner=False)
+def fetch_price_for_ticker(ticker):
+    """Fetch current stock price from Alpha Vantage, Finnhub, then Yahoo as fallback."""
+    ticker = ticker.upper().strip()
+
+    # Alpha Vantage
+    if ALPHA_VANTAGE_KEY:
+        try:
+            url = "https://www.alphavantage.co/query"
+            params = {
+                "function": "GLOBAL_QUOTE",
+                "symbol": ticker,
+                "apikey": ALPHA_VANTAGE_KEY
+            }
+            resp = requests.get(url, params=params, timeout=10)
+            data = resp.json()
+            if "Global Quote" in data and data["Global Quote"]:
+                q = data["Global Quote"]
+                price = float(q.get("05. price", 0))
+                prev_close = float(q.get("08. previous close", 0))
+                change = float(q.get("09. change", price - prev_close if prev_close else 0))
+                change_percent = 0.0
+                try:
+                    change_percent = float(str(q.get("10. change percent", "0")).rstrip('%'))
+                except:
+                    change_percent = (change / prev_close * 100) if prev_close else 0
+                open_price = float(q.get("02. open", 0))
+                high = float(q.get("03. high", price))
+                low = float(q.get("04. low", price))
+
+                print(f"✅ {ticker}: ${price:.2f} [Alpha Vantage]")
+                return {
+                    "price": price,
+                    "change": change,
+                    "change_percent": change_percent,
+                    "open": open_price,
+                    "high": high,
+                    "low": low,
+                    "prev_close": prev_close,
+                    "currency": "USD",
+                    "timestamp": datetime.now(),
+                    "source": "Alpha Vantage"
+                }
+        except Exception:
+            pass
+
+    # Finnhub
+    if FINNHUB_KEY:
+        try:
+            url = "https://finnhub.io/api/v1/quote"
+            params = {"symbol": ticker, "token": FINNHUB_KEY}
+            resp = requests.get(url, params=params, timeout=10)
+            d = resp.json()
+            if d.get("c") is not None:
+                current = d.get("c", 0)
+                previous = d.get("pc", current)
+                change = current - previous
+                change_percent = (change / previous * 100) if previous else 0
+                open_price = d.get("o", 0)
+                high = d.get("h", current)
+                low = d.get("l", current)
+                print(f"✅ {ticker}: ${current:.2f} [Finnhub]")
+                return {
+                    "price": current,
+                    "change": change,
+                    "change_percent": change_percent,
+                    "open": open_price,
+                    "high": high,
+                    "low": low,
+                    "prev_close": previous,
+                    "currency": "USD",
+                    "timestamp": datetime.now(),
+                    "source": "Finnhub"
+                }
+        except Exception:
+            pass
+
+    # Yahoo Finance fallback
+    try:
+        url = f"https://query1.finance.yahoo.com/v8/finance/chart/{ticker}"
+        params = {"interval": "1d", "range": "1d"}
+        headers = {"User-Agent": "Mozilla/5.0"}
+        resp = requests.get(url, params=params, headers=headers, timeout=10)
+        data = resp.json()
+        if "chart" in data and "result" in data["chart"]:
+            result = data["chart"]["result"][0]
+            meta = result.get("meta", {})
+            current_price = meta.get("regularMarketPrice")
+            prev_close = meta.get("chartPreviousClose")
+            if current_price is not None:
+                change = (current_price - (prev_close or current_price))
+                change_percent = (change / prev_close * 100) if prev_close else 0
+                print(f"✅ {ticker}: ${current_price:.2f} [Yahoo]")
+                return {
+                    "price": current_price,
+                    "change": change,
+                    "change_percent": change_percent,
+                    "open": meta.get("regularMarketOpen", 0),
+                    "high": meta.get("regularMarketDayHigh", current_price),
+                    "low": meta.get("regularMarketDayLow", current_price),
+                    "prev_close": prev_close,
+                    "currency": meta.get("currency", "USD"),
+                    "timestamp": datetime.now(),
+                    "source": "Yahoo"
+                }
+    except Exception:
+        pass
+
+    return None
+
 def render_header():
     """Render professional header - compact"""
     st.markdown("""
@@ -1003,29 +1123,27 @@ def render_floating_search(watchlist):
         matches = sorted(matches, key=lambda x: (x[2], x[0]))[:8]
         
         if matches:
-            with col1:
-                for ticker, name, _ in matches:
-                    already_added = ticker in watchlist
-                    
-                    # Clean single-line suggestion
-                    cols = st.columns([1, 3, 2])
-                    cols[0].markdown(f"**{ticker}**")
-                    cols[1].caption(name[:35])
-                    
-                    if already_added:
-                        cols[2].markdown("In Watchlist")
-                    else:
-                        if cols[2].button("Add to watchlist", key=f"add_{ticker}"):
-                            add_to_watchlist(st.session_state.username, ticker)
-                            new_data = fetch_multiple_stocks_parallel([(ticker, name)])
-                            if new_data:
-                                st.session_state.watchlist_cache.update(new_data)
-                            st.session_state.newly_added.append(ticker)
-                            st.toast(f"✅ {ticker} added!", icon="📈")
-                            st.rerun()
+            for ticker, name, _ in matches:
+                already_added = ticker in watchlist
+                
+                # Clean single-line suggestion
+                cols = st.columns([1, 3, 2])
+                cols[0].markdown(f"**{ticker}**")
+                cols[1].caption(name[:35])
+                
+                if already_added:
+                    cols[2].markdown("In Watchlist")
+                else:
+                    if cols[2].button("Add to watchlist", key=f"add_{ticker}"):
+                        add_to_watchlist(st.session_state.username, ticker)
+                        new_data = fetch_multiple_stocks_parallel([(ticker, name)])
+                        if new_data:
+                            st.session_state.watchlist_cache.update(new_data)
+                        st.session_state.newly_added.append(ticker)
+                        st.toast(f"✅ {ticker} added!", icon="📈")
+                        st.rerun()
         else:
-            with col1:
-                st.caption("No stocks found")
+            st.caption("No stocks found")
 
 def render_watchlist_tiles(watchlist):
     if not watchlist:
@@ -1054,6 +1172,22 @@ def render_watchlist_tiles(watchlist):
             cached.update(new_data or {})
             st.session_state.watchlist_cache = cached
 
+    # Ensure we have price data for each watchlist ticker (fetch in parallel)
+    to_fetch = [t for t, _ in ticker_name_pairs if 'price' not in cached.get(t, {})]
+    if to_fetch:
+        with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+            futures = {executor.submit(fetch_price_for_ticker, t): t for t in to_fetch}
+            for future in as_completed(futures):
+                t = futures[future]
+                try:
+                    price_data = future.result()
+                    cached.setdefault(t, {})
+                    cached[t]['price'] = price_data
+                except Exception:
+                    cached.setdefault(t, {})
+                    cached[t]['price'] = None
+        st.session_state.watchlist_cache = cached
+
     stock_data = cached
 
     # Render grid
@@ -1067,6 +1201,19 @@ def render_watchlist_tiles(watchlist):
             with st.container(border=True):
                 st.markdown(f"### {ticker}")
                 st.caption(company_name)
+
+                # Price display (if available)
+                price_data = data.get('price')
+                if price_data and price_data.get('price') is not None:
+                    try:
+                        p = price_data.get('price', 0.0)
+                        ch = price_data.get('change', 0.0)
+                        cp = price_data.get('change_percent', 0.0) or 0.0
+                        currency = price_data.get('currency', 'USD')
+                        # Use metric for compact display
+                        st.metric(label="Price", value=f"{currency} {p:.2f}", delta=f"{ch:.2f} ({cp:.2f}%)")
+                    except Exception:
+                        pass
 
                 # Logo (optional, if you have URLs in mappings)
                 # if logo := mappings.get(ticker, {}).get("logo"):

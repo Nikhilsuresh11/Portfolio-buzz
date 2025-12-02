@@ -14,6 +14,10 @@ import re
 import hashlib
 from datetime import datetime, timedelta
 from typing import List, Dict, Optional
+import warnings
+
+# Suppress SSL certificate warnings from urllib3
+warnings.filterwarnings('ignore', message='Unverified HTTPS request')
 
 
 MAX_WORKERS = 12
