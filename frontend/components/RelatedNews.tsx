@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { ChevronDown } from 'lucide-react'
 
-export default function RelatedNews() {
+export default function RelatedNews({ isModal = false }: { isModal?: boolean }) {
   const [expandedId, setExpandedId] = useState<number | null>(null)
 
   const newsItems = [
@@ -38,8 +38,20 @@ export default function RelatedNews() {
     setExpandedId(expandedId === id ? null : id)
   }
 
+  const finalContainerStyle: React.CSSProperties = isModal ? {
+    ...containerStyle,
+    position: 'relative',
+    right: 'auto',
+    top: 'auto',
+    width: '100%',
+    maxHeight: 'none',
+    background: 'transparent',
+    border: 'none',
+    padding: 0,
+  } : containerStyle
+
   return (
-    <div style={containerStyle}>
+    <div style={finalContainerStyle}>
       <h3 style={headerStyle}>Related News</h3>
       <div style={newsListStyle}>
         {newsItems.map((item) => (

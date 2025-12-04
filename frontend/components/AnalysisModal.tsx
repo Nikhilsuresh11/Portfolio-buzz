@@ -60,7 +60,7 @@ export default function AnalysisModal({ ticker, open, onClose }: { ticker?: stri
             </div>
           ) : (
             <div style={contentBoxStyle}>
-              <RelatedNews />
+              <RelatedNews isModal={true} />
             </div>
           )}
         </div>
