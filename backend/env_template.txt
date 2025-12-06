@@ -1,0 +1,15 @@
+# Environment variables for Portfolio Buzz Backend
+
+# MongoDB
+MONGODB_URI=mongodb://localhost:27017/
+
+# JWT Secret Key (change in production!)
+JWT_SECRET_KEY=your-super-secret-jwt-key-change-in-production
+
+# API Keys
+GROQ_API_KEY=your-groq-api-key
+ALPHA_VANTAGE_API_KEY=your-alpha-vantage-key
+FINNHUB_KEY=your-finnhub-key
+
+# Flask Environment
+FLASK_ENV=development
