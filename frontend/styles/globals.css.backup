@@ -330,38 +330,9 @@ aside a:active {
   overflow: hidden;
 }
 
-[data-theme="light"] .auth-left {
-  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
-}
-
-.auth-brand {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  z-index: 2;
-}
-
-.brand-name {
-  font-size: 32px;
-  font-weight: 700;
-  color: #f8fafc;
-  margin: 0;
-  letter-spacing: -0.5px;
-}
-
-.testimonial {
-  z-index: 2;
-  max-width: 520px;
-  animation: slideUp 0.8s ease 0.2s both;
-}
-
-.testimonial-quote {
-  font-size: 28px;
-  line-height: 1.4;
-  color: #f8fafc;
-  margin: 0 0 32px 0;
-  font-weight: 500;
-  position: relative;
+margin: 0 0 32px 0;
+font-weight: 500;
+position: relative;
 }
 
 .testimonial-quote::before {

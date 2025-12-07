@@ -7,6 +7,15 @@ export default function Header({ user }: { user?: string | null }) {
           <p style={subtitleStyle}>Real-time market intelligence</p>
         </div>
       </div>
+
+      <div style={rightSectionStyle}>
+        <div style={userBadgeStyle}>
+          <div style={avatarStyle}>
+            {user ? user[0].toUpperCase() : 'U'}
+          </div>
+          <span style={userNameStyle}>{user || 'Guest'}</span>
+        </div>
+      </div>
     </header>
   )
 }

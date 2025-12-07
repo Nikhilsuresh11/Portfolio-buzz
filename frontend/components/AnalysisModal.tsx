@@ -1,20 +1,55 @@
 import { useEffect, useState } from 'react'
 import RelatedNews from './RelatedNews'
+import { getToken } from '../lib/auth'
 
 export default function AnalysisModal({ ticker, open, onClose }: { ticker?: string | null, open: boolean, onClose: () => void }) {
   const [tab, setTab] = useState<'insights' | 'news'>('insights')
   const [analysis, setAnalysis] = useState<string>('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
   useEffect(() => {
-    if (open) {
+    if (open && ticker) {
       document.body.style.overflow = 'hidden'
-      setAnalysis(`• ${ticker} — Company update: New product launch and improving margins.\n• Supply chain pressures easing; watch margins.\n• Macro: USD strength could impact exports.`)
+      fetchAnalysis(ticker)
     } else {
       document.body.style.overflow = ''
       setTab('insights')
+      setAnalysis('')
+      setError('')
     }
     return () => { document.body.style.overflow = '' }
   }, [open, ticker])
+
+  const fetchAnalysis = async (stockTicker: string) => {
+    setLoading(true)
+    setError('')
+    try {
+      const token = getToken()
+      const res = await fetch('http://localhost:5000/api/ai-insight', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          stock_name: stockTicker.split('.')[0], // Simple heuristic for name
+          ticker: stockTicker
+        })
+      })
+
+      const data = await res.json()
+      if (data.success) {
+        setAnalysis(data.data.analysis)
+      } else {
+        setError(data.error || 'Failed to generate insights')
+      }
+    } catch (err) {
+      setError('Failed to connect to analysis service')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   if (!open) return null
 
@@ -56,7 +91,15 @@ export default function AnalysisModal({ ticker, open, onClose }: { ticker?: stri
         <div style={contentWrapperStyle}>
           {tab === 'insights' ? (
             <div style={contentBoxStyle}>
-              <pre style={textStyle}>{analysis}</pre>
+              {loading ? (
+                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+                  <div className="loading-spinner"></div>
+                </div>
+              ) : error ? (
+                <div style={{ color: '#ef4444', textAlign: 'center' }}>{error}</div>
+              ) : (
+                <pre style={textStyle}>{analysis}</pre>
+              )}
             </div>
           ) : (
             <div style={contentBoxStyle}>

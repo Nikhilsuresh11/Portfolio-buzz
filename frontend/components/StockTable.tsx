@@ -1,10 +1,36 @@
-export default function StockTable({ rows, onAnalyze, onRemove }: Props) {
+import React from 'react'
+import { Wand2, Trash2 } from 'lucide-react'
+
+interface Props {
+  rows: Array<{
+    ticker: string;
+    name: string;
+    price?: number;
+    change?: number;
+    changePercent?: number;
+    currency?: string;
+    shares?: number;
+  }>
+  onSelect: (ticker: string) => void
+  onAnalyze: (ticker: string) => void
+  onRemove: (ticker: string) => void
+  selectedTicker?: string | null
+}
+
+const getCurrencySymbol = (currency?: string) => {
+  if (currency === 'INR') return '₹'
+  if (currency === 'EUR') return '€'
+  if (currency === 'GBP') return '£'
+  return '$'
+}
+
+export default function StockTable({ rows, onSelect, onAnalyze, onRemove, selectedTicker }: Props) {
   return (
     <div className="card" style={cardStyle}>
       <div style={headerStyle}>
         <div>
-          <h2 style={titleStyle}>Holdings</h2>
-          <p style={subtitleStyle}>{rows.length} positions</p>
+          <h2 style={titleStyle}>Watchlist</h2>
+          <p style={subtitleStyle}>{rows.length} stocks</p>
         </div>
       </div>
 
@@ -14,57 +40,88 @@ export default function StockTable({ rows, onAnalyze, onRemove }: Props) {
             <tr>
               <th style={thStyle}>Symbol</th>
               <th style={thStyle}>Name</th>
-              <th style={{ ...thStyle, textAlign: 'right' }}>Shares</th>
               <th style={{ ...thStyle, textAlign: 'right' }}>Price</th>
-              <th style={{ ...thStyle, textAlign: 'right' }}>Value</th>
-              <th style={{ ...thStyle, textAlign: 'right' }}>1 Day $</th>
-              <th style={{ ...thStyle, textAlign: 'right' }}>1 Day %</th>
+              <th style={{ ...thStyle, textAlign: 'right' }}>Change</th>
+              <th style={{ ...thStyle, textAlign: 'right' }}>% Change</th>
               <th style={{ ...thStyle, textAlign: 'right' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((r) => {
-              const val = r.shares * r.price
-              const dayChange = -26.00
-              const dayPct = -1.24
+              const dayChange = r.change || 0
+              const dayPct = r.changePercent || 0
+              const isSelected = selectedTicker === r.ticker
+
               return (
-                <tr key={r.ticker} style={trStyle}>
+                <tr
+                  key={r.ticker}
+                  style={{
+                    ...trStyle,
+                    background: isSelected ? 'rgba(59, 130, 246, 0.1)' : 'transparent'
+                  }}
+                  onClick={() => onSelect(r.ticker)}
+                  className="stock-row"
+                >
                   <td style={tdSymbolStyle}>{r.ticker}</td>
                   <td style={tdNameStyle}>{r.name}</td>
-                  <td style={tdNumberStyle}>{r.shares}</td>
-                  <td style={tdNumberStyle}>${r.price.toFixed(2)}</td>
-                  <td style={tdNumberStyle}>${val.toFixed(2)}</td>
+                  <td style={tdNumberStyle}>{getCurrencySymbol(r.currency)}{(r.price || 0).toFixed(2)}</td>
                   <td style={{ ...tdNumberStyle, color: dayChange < 0 ? '#ef4444' : '#10b981', fontWeight: 600 }}>
-                    {dayChange.toFixed(2)}
+                    {dayChange > 0 ? '+' : ''}{dayChange.toFixed(2)}
                   </td>
                   <td style={{ ...tdNumberStyle, color: dayPct < 0 ? '#ef4444' : '#10b981', fontWeight: 600 }}>
-                    {dayPct.toFixed(2)}%
+                    {dayPct > 0 ? '+' : ''}{dayPct.toFixed(2)}%
                   </td>
                   <td style={tdActionsStyle}>
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'flex-end' }}>
                       <button
                         className="analyze-btn"
                         aria-label={`analyze-${r.ticker}`}
-                        title="Analyze"
-                        onClick={() => onAnalyze(r.ticker)}
+                        title="AI Insights & News"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onAnalyze(r.ticker)
+                        }}
                         style={iconBtnStyle}
-                        dangerouslySetInnerHTML={{ __html: wandSvg }}
-                      />
+                      >
+                        <Wand2 size={16} strokeWidth={2} />
+                      </button>
                       <button
                         aria-label={`delete-${r.ticker}`}
-                        title="Remove"
-                        onClick={() => onRemove(r.ticker)}
+                        title="Remove from watchlist"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onRemove(r.ticker)
+                        }}
                         style={deleteBtnStyle}
-                        dangerouslySetInnerHTML={{ __html: deleteSvg }}
-                      />
+                      >
+                        <Trash2 size={16} strokeWidth={2} />
+                      </button>
                     </div>
                   </td>
                 </tr>
               )
             })}
+            {rows.length === 0 && (
+              <tr>
+                <td colSpan={6} style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
+                  Your watchlist is empty. Click the search icon to add stocks.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
+      <style jsx>{`
+        .stock-row:hover {
+          background: rgba(255, 255, 255, 0.03) !important;
+          cursor: pointer;
+        }
+        .analyze-btn:hover {
+          background: rgba(59, 130, 246, 0.1) !important;
+          color: #3b82f6 !important;
+          border-color: rgba(59, 130, 246, 0.3) !important;
+        }
+      `}</style>
     </div>
   )
 }
@@ -72,12 +129,16 @@ export default function StockTable({ rows, onAnalyze, onRemove }: Props) {
 const cardStyle: React.CSSProperties = {
   padding: 0,
   overflow: 'hidden',
+  borderRadius: 16,
+  border: '1px solid rgba(255, 255, 255, 0.05)',
+  background: 'rgba(30, 41, 59, 0.2)',
+  backdropFilter: 'blur(10px)',
 }
 
 const headerStyle: React.CSSProperties = {
   padding: '24px 28px',
   borderBottom: '1px solid rgba(248, 250, 252, 0.08)',
-  background: 'rgba(30, 41, 59, 0.3)',
+  background: 'rgba(15, 23, 42, 0.3)',
 }
 
 const titleStyle: React.CSSProperties = {
@@ -152,33 +213,30 @@ const tdActionsStyle: React.CSSProperties = {
 
 const iconBtnStyle: React.CSSProperties = {
   background: 'transparent',
-  color: 'var(--text-primary)',
-  border: '1px solid var(--border-color)',
-  padding: '8px 10px',
+  color: '#94a3b8',
+  border: '1px solid rgba(255, 255, 255, 0.1)',
+  padding: '8px',
   borderRadius: 8,
   cursor: 'pointer',
   fontSize: 16,
   lineHeight: 1,
   transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
 }
 
 const deleteBtnStyle: React.CSSProperties = {
   background: 'transparent',
   color: '#ef4444',
-  border: '1px solid rgba(239, 68, 68, 0.3)',
-  padding: '8px 10px',
+  border: '1px solid rgba(239, 68, 68, 0.2)',
+  padding: '8px',
   borderRadius: 8,
   cursor: 'pointer',
   fontSize: 16,
   lineHeight: 1,
   transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-}
-
-const wandSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M15 4V2M15 16v-2M8 9h2M20 9h2M17.8 11.8L19 13M17.8 6.2L19 5M3 21l9-9M12.2 6.2L11 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`
-const deleteSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`
-
-interface Props {
-  rows: Array<{ ticker: string; name: string; shares: number; price: number }>
-  onAnalyze: (ticker: string) => void
-  onRemove: (ticker: string) => void
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
 }
