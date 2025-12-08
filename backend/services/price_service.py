@@ -30,21 +30,24 @@ class PriceService:
         """
         ticker = ticker.upper().strip()
         
-        # Try Alpha Vantage first
+        # Try Yahoo Finance first (Best for Indian stocks)
+        price_data = PriceService._fetch_yahoo(ticker)
+        if price_data:
+            return price_data
+            
+        # Try Alpha Vantage second
         if config.ALPHA_VANTAGE_API_KEY:
             price_data = PriceService._fetch_alpha_vantage(ticker)
             if price_data:
                 return price_data
         
-        # Try Finnhub
+        # Try Finnhub last
         if config.FINNHUB_KEY:
             price_data = PriceService._fetch_finnhub(ticker)
             if price_data:
                 return price_data
         
-        # Fallback to Yahoo Finance
-        price_data = PriceService._fetch_yahoo(ticker)
-        return price_data
+        return None
     
     @staticmethod
     def _fetch_alpha_vantage(ticker):

@@ -16,7 +16,7 @@ export default function Login() {
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated()) {
-      router.push('/')
+      router.push('/watchlist')
     }
   }, [router])
 
@@ -71,7 +71,7 @@ export default function Login() {
         toast.success(isLogin ? 'Login successful!' : 'Account created successfully!')
 
         // Redirect to home page
-        router.push('/')
+        router.push('/watchlist')
       } else {
         setError(data.error || 'Authentication failed')
         toast.error(data.error || 'Authentication failed')

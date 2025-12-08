@@ -1,265 +1,277 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
-import Sidebar from '../components/Sidebar'
-import Header from '../components/Header'
-import StockTable from '../components/StockTable'
-import RelatedNews from '../components/RelatedNews'
-import StockSearchModal from '../components/StockSearchModal'
-import WelcomeModal from '../components/WelcomeModal'
-import AnalysisModal from '../components/AnalysisModal'
-import { getToken, getUser } from '../lib/auth'
+import Link from 'next/link'
+import { isAuthenticated } from '../lib/auth'
 
-type Stock = {
-    ticker: string;
-    name: string;
-    shares?: number;
-    price?: number;
-    change?: number;
-    changePercent?: number;
-    currency?: string;
-}
-
-export default function Home() {
+export default function LandingPage() {
     const router = useRouter()
-    const [user, setUser] = useState<any>(null)
-    const [watchlist, setWatchlist] = useState<Stock[]>([])
-    const [selectedTicker, setSelectedTicker] = useState<string | null>(null)
-    const [isSearchOpen, setIsSearchOpen] = useState(false)
-    const [isWelcomeOpen, setIsWelcomeOpen] = useState(false)
-    const [isAnalysisOpen, setIsAnalysisOpen] = useState(false)
-    const [analysisTicker, setAnalysisTicker] = useState<string | null>(null)
-    const [loading, setLoading] = useState(true)
+    const [isLoggedIn, setIsLoggedIn] = useState(false)
 
     useEffect(() => {
-        // Check authentication
-        const token = getToken()
-        const userData = getUser()
+        setIsLoggedIn(isAuthenticated())
 
-        if (!token || !userData) {
-            router.push('/auth/login')
-            return
-        }
-
-        setUser(userData)
-        fetchWatchlistData()
-
-        // Apply saved theme or default to dark
-        const savedTheme = localStorage.getItem('pb_theme') as 'light' | 'dark' | null
-        if (savedTheme) {
-            document.documentElement.setAttribute('data-theme', savedTheme)
-        } else {
-            document.documentElement.setAttribute('data-theme', 'dark')
-            localStorage.setItem('pb_theme', 'dark')
-        }
+        // Dark theme by default for landing
+        document.documentElement.setAttribute('data-theme', 'dark')
     }, [])
 
-    const fetchWatchlistData = async () => {
-        try {
-            const token = getToken()
-            if (!token) return
-
-            const headers = { 'Authorization': `Bearer ${token}` }
-
-            // Fetch watchlist and prices in parallel
-            const [watchlistRes, pricesRes] = await Promise.all([
-                fetch('http://localhost:5000/api/watchlist', { headers }),
-                fetch('http://localhost:5000/api/watchlist/price', { headers })
-            ])
-
-            const watchlistData = await watchlistRes.json()
-            const pricesData = await pricesRes.json()
-
-            if (watchlistData.success) {
-                let stocks = watchlistData.data as Stock[]
-
-                // Merge prices if available
-                if (pricesData.success && pricesData.data) {
-                    stocks = stocks.map(stock => {
-                        const priceInfo = pricesData.data[stock.ticker]
-                        if (priceInfo) {
-                            return {
-                                ...stock,
-                                price: priceInfo.price,
-                                change: priceInfo.change,
-                                changePercent: priceInfo.change_percent,
-                                currency: priceInfo.currency
-                            }
-                        }
-                        return stock
-                    })
-                }
-
-                setWatchlist(stocks)
-
-                // If watchlist is empty, show welcome modal
-                if (stocks.length === 0) {
-                    const hasShown = sessionStorage.getItem('welcome_shown')
-                    if (!hasShown) {
-                        setIsWelcomeOpen(true)
-                        sessionStorage.setItem('welcome_shown', 'true')
-                    }
-                }
-            }
-        } catch (error) {
-            console.error('Error fetching watchlist data:', error)
-        } finally {
-            setLoading(false)
-        }
-    }
-
-    const addStock = async (ticker: string) => {
-        try {
-            const token = getToken()
-            if (!token) return
-
-            const res = await fetch('http://localhost:5000/api/watchlist', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({ ticker })
-            })
-
-            const data = await res.json()
-            if (data.success) {
-                // Refresh data to get prices for the new stock
-                fetchWatchlistData()
-                setSelectedTicker(ticker)
-            }
-        } catch (error) {
-            console.error('Error adding stock:', error)
-        }
-    }
-
-    const removeStock = async (ticker: string) => {
-        try {
-            const token = getToken()
-            if (!token) return
-
-            const res = await fetch(`http://localhost:5000/api/watchlist/${ticker}`, {
-                method: 'DELETE',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            })
-
-            const data = await res.json()
-            if (data.success) {
-                setWatchlist(prev => prev.filter(s => s.ticker !== ticker))
-                if (selectedTicker === ticker) {
-                    setSelectedTicker(null)
-                }
-            }
-        } catch (error) {
-            console.error('Error removing stock:', error)
-        }
-    }
-
-    const handleAnalyze = (ticker: string) => {
-        setAnalysisTicker(ticker)
-        setIsAnalysisOpen(true)
-    }
-
-    if (loading) return null // Or a loading spinner
-
     return (
-        <div className="app-root">
-            <Sidebar onSearchClick={() => setIsSearchOpen(true)} />
+        <div className="landing-root">
+            <nav className="nav">
+                <div className="logo">Portfolio Buzz</div>
+                <div className="nav-links">
+                    {isLoggedIn ? (
+                        <Link href="/watchlist" className="btn-primary">
+                            Go to Watchlist
+                        </Link>
+                    ) : (
+                        <>
+                            <Link href="/auth/login" className="btn-ghost">
+                                Login
+                            </Link>
+                            <Link href="/auth/login" className="btn-primary">
+                                Get Started
+                            </Link>
+                        </>
+                    )}
+                </div>
+            </nav>
 
-            <main className="main-col">
-                <Header user={user?.name || 'User'} />
-
-                <div className="content-grid">
-                    <div className="watchlist-section">
-                        <StockTable
-                            rows={watchlist}
-                            onSelect={setSelectedTicker}
-                            onAnalyze={handleAnalyze}
-                            onRemove={removeStock}
-                            selectedTicker={selectedTicker}
-                        />
+            <main className="hero">
+                <div className="hero-content">
+                    <h1 className="hero-title">
+                        Smarter Portfolio Tracking with <span className="gradient-text">AI Insights</span>
+                    </h1>
+                    <p className="hero-subtitle">
+                        Track your stocks, get real-time news, and leverage AI to make better investment decisions. All in one beautiful dashboard.
+                    </p>
+                    <div className="cta-group">
+                        <Link href={isLoggedIn ? "/watchlist" : "/auth/login"} className="btn-lg btn-primary">
+                            {isLoggedIn ? "View Dashboard" : "Start Tracking Now"}
+                        </Link>
+                        <a href="#features" className="btn-lg btn-secondary">
+                            Learn More
+                        </a>
                     </div>
+                </div>
 
-                    <div className="news-section">
-                        <RelatedNews
-                            ticker={selectedTicker}
-                            onClose={() => setSelectedTicker(null)}
-                        />
+                <div className="hero-image">
+                    {/* Placeholder for dashboard screenshot */}
+                    <div className="dashboard-preview">
+                        <div className="preview-header">
+                            <div className="dot red"></div>
+                            <div className="dot yellow"></div>
+                            <div className="dot green"></div>
+                        </div>
+                        <div className="preview-content">
+                            <div className="preview-sidebar"></div>
+                            <div className="preview-main">
+                                <div className="skeleton-row"></div>
+                                <div className="skeleton-row"></div>
+                                <div className="skeleton-row"></div>
+                                <div className="skeleton-graph"></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </main>
 
-            <StockSearchModal
-                isOpen={isSearchOpen}
-                onClose={() => setIsSearchOpen(false)}
-                onAddStock={addStock}
-                watchlist={watchlist}
-            />
-
-            <WelcomeModal
-                isOpen={isWelcomeOpen}
-                onClose={() => setIsWelcomeOpen(false)}
-                onAddStock={addStock}
-                watchlist={watchlist}
-            />
-
-            <AnalysisModal
-                ticker={analysisTicker}
-                open={isAnalysisOpen}
-                onClose={() => setIsAnalysisOpen(false)}
-            />
-
             <style jsx>{`
-        .app-root {
-          display: flex;
-          min-height: 100vh;
-          background: var(--bg-primary);
-        }
+                .landing-root {
+                    min-height: 100vh;
+                    background: var(--bg-primary);
+                    color: var(--text-primary);
+                    font-family: 'Inter', sans-serif;
+                }
 
-        .main-col {
-          flex: 1;
-          margin-left: 72px; /* Sidebar width */
-          display: flex;
-          flex-direction: column;
-          height: 100vh;
-          overflow: hidden;
-        }
+                .nav {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: 24px 48px;
+                    max-width: 1200px;
+                    margin: 0 auto;
+                }
 
-        .content-grid {
-          flex: 1;
-          display: grid;
-          grid-template-columns: 1fr 380px;
-          gap: 24px;
-          padding: 24px;
-          overflow: hidden;
-        }
+                .logo {
+                    font-size: 24px;
+                    font-weight: 800;
+                    background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+                    -webkit-background-clip: text;
+                    -webkit-text-fill-color: transparent;
+                }
 
-        .watchlist-section {
-          overflow-y: auto;
-          padding-right: 8px;
-        }
+                .nav-links {
+                    display: flex;
+                    gap: 16px;
+                    align-items: center;
+                }
 
-        .news-section {
-          height: 100%;
-          overflow: hidden;
-          border-radius: 16px;
-          background: rgba(30, 41, 59, 0.2);
-          border: 1px solid rgba(255, 255, 255, 0.05);
-        }
+                .hero {
+                    max-width: 1200px;
+                    margin: 0 auto;
+                    padding: 80px 24px;
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    gap: 48px;
+                    align-items: center;
+                }
 
-        @media (max-width: 1024px) {
-          .content-grid {
-            grid-template-columns: 1fr;
-          }
+                .hero-title {
+                    font-size: 56px;
+                    line-height: 1.1;
+                    font-weight: 800;
+                    margin-bottom: 24px;
+                }
 
-          .news-section {
-            display: none; /* Hide news on smaller screens or make it a modal */
-          }
+                .gradient-text {
+                    background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+                    -webkit-background-clip: text;
+                    -webkit-text-fill-color: transparent;
+                }
 
-          /* If a stock is selected, we could show news in a modal or overlay on mobile */
-        }
-      `}</style>
+                .hero-subtitle {
+                    font-size: 20px;
+                    color: var(--text-secondary);
+                    line-height: 1.6;
+                    margin-bottom: 40px;
+                    max-width: 500px;
+                }
+
+                .cta-group {
+                    display: flex;
+                    gap: 16px;
+                }
+
+                .btn-primary {
+                    background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+                    color: white;
+                    padding: 12px 24px;
+                    border-radius: 99px;
+                    font-weight: 600;
+                    text-decoration: none;
+                    transition: transform 0.2s;
+                }
+
+                .btn-primary:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+                }
+
+                .btn-ghost {
+                    color: var(--text-primary);
+                    padding: 12px 24px;
+                    font-weight: 600;
+                    text-decoration: none;
+                }
+
+                .btn-lg {
+                    padding: 16px 32px;
+                    font-size: 18px;
+                }
+
+                .btn-secondary {
+                    background: rgba(255, 255, 255, 0.05);
+                    color: var(--text-primary);
+                    padding: 12px 24px;
+                    border-radius: 99px;
+                    font-weight: 600;
+                    text-decoration: none;
+                    border: 1px solid rgba(255, 255, 255, 0.1);
+                    transition: background 0.2s;
+                }
+
+                .btn-secondary:hover {
+                    background: rgba(255, 255, 255, 0.1);
+                }
+
+                .dashboard-preview {
+                    background: #1a1f2e;
+                    border-radius: 12px;
+                    border: 1px solid rgba(255, 255, 255, 0.1);
+                    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+                    overflow: hidden;
+                    aspect-ratio: 16/10;
+                    position: relative;
+                }
+
+                .preview-header {
+                    background: rgba(255, 255, 255, 0.03);
+                    padding: 12px;
+                    display: flex;
+                    gap: 8px;
+                    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+                }
+
+                .dot {
+                    width: 10px;
+                    height: 10px;
+                    border-radius: 50%;
+                }
+                .red { background: #ef4444; }
+                .yellow { background: #eab308; }
+                .green { background: #22c55e; }
+
+                .preview-content {
+                    display: flex;
+                    height: 100%;
+                }
+
+                .preview-sidebar {
+                    width: 60px;
+                    border-right: 1px solid rgba(255, 255, 255, 0.05);
+                }
+
+                .preview-main {
+                    flex: 1;
+                    padding: 20px;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 16px;
+                }
+
+                .skeleton-row {
+                    height: 48px;
+                    background: rgba(255, 255, 255, 0.03);
+                    border-radius: 8px;
+                }
+
+                .skeleton-graph {
+                    flex: 1;
+                    background: linear-gradient(180deg, rgba(59, 130, 246, 0.1) 0%, rgba(59, 130, 246, 0) 100%);
+                    border-top: 2px solid #3b82f6;
+                    border-radius: 0 0 8px 8px;
+                    max-height: 200px;
+                }
+
+                @media (max-width: 768px) {
+                    .hero {
+                        grid-template-columns: 1fr;
+                        text-align: center;
+                        gap: 32px;
+                    }
+                    
+                    .hero-title {
+                        font-size: 40px;
+                    }
+                    
+                    .nav {
+                        padding: 16px 24px;
+                    }
+                    
+                    .cta-group {
+                        justify-content: center;
+                    }
+
+                    .hero-image {
+                        order: -1;
+                    }
+                    
+                    .hero-subtitle {
+                        margin-left: auto;
+                        margin-right: auto;
+                    }
+                }
+            `}</style>
         </div>
     )
 }

@@ -1,5 +1,5 @@
 import React from 'react'
-import { Wand2, Trash2 } from 'lucide-react'
+import { Wand2, Trash2, ArrowUp, ArrowDown } from 'lucide-react'
 
 interface Props {
   rows: Array<{
@@ -10,6 +10,11 @@ interface Props {
     changePercent?: number;
     currency?: string;
     shares?: number;
+    volume?: number;
+    high?: number;
+    low?: number;
+    open?: number;
+    prev_close?: number;
   }>
   onSelect: (ticker: string) => void
   onAnalyze: (ticker: string) => void
@@ -24,26 +29,39 @@ const getCurrencySymbol = (currency?: string) => {
   return '$'
 }
 
+const formatVolume = (num?: number) => {
+  if (!num) return '-'
+  if (num >= 1.0e+9) return (num / 1.0e+9).toFixed(1) + "B"
+  if (num >= 1.0e+6) return (num / 1.0e+6).toFixed(1) + "M"
+  if (num >= 1.0e+3) return (num / 1.0e+3).toFixed(1) + "K"
+  return num.toString()
+}
+
+const getRandomColor = (ticker: string) => {
+  const colors = [
+    'linear-gradient(135deg, #3b82f6, #2563eb)', // Blue
+    'linear-gradient(135deg, #8b5cf6, #7c3aed)', // Purple
+    'linear-gradient(135deg, #ec4899, #db2777)', // Pink
+    'linear-gradient(135deg, #10b981, #059669)', // Emerald
+    'linear-gradient(135deg, #f59e0b, #d97706)', // Amber
+  ]
+  const index = ticker.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
+  return colors[index % colors.length]
+}
+
 export default function StockTable({ rows, onSelect, onAnalyze, onRemove, selectedTicker }: Props) {
   return (
     <div className="card" style={cardStyle}>
-      <div style={headerStyle}>
-        <div>
-          <h2 style={titleStyle}>Watchlist</h2>
-          <p style={subtitleStyle}>{rows.length} stocks</p>
-        </div>
-      </div>
-
       <div style={tableWrapperStyle}>
         <table style={tableStyle}>
           <thead>
             <tr>
-              <th style={thStyle}>Symbol</th>
-              <th style={thStyle}>Name</th>
+              <th style={{ ...thStyle, width: '30%' }}>Company</th>
               <th style={{ ...thStyle, textAlign: 'right' }}>Price</th>
               <th style={{ ...thStyle, textAlign: 'right' }}>Change</th>
-              <th style={{ ...thStyle, textAlign: 'right' }}>% Change</th>
-              <th style={{ ...thStyle, textAlign: 'right' }}>Actions</th>
+              <th style={{ ...thStyle, textAlign: 'right' }}>Volume</th>
+              <th style={{ ...thStyle, textAlign: 'right' }}>Day Range</th>
+              <th style={{ ...thStyle, textAlign: 'right', width: 100 }}>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -51,6 +69,8 @@ export default function StockTable({ rows, onSelect, onAnalyze, onRemove, select
               const dayChange = r.change || 0
               const dayPct = r.changePercent || 0
               const isSelected = selectedTicker === r.ticker
+              const isPositive = dayChange >= 0
+              const tickerPrefix = r.ticker.substring(0, 2).toUpperCase()
 
               return (
                 <tr
@@ -62,37 +82,90 @@ export default function StockTable({ rows, onSelect, onAnalyze, onRemove, select
                   onClick={() => onSelect(r.ticker)}
                   className="stock-row"
                 >
-                  <td style={tdSymbolStyle}>{r.ticker}</td>
-                  <td style={tdNameStyle}>{r.name}</td>
-                  <td style={tdNumberStyle}>{getCurrencySymbol(r.currency)}{(r.price || 0).toFixed(2)}</td>
-                  <td style={{ ...tdNumberStyle, color: dayChange < 0 ? '#ef4444' : '#10b981', fontWeight: 600 }}>
-                    {dayChange > 0 ? '+' : ''}{dayChange.toFixed(2)}
+                  {/* Company Column */}
+                  <td style={tdCompanyStyle}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <div style={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: 8,
+                        background: getRandomColor(r.ticker),
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontWeight: 700,
+                        color: 'white',
+                        fontSize: 14,
+                        boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+                      }}>
+                        {tickerPrefix}
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 700, color: '#f8fafc', fontSize: 14 }}>{r.ticker}</div>
+                        <div style={{ color: '#94a3b8', fontSize: 12 }}>{r.name}</div>
+                      </div>
+                    </div>
                   </td>
-                  <td style={{ ...tdNumberStyle, color: dayPct < 0 ? '#ef4444' : '#10b981', fontWeight: 600 }}>
-                    {dayPct > 0 ? '+' : ''}{dayPct.toFixed(2)}%
+
+                  {/* Price */}
+                  <td style={{ ...tdNumberStyle, fontWeight: 700, fontSize: 15 }}>
+                    {getCurrencySymbol(r.currency)}{(r.price || 0).toFixed(2)}
                   </td>
+
+                  {/* Change */}
+                  <td style={{ ...tdNumberStyle }}>
+                    <div style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      color: isPositive ? '#22c55e' : '#ef4444',
+                      fontWeight: 600,
+                      background: isPositive ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                      padding: '4px 8px',
+                      borderRadius: 6,
+                      fontSize: 13
+                    }}>
+                      {isPositive ? <ArrowUp size={14} strokeWidth={3} /> : <ArrowDown size={14} strokeWidth={3} />}
+                      {Math.abs(dayPct).toFixed(2)}%
+                    </div>
+                  </td>
+
+                  {/* Volume */}
+                  <td style={tdNumberStyle}>
+                    {formatVolume(r.volume)}
+                  </td>
+
+                  {/* Day Range */}
+                  <td style={tdNumberStyle}>
+                    {r.low && r.high ? (
+                      <span style={{ fontSize: 13, color: '#94a3b8' }}>
+                        {r.low.toFixed(1)} - {r.high.toFixed(1)}
+                      </span>
+                    ) : '-'}
+                  </td>
+
+                  {/* Actions */}
                   <td style={tdActionsStyle}>
-                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'flex-end' }}>
+                    <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                       <button
-                        className="analyze-btn"
-                        aria-label={`analyze-${r.ticker}`}
-                        title="AI Insights & News"
+                        className="action-btn analyze-btn"
                         onClick={(e) => {
                           e.stopPropagation()
                           onAnalyze(r.ticker)
                         }}
+                        title="AI Insights"
                         style={iconBtnStyle}
                       >
                         <Wand2 size={16} strokeWidth={2} />
                       </button>
                       <button
-                        aria-label={`delete-${r.ticker}`}
-                        title="Remove from watchlist"
+                        className="action-btn delete-btn"
                         onClick={(e) => {
                           e.stopPropagation()
                           onRemove(r.ticker)
                         }}
-                        style={deleteBtnStyle}
+                        title="Remove"
+                        style={iconBtnStyle}
                       >
                         <Trash2 size={16} strokeWidth={2} />
                       </button>
@@ -116,10 +189,17 @@ export default function StockTable({ rows, onSelect, onAnalyze, onRemove, select
           background: rgba(255, 255, 255, 0.03) !important;
           cursor: pointer;
         }
+        .action-btn:hover {
+            color: #f8fafc !important;
+            background: rgba(255, 255, 255, 0.1) !important;
+        }
         .analyze-btn:hover {
-          background: rgba(59, 130, 246, 0.1) !important;
-          color: #3b82f6 !important;
-          border-color: rgba(59, 130, 246, 0.3) !important;
+            color: #3b82f6 !important;
+            background: rgba(59, 130, 246, 0.1) !important;
+        }
+        .delete-btn:hover {
+            color: #ef4444 !important;
+            background: rgba(239, 68, 68, 0.1) !important;
         }
       `}</style>
     </div>
@@ -127,34 +207,10 @@ export default function StockTable({ rows, onSelect, onAnalyze, onRemove, select
 }
 
 const cardStyle: React.CSSProperties = {
-  padding: 0,
   overflow: 'hidden',
   borderRadius: 16,
   border: '1px solid rgba(255, 255, 255, 0.05)',
-  background: 'rgba(30, 41, 59, 0.2)',
-  backdropFilter: 'blur(10px)',
-}
-
-const headerStyle: React.CSSProperties = {
-  padding: '24px 28px',
-  borderBottom: '1px solid rgba(248, 250, 252, 0.08)',
-  background: 'rgba(15, 23, 42, 0.3)',
-}
-
-const titleStyle: React.CSSProperties = {
-  margin: 0,
-  fontSize: 20,
-  fontWeight: 700,
-  color: '#f8fafc',
-  letterSpacing: '-0.01em',
-}
-
-const subtitleStyle: React.CSSProperties = {
-  margin: 0,
-  marginTop: 4,
-  fontSize: 13,
-  color: '#64748b',
-  fontWeight: 500,
+  background: '#0f172a', // Darker background for table
 }
 
 const tableWrapperStyle: React.CSSProperties = {
@@ -167,76 +223,50 @@ const tableStyle: React.CSSProperties = {
 }
 
 const thStyle: React.CSSProperties = {
-  padding: '16px 20px',
+  padding: '16px 24px',
   fontSize: 12,
   fontWeight: 600,
-  color: '#94a3b8',
+  color: '#64748b',
   textTransform: 'uppercase',
   letterSpacing: '0.05em',
   textAlign: 'left',
-  borderBottom: '1px solid rgba(248, 250, 252, 0.08)',
+  background: '#0f172a',
+  borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
 }
 
 const trStyle: React.CSSProperties = {
-  borderBottom: '1px solid rgba(248, 250, 252, 0.05)',
+  borderBottom: '1px solid rgba(255, 255, 255, 0.03)',
   transition: 'background-color 0.15s ease',
 }
 
-const tdSymbolStyle: React.CSSProperties = {
-  padding: '18px 20px',
-  fontSize: 14,
-  fontWeight: 700,
-  color: '#f8fafc',
-  fontFamily: 'ui-monospace, monospace',
-}
-
-const tdNameStyle: React.CSSProperties = {
-  padding: '18px 20px',
-  fontSize: 14,
-  color: '#cbd5e1',
-  fontWeight: 500,
+const tdCompanyStyle: React.CSSProperties = {
+  padding: '20px 24px',
 }
 
 const tdNumberStyle: React.CSSProperties = {
-  padding: '18px 20px',
+  padding: '20px 24px',
   fontSize: 14,
   color: '#e2e8f0',
   textAlign: 'right',
   fontWeight: 500,
   fontVariantNumeric: 'tabular-nums',
+  whiteSpace: 'nowrap',
 }
 
 const tdActionsStyle: React.CSSProperties = {
-  padding: '18px 20px',
+  padding: '20px 24px',
   textAlign: 'right',
 }
 
 const iconBtnStyle: React.CSSProperties = {
   background: 'transparent',
-  color: '#94a3b8',
-  border: '1px solid rgba(255, 255, 255, 0.1)',
+  color: '#64748b',
+  border: 'none',
   padding: '8px',
   borderRadius: 8,
   cursor: 'pointer',
-  fontSize: 16,
-  lineHeight: 1,
-  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-  display: 'inline-flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-}
-
-const deleteBtnStyle: React.CSSProperties = {
-  background: 'transparent',
-  color: '#ef4444',
-  border: '1px solid rgba(239, 68, 68, 0.2)',
-  padding: '8px',
-  borderRadius: 8,
-  cursor: 'pointer',
-  fontSize: 16,
-  lineHeight: 1,
-  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-  display: 'inline-flex',
+  transition: 'all 0.2s',
+  display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
 }

@@ -9,7 +9,7 @@ export default function Sidebar({ onSearchClick }: SidebarProps) {
     return (
         <aside style={sidebarStyle} aria-label="Main navigation">
             <nav style={navStyle}>
-                <Link href="/" passHref legacyBehavior>
+                <Link href="/watchlist" passHref legacyBehavior>
                     <a title="Home" style={iconStyle}>
                         <Home size={20} strokeWidth={2} />
                     </a>

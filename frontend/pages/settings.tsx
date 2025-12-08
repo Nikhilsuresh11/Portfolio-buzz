@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
+import { removeToken } from '../lib/auth'
 import Sidebar from '../components/Sidebar'
 import Header from '../components/Header'
 
@@ -150,7 +151,7 @@ export default function Settings() {
                             </div>
                             <button
                                 onClick={() => {
-                                    localStorage.removeItem('pb_user')
+                                    removeToken()
                                     router.push('/auth/login')
                                 }}
                                 style={{

@@ -138,11 +138,7 @@ def create_app(config_name='development'):
             'error': 'Method not allowed'
         }), 405
     
-    # Cleanup on app teardown
-    @app.teardown_appcontext
-    def shutdown_session(exception=None):
-        """Close database connection on app teardown"""
-        Database.close_connection()
+
     
     return app
 
