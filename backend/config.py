@@ -26,6 +26,7 @@ class Config:
     GROQ_API_KEY = os.getenv('GROQ_API_KEY')
     ALPHA_VANTAGE_API_KEY = os.getenv('ALPHA_VANTAGE_API_KEY')
     FINNHUB_KEY = os.getenv('FINNHUB_KEY')
+    PERPLEXITY_API_KEY = os.getenv('PERPLEXITY_API_KEY')
     
     # CORS
     CORS_ORIGINS = ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:8501']
