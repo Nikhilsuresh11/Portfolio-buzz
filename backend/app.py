@@ -20,6 +20,7 @@ from routes.auth_routes import auth_bp
 from routes.watchlist_routes import watchlist_bp
 from routes.search_routes import search_bp
 from routes.analysis_routes import analysis_bp
+from routes.stock_research_routes import stock_research_bp
 
 
 def create_app(config_name='development'):
@@ -55,6 +56,7 @@ def create_app(config_name='development'):
     app.register_blueprint(watchlist_bp)
     app.register_blueprint(search_bp)
     app.register_blueprint(analysis_bp)
+    app.register_blueprint(stock_research_bp)
     
     # Health check endpoint
     @app.route('/health', methods=['GET'])

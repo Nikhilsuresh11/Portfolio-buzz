@@ -5,6 +5,7 @@ import Header from '../components/Header'
 import StockTable from '../components/StockTable'
 import RelatedNews from '../components/RelatedNews'
 import StockSearchModal from '../components/StockSearchModal'
+import StockResearchModal from '../components/StockResearchModal'
 import WelcomeModal from '../components/WelcomeModal'
 import AnalysisModal from '../components/AnalysisModal'
 import { getToken, getUser } from '../lib/auth'
@@ -30,6 +31,7 @@ export default function Watchlist() {
     const [watchlist, setWatchlist] = useState<Stock[]>([])
     const [selectedTicker, setSelectedTicker] = useState<string | null>(null)
     const [isSearchOpen, setIsSearchOpen] = useState(false)
+    const [isResearchOpen, setIsResearchOpen] = useState(false)
     const [isWelcomeOpen, setIsWelcomeOpen] = useState(false)
     const [isAnalysisOpen, setIsAnalysisOpen] = useState(false)
     const [analysisTicker, setAnalysisTicker] = useState<string | null>(null)
@@ -175,7 +177,10 @@ export default function Watchlist() {
 
     return (
         <div className="app-root">
-            <Sidebar onSearchClick={() => setIsSearchOpen(true)} />
+            <Sidebar
+                onSearchClick={() => setIsSearchOpen(true)}
+                onResearchClick={() => setIsResearchOpen(true)}
+            />
 
             <main className="main-col">
                 <Header user={user?.name || 'User'} />
@@ -218,6 +223,11 @@ export default function Watchlist() {
                 ticker={analysisTicker}
                 open={isAnalysisOpen}
                 onClose={() => setIsAnalysisOpen(false)}
+            />
+
+            <StockResearchModal
+                isOpen={isResearchOpen}
+                onClose={() => setIsResearchOpen(false)}
             />
 
             <style jsx>{`

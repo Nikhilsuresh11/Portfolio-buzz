@@ -1,11 +1,12 @@
 import Link from 'next/link'
-import { Home, TrendingUp, Star, Newspaper, Settings, Search } from 'lucide-react'
+import { Home, TrendingUp, Star, Newspaper, Settings, Search, FlaskConical } from 'lucide-react'
 
 interface SidebarProps {
     onSearchClick?: () => void
+    onResearchClick?: () => void
 }
 
-export default function Sidebar({ onSearchClick }: SidebarProps) {
+export default function Sidebar({ onSearchClick, onResearchClick }: SidebarProps) {
     return (
         <aside style={sidebarStyle} aria-label="Main navigation">
             <nav style={navStyle}>
@@ -21,6 +22,14 @@ export default function Sidebar({ onSearchClick }: SidebarProps) {
                     style={{ ...iconStyle, border: 'none' }}
                 >
                     <Search size={20} strokeWidth={2} />
+                </button>
+
+                <button
+                    onClick={onResearchClick}
+                    title="Deep Research"
+                    style={{ ...iconStyle, border: 'none' }}
+                >
+                    <FlaskConical size={20} strokeWidth={2} />
                 </button>
 
                 <a href="#" title="Portfolio" style={iconStyle}>
