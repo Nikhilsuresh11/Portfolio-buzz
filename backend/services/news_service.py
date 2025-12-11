@@ -1,8 +1,8 @@
 import sys
 import os
 
-# Add parent directory to path to import scraper
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+# Add parent directory to path to import modules
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from scraper import scrape_all_sources
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -40,27 +40,28 @@ class NewsService:
         try:
             all_articles = []
             
-            # 1. DuckDuckGo News (primary source - bot-friendly and reliable)
+            # 1. Google News RSS (primary source - bot-friendly and reliable)
             if use_google_news:
                 try:
-                    from services.duckduckgo_news import DuckDuckGoNewsFetcher
+                    from services.google_news_rss import fetch_google_news_rss
                     
-                    print(f"Fetching from DuckDuckGo News: {stock_name} (filter: {time_filter})")
-                    ddg_articles = DuckDuckGoNewsFetcher.fetch_news(
-                        query=stock_name,
+                    print(f"Fetching from Google News RSS: {stock_name} (filter: {time_filter}, sort: {sort_by})")
+                    google_articles = fetch_google_news_rss(
+                        stock_name=stock_name,
+                        ticker=ticker,
                         time_filter=time_filter,
                         max_articles=max_articles
                     )
-                    all_articles.extend(ddg_articles)
-                    print(f"DuckDuckGo News returned {len(ddg_articles)} articles")
+                    all_articles.extend(google_articles)
+                    print(f"Google News RSS returned {len(google_articles)} articles")
                 
                 except Exception as e:
-                    print(f"DuckDuckGo News error: {e}")
+                    print(f"Google News RSS error: {e}")
                     # Don't disable use_google_news here, let it fall through to legacy scraper
             
             # 2. Legacy scraper (TRUE FALLBACK - only if Google RSS returned no results)
             if len(all_articles) == 0:
-                print("Primary news source returned no articles, falling back to legacy scraper...")
+                print("Google News RSS returned no articles, falling back to legacy scraper...")
                 try:
                     query = ticker if ticker else stock_name
                     legacy_articles = scrape_all_sources(
