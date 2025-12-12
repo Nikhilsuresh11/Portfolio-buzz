@@ -3,114 +3,114 @@ import { X, Plus, Check, TrendingUp, ArrowRight } from 'lucide-react'
 import { getToken } from '../lib/auth'
 
 interface Stock {
-    ticker: string
-    name: string
-    exchange?: string
-    sector?: string
+  ticker: string
+  name: string
+  exchange?: string
+  sector?: string
 }
 
 interface WelcomeModalProps {
-    isOpen: boolean
-    onClose: () => void
-    onAddStock: (ticker: string) => void
-    watchlist: Stock[]
+  isOpen: boolean
+  onClose: () => void
+  onAddStock: (ticker: string) => void
+  watchlist: Stock[]
 }
 
 export default function WelcomeModal({ isOpen, onClose, onAddStock, watchlist }: WelcomeModalProps) {
-    const [trendingStocks, setTrendingStocks] = useState<Stock[]>([])
-    const [loading, setLoading] = useState(true)
-    const [addedStocks, setAddedStocks] = useState<Set<string>>(new Set())
+  const [trendingStocks, setTrendingStocks] = useState<Stock[]>([])
+  const [loading, setLoading] = useState(true)
+  const [addedStocks, setAddedStocks] = useState<Set<string>>(new Set())
 
-    useEffect(() => {
-        if (isOpen) {
-            fetchTrendingStocks()
-            document.body.style.overflow = 'hidden'
-        } else {
-            document.body.style.overflow = 'unset'
-        }
-        return () => {
-            document.body.style.overflow = 'unset'
-        }
-    }, [isOpen])
-
-    const fetchTrendingStocks = async () => {
-        try {
-            const token = getToken()
-            const headers: HeadersInit = {}
-            if (token) headers['Authorization'] = `Bearer ${token}`
-
-            const res = await fetch('http://localhost:5000/api/search/default?limit=6', {
-                headers
-            })
-
-            const data = await res.json()
-            if (data.success) {
-                setTrendingStocks(data.data)
-            }
-        } catch (error) {
-            console.error('Error fetching trending stocks:', error)
-        } finally {
-            setLoading(false)
-        }
+  useEffect(() => {
+    if (isOpen) {
+      fetchTrendingStocks()
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = 'unset'
     }
-
-    const handleAdd = (ticker: string) => {
-        onAddStock(ticker)
-        setAddedStocks(prev => new Set(prev).add(ticker))
+    return () => {
+      document.body.style.overflow = 'unset'
     }
+  }, [isOpen])
 
-    const isStockInWatchlist = (ticker: string) => {
-        return watchlist.some(s => s.ticker === ticker) || addedStocks.has(ticker)
+  const fetchTrendingStocks = async () => {
+    try {
+      const token = getToken()
+      const headers: HeadersInit = {}
+      if (token) headers['Authorization'] = `Bearer ${token}`
+
+      const res = await fetch('https://portfolio-buzz.onrender.com/api/search/default?limit=6', {
+        headers
+      })
+
+      const data = await res.json()
+      if (data.success) {
+        setTrendingStocks(data.data)
+      }
+    } catch (error) {
+      console.error('Error fetching trending stocks:', error)
+    } finally {
+      setLoading(false)
     }
+  }
 
-    if (!isOpen) return null
+  const handleAdd = (ticker: string) => {
+    onAddStock(ticker)
+    setAddedStocks(prev => new Set(prev).add(ticker))
+  }
 
-    return (
-        <div className="modal-overlay">
-            <div className="welcome-modal">
-                <div className="modal-content">
-                    <div className="modal-header">
-                        <div className="icon-wrapper">
-                            <TrendingUp size={32} color="#3b82f6" />
-                        </div>
-                        <h2>Welcome to Portfolio Buzz</h2>
-                        <p>Start by adding some popular stocks to your watchlist to track their performance and news.</p>
-                    </div>
+  const isStockInWatchlist = (ticker: string) => {
+    return watchlist.some(s => s.ticker === ticker) || addedStocks.has(ticker)
+  }
 
-                    <div className="stocks-grid">
-                        {loading ? (
-                            <div className="loading-state">Loading suggestions...</div>
-                        ) : (
-                            trendingStocks.map(stock => {
-                                const added = isStockInWatchlist(stock.ticker)
-                                return (
-                                    <div key={stock.ticker} className={`stock-card ${added ? 'added' : ''}`}>
-                                        <div className="stock-info">
-                                            <span className="ticker">{stock.ticker}</span>
-                                            <span className="name">{stock.name}</span>
-                                        </div>
-                                        <button
-                                            className={`action-btn ${added ? 'added' : ''}`}
-                                            onClick={() => !added && handleAdd(stock.ticker)}
-                                            disabled={added}
-                                        >
-                                            {added ? <Check size={18} /> : <Plus size={18} />}
-                                        </button>
-                                    </div>
-                                )
-                            })
-                        )}
-                    </div>
+  if (!isOpen) return null
 
-                    <div className="modal-footer">
-                        <button className="continue-btn" onClick={onClose}>
-                            Get Started <ArrowRight size={18} />
-                        </button>
-                    </div>
-                </div>
+  return (
+    <div className="modal-overlay">
+      <div className="welcome-modal">
+        <div className="modal-content">
+          <div className="modal-header">
+            <div className="icon-wrapper">
+              <TrendingUp size={32} color="#3b82f6" />
             </div>
+            <h2>Welcome to Portfolio Buzz</h2>
+            <p>Start by adding some popular stocks to your watchlist to track their performance and news.</p>
+          </div>
 
-            <style jsx>{`
+          <div className="stocks-grid">
+            {loading ? (
+              <div className="loading-state">Loading suggestions...</div>
+            ) : (
+              trendingStocks.map(stock => {
+                const added = isStockInWatchlist(stock.ticker)
+                return (
+                  <div key={stock.ticker} className={`stock-card ${added ? 'added' : ''}`}>
+                    <div className="stock-info">
+                      <span className="ticker">{stock.ticker}</span>
+                      <span className="name">{stock.name}</span>
+                    </div>
+                    <button
+                      className={`action-btn ${added ? 'added' : ''}`}
+                      onClick={() => !added && handleAdd(stock.ticker)}
+                      disabled={added}
+                    >
+                      {added ? <Check size={18} /> : <Plus size={18} />}
+                    </button>
+                  </div>
+                )
+              })
+            )}
+          </div>
+
+          <div className="modal-footer">
+            <button className="continue-btn" onClick={onClose}>
+              Get Started <ArrowRight size={18} />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <style jsx>{`
         .modal-overlay {
           position: fixed;
           inset: 0;
@@ -287,6 +287,6 @@ export default function WelcomeModal({ isOpen, onClose, onAddStock, watchlist }:
           to { opacity: 1; transform: scale(1); }
         }
       `}</style>
-        </div>
-    )
+    </div>
+  )
 }

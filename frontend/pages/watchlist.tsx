@@ -69,8 +69,8 @@ export default function Watchlist() {
 
             // Fetch watchlist and prices in parallel
             const [watchlistRes, pricesRes] = await Promise.all([
-                fetch('http://localhost:5000/api/watchlist', { headers }),
-                fetch('http://localhost:5000/api/watchlist/price', { headers })
+                fetch('https://portfolio-buzz.onrender.com/api/watchlist', { headers }),
+                fetch('https://portfolio-buzz.onrender.com/api/watchlist/price', { headers })
             ])
 
             const watchlistData = await watchlistRes.json()
@@ -124,7 +124,7 @@ export default function Watchlist() {
             const token = getToken()
             if (!token) return
 
-            const res = await fetch('http://localhost:5000/api/watchlist', {
+            const res = await fetch('https://portfolio-buzz.onrender.com/api/watchlist', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -149,7 +149,7 @@ export default function Watchlist() {
             const token = getToken()
             if (!token) return
 
-            const res = await fetch(`http://localhost:5000/api/watchlist/${ticker}`, {
+            const res = await fetch(`https://portfolio-buzz.onrender.com/api/watchlist/${ticker}`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${token}`

@@ -32,8 +32,8 @@ export default function RelatedNews({ ticker, onClose }: Props) {
         // If ticker is provided, fetch news for that ticker
         // Otherwise fetch general watchlist news
         const url = ticker
-          ? `http://localhost:5000/api/watchlist/news?ticker=${ticker}`
-          : `http://localhost:5000/api/watchlist/news`
+          ? `https://portfolio-buzz.onrender.com/api/watchlist/news?ticker=${ticker}`
+          : `https://portfolio-buzz.onrender.com/api/watchlist/news`
 
         const res = await fetch(url, { headers })
         const data = await res.json()
