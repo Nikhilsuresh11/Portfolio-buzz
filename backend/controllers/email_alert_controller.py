@@ -63,9 +63,9 @@ class EmailAlertController:
                 
                 print(f"📊 {ticker}: {change_percent:.2f}% change")
                 
-                # Check if stock is in negative (any drop)
-                if change_percent < 0:
-                    print(f"🔴 {ticker} is negative! Sending alert...")
+                # Check if stock dropped 5% or more
+                if change_percent <= -5.0:
+                    print(f"🔴 {ticker} dropped 5%+! Sending alert...")
                     # Prepare stock data for email
                     stock_data = {
                         'ticker': ticker,

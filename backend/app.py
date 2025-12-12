@@ -60,6 +60,10 @@ def create_app(config_name='development'):
     app.register_blueprint(stock_research_bp)
     app.register_blueprint(email_alert_bp)
     
+    # Initialize and start alert scheduler
+    from services.alert_scheduler import alert_scheduler
+    alert_scheduler.start()
+    
     # Health check endpoint
     @app.route('/health', methods=['GET'])
     def health_check():

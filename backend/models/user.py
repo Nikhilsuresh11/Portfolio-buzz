@@ -122,6 +122,17 @@ class User:
         return result.deleted_count > 0
     
     @staticmethod
+    def get_all_users():
+        """
+        Get all users (for scheduled tasks)
+        
+        Returns:
+            list: List of user documents
+        """
+        users_col = get_users_collection()
+        return list(users_col.find({}, {'password': 0}))  # Exclude password field
+    
+    @staticmethod
     def to_dict(user_doc):
         """
         Convert user document to dictionary (excluding password)

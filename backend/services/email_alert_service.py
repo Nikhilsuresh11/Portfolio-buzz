@@ -36,15 +36,7 @@ class EmailAlertService:
             smtp_username = config.SMTP_USERNAME or config.SENDER_EMAIL  # Use SMTP_USERNAME if set, else SENDER_EMAIL
             sender_email = config.SENDER_EMAIL
             sender_password = config.SENDER_PASSWORD
-            
-            # Debug: Print configuration status
-            print(f"📧 Email Config Check:")
-            print(f"   SMTP_SERVER: {smtp_server if smtp_server else '❌ Not set'}")
-            print(f"   SMTP_PORT: {smtp_port if smtp_port else '❌ Not set'}")
-            print(f"   SMTP_USERNAME: {smtp_username if smtp_username else '❌ Not set'}")
-            print(f"   SENDER_EMAIL: {sender_email if sender_email else '❌ Not set'}")
-            print(f"   SENDER_PASSWORD: {'✅ Set' if sender_password else '❌ Not set'}")
-            
+
             # Validate configuration
             if not all([smtp_server, smtp_port, smtp_username, sender_email, sender_password]):
                 print("❌ Email configuration incomplete. Skipping email alert.")
@@ -68,10 +60,8 @@ class EmailAlertService:
             
             # Send email
             try:
-                print(f"📤 Connecting to {smtp_server}:{smtp_port}...")
                 with smtplib.SMTP(smtp_server, smtp_port) as server:
                     server.set_debuglevel(0)  # Set to 1 for verbose SMTP debugging
-                    print(f"🔐 Starting TLS...")
                     server.starttls()  # Secure the connection
                     print(f"🔑 Authenticating as {smtp_username}...")
                     server.login(smtp_username, sender_password)
@@ -80,8 +70,6 @@ class EmailAlertService:
                     print(f"✅ Email sent successfully!")
             except smtplib.SMTPAuthenticationError as e:
                 print(f"❌ SMTP Authentication Error: {e}")
-                print(f"   Check your SMTP credentials for {smtp_server}")
-                print(f"   For Brevo: Make sure you're using your SMTP API key, not your account password")
                 return False
             except smtplib.SMTPException as e:
                 print(f"❌ SMTP Error: {e}")
