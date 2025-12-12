@@ -54,7 +54,7 @@ export default function StockSearchModal({ isOpen, onClose, onAddStock, watchlis
                 const headers: HeadersInit = {}
                 if (token) headers['Authorization'] = `Bearer ${token}`
 
-                const res = await fetch(`http://localhost:5000/api/search/autocomplete?q=${encodeURIComponent(query)}&limit=10`, {
+                const res = await fetch(`https://portfolio-buzz.onrender.com/api/search/autocomplete?q=${encodeURIComponent(query)}&limit=10`, {
                     headers
                 })
 

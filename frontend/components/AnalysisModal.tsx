@@ -26,7 +26,7 @@ export default function AnalysisModal({ ticker, open, onClose }: { ticker?: stri
     setError('')
     try {
       const token = getToken()
-      const res = await fetch('http://localhost:5000/api/ai-insight', {
+      const res = await fetch('https://portfolio-buzz.onrender.com/api/ai-insight', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

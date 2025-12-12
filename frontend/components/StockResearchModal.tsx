@@ -78,7 +78,7 @@ export default function StockResearchModal({ isOpen, onClose }: StockResearchMod
             setSearchLoading(true)
             try {
                 const res = await fetch(
-                    `http://localhost:5000/api/search/autocomplete?q=${encodeURIComponent(query)}&limit=8`,
+                    `https://portfolio-buzz.onrender.com/api/search/autocomplete?q=${encodeURIComponent(query)}&limit=8`,
                     { headers: getAuthHeaders() }
                 )
                 const data = await res.json()
@@ -104,7 +104,7 @@ export default function StockResearchModal({ isOpen, onClose }: StockResearchMod
         setResearchData(null)
 
         try {
-            const res = await fetch('http://localhost:5000/api/stock-research', {
+            const res = await fetch('https://portfolio-buzz.onrender.com/api/stock-research', {
                 method: 'POST',
                 headers: getAuthHeaders(),
                 body: JSON.stringify({
