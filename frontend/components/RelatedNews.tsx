@@ -3,112 +3,113 @@ import { ExternalLink, Clock, Newspaper, X } from 'lucide-react'
 import { getToken } from '../lib/auth'
 
 interface Article {
-    title: string
-    link: string
-    source: string
-    published_at: string
-    summary?: string
-    image_url?: string
+  title: string
+  link: string
+  source: string
+  published_at: string
+  summary?: string
+  image_url?: string
 }
 
 interface Props {
-    ticker?: string | null
-    onClose?: () => void
+  ticker?: string | null
+  onClose?: () => void
+  isModal?: boolean
 }
 
 export default function RelatedNews({ ticker, onClose }: Props) {
-    const [news, setNews] = useState<Article[]>([])
-    const [loading, setLoading] = useState(false)
+  const [news, setNews] = useState<Article[]>([])
+  const [loading, setLoading] = useState(false)
 
-    useEffect(() => {
-        const fetchNews = async () => {
-            setLoading(true)
-            try {
-                const token = getToken()
-                const headers: HeadersInit = {}
-                if (token) headers['Authorization'] = `Bearer ${token}`
+  useEffect(() => {
+    const fetchNews = async () => {
+      setLoading(true)
+      try {
+        const token = getToken()
+        const headers: HeadersInit = {}
+        if (token) headers['Authorization'] = `Bearer ${token}`
 
-                // If ticker is provided, fetch news for that ticker
-                // Otherwise fetch general watchlist news
-                const url = ticker
-                    ? `http://localhost:5000/api/watchlist/news?ticker=${ticker}`
-                    : `http://localhost:5000/api/watchlist/news`
+        // If ticker is provided, fetch news for that ticker
+        // Otherwise fetch general watchlist news
+        const url = ticker
+          ? `http://localhost:5000/api/watchlist/news?ticker=${ticker}`
+          : `http://localhost:5000/api/watchlist/news`
 
-                const res = await fetch(url, { headers })
-                const data = await res.json()
+        const res = await fetch(url, { headers })
+        const data = await res.json()
 
-                if (data.success) {
-                    // Handle different response structures depending on endpoint
-                    if (ticker && Array.isArray(data.data)) {
-                        setNews(data.data)
-                    } else if (data.data && typeof data.data === 'object') {
-                        // Flatten news from multiple stocks if needed, or just take the first batch
-                        const allNews = Object.values(data.data).flat() as Article[]
-                        setNews(allNews.sort((a, b) => new Date(b.published_at).getTime() - new Date(a.published_at).getTime()))
-                    } else {
-                        setNews([])
-                    }
-                }
-            } catch (error) {
-                console.error('Error fetching news:', error)
-            } finally {
-                setLoading(false)
-            }
+        if (data.success) {
+          // Handle different response structures depending on endpoint
+          if (ticker && Array.isArray(data.data)) {
+            setNews(data.data)
+          } else if (data.data && typeof data.data === 'object') {
+            // Flatten news from multiple stocks if needed, or just take the first batch
+            const allNews = Object.values(data.data).flat() as Article[]
+            setNews(allNews.sort((a, b) => new Date(b.published_at).getTime() - new Date(a.published_at).getTime()))
+          } else {
+            setNews([])
+          }
         }
+      } catch (error) {
+        console.error('Error fetching news:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
 
-        fetchNews()
-    }, [ticker])
+    fetchNews()
+  }, [ticker])
 
-    return (
-        <div className="news-container">
-            <div className="news-header">
-                <div className="header-content">
-                    <Newspaper size={20} className="header-icon" />
-                    <h3>{ticker ? `${ticker} News` : 'Market News'}</h3>
+  return (
+    <div className="news-container">
+      <div className="news-header">
+        <div className="header-content">
+          <Newspaper size={20} className="header-icon" />
+          <h3>{ticker ? `${ticker} News` : 'Market News'}</h3>
+        </div>
+        {onClose && (
+          <button onClick={onClose} className="close-btn">
+            <X size={18} />
+          </button>
+        )}
+      </div>
+
+      <div className="news-list">
+        {loading ? (
+          <div className="loading">Loading news...</div>
+        ) : news.length > 0 ? (
+          news.map((article, i) => (
+            <a
+              key={i}
+              href={article.link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="news-item"
+            >
+              <div className="news-content">
+                <h4 className="news-title">{article.title}</h4>
+                <div className="news-meta">
+                  <span className="source">{article.source}</span>
+                  <span className="dot">•</span>
+                  <span className="time">
+                    <Clock size={12} style={{ marginRight: 4 }} />
+                    {new Date(article.published_at).toLocaleDateString()}
+                  </span>
                 </div>
-                {onClose && (
-                    <button onClick={onClose} className="close-btn">
-                        <X size={18} />
-                    </button>
-                )}
-            </div>
+              </div>
+              {article.image_url && (
+                <div className="news-image" style={{ backgroundImage: `url(${article.image_url})` }} />
+              )}
+            </a>
+          ))
+        ) : (
+          <div className="empty-state">
+            No news available for {ticker || 'your watchlist'}
+          </div>
+        )}
+      </div>
 
-            <div className="news-list">
-                {loading ? (
-                    <div className="loading">Loading news...</div>
-                ) : news.length > 0 ? (
-                    news.map((article, i) => (
-                        <a
-                            key={i}
-                            href={article.link}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="news-item"
-                        >
-                            <div className="news-content">
-                                <h4 className="news-title">{article.title}</h4>
-                                <div className="news-meta">
-                                    <span className="source">{article.source}</span>
-                                    <span className="dot">•</span>
-                                    <span className="time">
-                                        <Clock size={12} style={{ marginRight: 4 }} />
-                                        {new Date(article.published_at).toLocaleDateString()}
-                                    </span>
-                                </div>
-                            </div>
-                            {article.image_url && (
-                                <div className="news-image" style={{ backgroundImage: `url(${article.image_url})` }} />
-                            )}
-                        </a>
-                    ))
-                ) : (
-                    <div className="empty-state">
-                        No news available for {ticker || 'your watchlist'}
-                    </div>
-                )}
-            </div>
-
-            <style jsx>{`
+      <style jsx>{`
         .news-container {
           height: 100%;
           display: flex;
@@ -235,6 +236,6 @@ export default function RelatedNews({ ticker, onClose }: Props) {
           font-size: 14px;
         }
       `}</style>
-        </div>
-    )
+    </div>
+  )
 }
