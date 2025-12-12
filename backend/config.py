@@ -29,7 +29,7 @@ class Config:
     PERPLEXITY_API_KEY = os.getenv('PERPLEXITY_API_KEY')
     
     # CORS
-    CORS_ORIGINS = ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:8501']
+    CORS_ORIGINS = ['https://portfolio-buzz.vercel.app','http://localhost:3000', 'http://localhost:5173', 'http://localhost:8501']
     
     # Performance
     MAX_WORKERS = 8
