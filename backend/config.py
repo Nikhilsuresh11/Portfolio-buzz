@@ -28,8 +28,15 @@ class Config:
     FINNHUB_KEY = os.getenv('FINNHUB_KEY')
     PERPLEXITY_API_KEY = os.getenv('PERPLEXITY_API_KEY')
     
+    # Email Configuration (for alerts)
+    SMTP_SERVER = os.getenv('SMTP_SERVER')
+    SMTP_PORT = int(os.getenv('SMTP_PORT')) if os.getenv('SMTP_PORT') else None
+    SMTP_USERNAME = os.getenv('SMTP_USERNAME')  # For authentication (can be different from sender)
+    SENDER_EMAIL = os.getenv('SENDER_EMAIL')
+    SENDER_PASSWORD = os.getenv('SENDER_PASSWORD')
+    
     # CORS
-    CORS_ORIGINS = ['https://portfolio-buzz.vercel.app','http://localhost:3000', 'http://localhost:5173', 'http://localhost:8501']
+    CORS_ORIGINS = ['https://portfolio-buzz.vercel.app/', 'http://localhost:3000', 'http://localhost:5173', 'http://localhost:8501']
     
     # Performance
     MAX_WORKERS = 8
