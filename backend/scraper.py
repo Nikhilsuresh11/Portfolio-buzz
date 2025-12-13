@@ -275,17 +275,22 @@ def scrape_google_news(query):
     try:
         # Use Google News RSS feed which is more reliable than scraping HTML
         url = f"https://news.google.com/rss/search?q={quote_plus(query + ' stock news')}&hl=en-US&gl=US&ceid=US:en"
-        feed = feedparser.parse(url)
         
-        for entry in feed.entries[:max_articles]:
-            articles.append({
-                'title': entry.title,
-                'content': entry.summary if hasattr(entry, 'summary') else entry.title,
-                'source': 'Google News',
-                'premium': False,
-                'published_at': entry.published if hasattr(entry, 'published') else None,
-                'link': entry.link
-            })
+        # Use fetch_url to get content with proper headers (User-Agent rotation)
+        # This prevents blocking that happens with default feedparser headers
+        response = fetch_url(url)
+        if response:
+            feed = feedparser.parse(response.content)
+            
+            for entry in feed.entries[:max_articles]:
+                articles.append({
+                    'title': entry.title,
+                    'content': entry.summary if hasattr(entry, 'summary') else entry.title,
+                    'source': 'Google News',
+                    'premium': False,
+                    'published_at': entry.published if hasattr(entry, 'published') else None,
+                    'link': entry.link
+                })
     except Exception as e:
         print(f"Error scraping Google News RSS: {e}")
         pass
@@ -298,33 +303,32 @@ def scrape_bbc_business(query):
     articles = []
     try:
         # Use BBC Business RSS feed
-        # Note: BBC RSS is by topic, not search query, but we can filter or just return latest
-        # For specific search we might need a different approach, but RSS is safer for "latest news"
-        # If query is generic like "market", RSS works well. 
-        # For specific stocks, we'll try to filter the RSS results.
-        
         url = "http://feeds.bbci.co.uk/news/business/rss.xml"
-        feed = feedparser.parse(url)
         
-        for entry in feed.entries:
-            if len(articles) >= max_articles:
-                break
-                
-            # Simple keyword matching if query is provided and not too generic
-            if query.lower() in ['market', 'stock', 'business', 'finance']:
-                # Return everything for generic queries
-                pass
-            elif query.lower() not in entry.title.lower() and query.lower() not in entry.summary.lower():
-                continue
+        # Use fetch_url to get content with proper headers (User-Agent rotation)
+        response = fetch_url(url)
+        if response:
+            feed = feedparser.parse(response.content)
+            
+            for entry in feed.entries:
+                if len(articles) >= max_articles:
+                    break
+                    
+                # Simple keyword matching if query is provided and not too generic
+                if query.lower() in ['market', 'stock', 'business', 'finance']:
+                    # Return everything for generic queries
+                    pass
+                elif query.lower() not in entry.title.lower() and query.lower() not in entry.summary.lower():
+                    continue
 
-            articles.append({
-                'title': entry.title,
-                'content': entry.summary if hasattr(entry, 'summary') else entry.title,
-                'source': 'BBC Business',
-                'premium': False,
-                'published_at': entry.published if hasattr(entry, 'published') else None,
-                'link': entry.link
-            })
+                articles.append({
+                    'title': entry.title,
+                    'content': entry.summary if hasattr(entry, 'summary') else entry.title,
+                    'source': 'BBC Business',
+                    'premium': False,
+                    'published_at': entry.published if hasattr(entry, 'published') else None,
+                    'link': entry.link
+                })
     except Exception as e:
         print(f"Error scraping BBC RSS: {e}")
         pass
