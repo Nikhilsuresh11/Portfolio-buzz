@@ -117,7 +117,7 @@ class NewsService:
         return unique_articles
     
     @staticmethod
-    def fetch_news_for_multiple_stocks(tickers, max_workers=8):
+    def fetch_news_for_multiple_stocks(tickers, max_workers=2):  # Reduced from 8 to 2 for memory stability
         """
         Fetch news for multiple stocks in parallel
         

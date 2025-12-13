@@ -20,7 +20,7 @@ import warnings
 warnings.filterwarnings('ignore', message='Unverified HTTPS request')
 
 
-MAX_WORKERS = 12
+MAX_WORKERS = 3  # Reduced from 12 to prevent OOM on Render free tier (512MB)
 REQUEST_DELAY = (1.5, 4.0)
 MAX_RETRIES = 3
 TIMEOUT = 15
@@ -54,7 +54,7 @@ def smart_delay():
     time.sleep(random.uniform(*REQUEST_DELAY))
 
 
-@lru_cache(maxsize=100)
+@lru_cache(maxsize=20)  # Reduced from 100 to save memory
 def fetch_url(url: str, retries: int = MAX_RETRIES) -> Optional[requests.Response]:
     for attempt in range(retries):
         try:
