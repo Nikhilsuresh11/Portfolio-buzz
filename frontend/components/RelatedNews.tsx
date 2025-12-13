@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { ExternalLink, Clock, Newspaper, X } from 'lucide-react'
 import { getToken } from '../lib/auth'
+import { config } from '../config'
 
 interface Article {
   title: string
@@ -32,8 +33,8 @@ export default function RelatedNews({ ticker, onClose }: Props) {
         // If ticker is provided, fetch news for that ticker
         // Otherwise fetch general watchlist news
         const url = ticker
-          ? `https://portfolio-buzz.onrender.com/api/watchlist/news?ticker=${ticker}`
-          : `https://portfolio-buzz.onrender.com/api/watchlist/news`
+          ? `${config.API_BASE_URL}/api/watchlist/news?ticker=${ticker}`
+          : `${config.API_BASE_URL}/api/watchlist/news`
 
         const res = await fetch(url, { headers })
         const data = await res.json()

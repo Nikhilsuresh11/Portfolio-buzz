@@ -162,6 +162,7 @@ class WatchlistController:
             )
             
             if success:
+                print(news_data)
                 return success_response(news_data, message, 200)
             else:
                 return error_response(message, 400)

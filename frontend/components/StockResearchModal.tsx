@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { Search, X, Loader2, FlaskConical, TrendingUp, DollarSign, BarChart3, AlertCircle } from 'lucide-react'
 import { getAuthHeaders } from '../lib/auth'
+import { config } from '../config'
 
 interface Stock {
     ticker: string
@@ -78,7 +79,7 @@ export default function StockResearchModal({ isOpen, onClose }: StockResearchMod
             setSearchLoading(true)
             try {
                 const res = await fetch(
-                    `https://portfolio-buzz.onrender.com/api/search/autocomplete?q=${encodeURIComponent(query)}&limit=8`,
+                    `${config.API_BASE_URL}/api/search/autocomplete?q=${encodeURIComponent(query)}&limit=8`,
                     { headers: getAuthHeaders() }
                 )
                 const data = await res.json()
@@ -104,7 +105,7 @@ export default function StockResearchModal({ isOpen, onClose }: StockResearchMod
         setResearchData(null)
 
         try {
-            const res = await fetch('https://portfolio-buzz.onrender.com/api/stock-research', {
+            const res = await fetch(`${config.API_BASE_URL}/api/stock-research`, {
                 method: 'POST',
                 headers: getAuthHeaders(),
                 body: JSON.stringify({

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { Search, X, Plus, Check, Loader2 } from 'lucide-react'
 import { getToken } from '../lib/auth'
+import { config } from '../config'
 
 interface Stock {
     ticker: string
@@ -54,7 +55,7 @@ export default function StockSearchModal({ isOpen, onClose, onAddStock, watchlis
                 const headers: HeadersInit = {}
                 if (token) headers['Authorization'] = `Bearer ${token}`
 
-                const res = await fetch(`https://portfolio-buzz.onrender.com/api/search/autocomplete?q=${encodeURIComponent(query)}&limit=10`, {
+                const res = await fetch(`${config.API_BASE_URL}/api/search/autocomplete?q=${encodeURIComponent(query)}&limit=10`, {
                     headers
                 })
 

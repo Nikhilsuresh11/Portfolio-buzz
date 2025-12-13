@@ -2,6 +2,7 @@ import { useRouter } from 'next/router'
 import { useState, useEffect } from 'react'
 import { saveToken, saveUser, isAuthenticated } from '../../lib/auth'
 import { toast } from 'react-toastify'
+import { config } from '../../config'
 
 export default function Login() {
   const router = useRouter()
@@ -53,7 +54,7 @@ export default function Login() {
 
     try {
       const endpoint = isLogin ? '/api/auth/login' : '/api/auth/signup'
-      const response = await fetch(`https://portfolio-buzz.onrender.com${endpoint}`, {
+      const response = await fetch(`${config.API_BASE_URL}${endpoint}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

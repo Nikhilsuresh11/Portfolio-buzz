@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import RelatedNews from './RelatedNews'
 import { getToken } from '../lib/auth'
+import { config } from '../config'
 
 export default function AnalysisModal({ ticker, open, onClose }: { ticker?: string | null, open: boolean, onClose: () => void }) {
   const [tab, setTab] = useState<'insights' | 'news'>('insights')
@@ -26,7 +27,7 @@ export default function AnalysisModal({ ticker, open, onClose }: { ticker?: stri
     setError('')
     try {
       const token = getToken()
-      const res = await fetch('https://portfolio-buzz.onrender.com/api/ai-insight', {
+      const res = await fetch(`${config.API_BASE_URL}/api/ai-insight`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

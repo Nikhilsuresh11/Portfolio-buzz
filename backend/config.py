@@ -36,7 +36,12 @@ class Config:
     SENDER_PASSWORD = os.getenv('SENDER_PASSWORD')
     
     # CORS
-    CORS_ORIGINS = ['https://portfolio-buzz.vercel.app/', 'http://localhost:3000', 'http://localhost:5173', 'http://localhost:8501']
+    CORS_ORIGINS = [
+        'https://portfolio-buzz.vercel.app',  # Removed trailing slash
+        'http://localhost:3000',
+        'http://localhost:5173',
+        'http://localhost:8501'
+    ]
     
     # Performance
     MAX_WORKERS = 8
