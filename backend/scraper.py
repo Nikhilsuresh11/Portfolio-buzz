@@ -12,6 +12,7 @@ import time
 import random
 import re
 import hashlib
+import os
 from datetime import datetime, timedelta
 from typing import List, Dict, Optional
 import warnings
@@ -19,11 +20,14 @@ import warnings
 # Suppress SSL certificate warnings from urllib3
 warnings.filterwarnings('ignore', message='Unverified HTTPS request')
 
+# Production-optimized settings (used by default for both local and Render)
+# These faster settings prevent 502 gateway timeouts
+MAX_WORKERS = 2  # Optimized for Render free tier (512MB)
+REQUEST_DELAY = (0.1, 0.5)  # Fast delays to prevent timeouts
+MAX_RETRIES = 1  # Single retry to avoid timeouts
+TIMEOUT = 8  # Shorter timeout for production
+print("[SCRAPER] Running with production-optimized settings")
 
-MAX_WORKERS = 3  # Reduced from 12 to prevent OOM on Render free tier (512MB)
-REQUEST_DELAY = (1.5, 4.0)
-MAX_RETRIES = 3
-TIMEOUT = 15
 max_articles = 10
 
 HEADERS_POOL = [
@@ -55,10 +59,20 @@ def smart_delay():
 
 
 @lru_cache(maxsize=20)  # Reduced from 100 to save memory
-def fetch_url(url: str, retries: int = MAX_RETRIES) -> Optional[requests.Response]:
+def fetch_url(url: str, retries: int = MAX_RETRIES, skip_delay: bool = False) -> Optional[requests.Response]:
+    """Fetch URL with environment-aware delays and retries
+    
+    Args:
+        url: URL to fetch
+        retries: Number of retries (defaults to environment-specific MAX_RETRIES)
+        skip_delay: Skip the smart_delay for RSS feeds (they don't need rate limiting)
+    """
     for attempt in range(retries):
         try:
-            smart_delay()
+            # Skip delay for RSS feeds or if explicitly requested
+            if not skip_delay:
+                smart_delay()
+            
             response = requests.get(
                 url,
                 headers=random_headers(),
@@ -69,11 +83,16 @@ def fetch_url(url: str, retries: int = MAX_RETRIES) -> Optional[requests.Respons
             if response.status_code == 200:
                 return response
             elif response.status_code in (429, 403, 503):
-                time.sleep(5 * (attempt + 1))
-        except:
+                # Short retry delay to avoid timeouts
+                retry_delay = 2 * (attempt + 1)
+                time.sleep(retry_delay)
+        except Exception as e:
             if attempt == retries - 1:
+                print(f"[SCRAPER] Failed to fetch {url}: {e}")
                 return None
-            time.sleep(3)
+            # Short retry delay to avoid timeouts
+            retry_delay = 1
+            time.sleep(retry_delay)
     return None
 
 

@@ -138,7 +138,7 @@ class WatchlistService:
             # Fetch news for all tickers with days-based filtering
             news_data = {}
             
-            with ThreadPoolExecutor(max_workers=8) as executor:
+            with ThreadPoolExecutor(max_workers=3) as executor:  # Reduced from 8 for Render free tier
                 future_to_ticker = {
                     executor.submit(
                         NewsService.fetch_news_by_days,
@@ -149,16 +149,21 @@ class WatchlistService:
                     for ticker in tickers
                 }
                 
-                for future in as_completed(future_to_ticker):
+                for future in as_completed(future_to_ticker, timeout=20):
                     ticker = future_to_ticker[future]
                     try:
-                        success, message, articles = future.result()
+                        # Add timeout to prevent hanging on slow requests
+                        success, message, articles = future.result(timeout=10)
                         if success:
                             news_data[ticker] = articles
+                            print(f"[WATCHLIST] Fetched {len(articles)} articles for {ticker}")
                         else:
+                            print(f"[WATCHLIST] Failed to fetch news for {ticker}: {message}")
                             news_data[ticker] = []
                     except Exception as e:
-                        print(f"Error fetching news for {ticker}: {e}")
+                        print(f"[WATCHLIST] Error fetching news for {ticker}: {e}")
+                        import traceback
+                        traceback.print_exc()
                         news_data[ticker] = []
             
             return True, "News retrieved successfully", news_data
