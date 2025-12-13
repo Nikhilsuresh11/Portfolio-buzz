@@ -21,6 +21,7 @@ from routes.watchlist_routes import watchlist_bp
 from routes.search_routes import search_bp
 from routes.analysis_routes import analysis_bp
 from routes.stock_research_routes import stock_research_bp
+from routes.email_alert_routes import email_alert_bp
 
 
 def create_app(config_name='development'):
@@ -57,6 +58,11 @@ def create_app(config_name='development'):
     app.register_blueprint(search_bp)
     app.register_blueprint(analysis_bp)
     app.register_blueprint(stock_research_bp)
+    app.register_blueprint(email_alert_bp)
+    
+    # Initialize and start alert scheduler
+    from services.alert_scheduler import alert_scheduler
+    alert_scheduler.start()
     
     # Health check endpoint
     @app.route('/health', methods=['GET'])
@@ -108,6 +114,9 @@ def create_app(config_name='development'):
                     'POST /api/ai-insight': 'Generate AI stock analysis',
                     'POST /api/key-insights': 'Generate key insights',
                     'GET /api/news/<days>?stock_name=<name>': 'Get news for last N days'
+                },
+                'email': {
+                    'POST /api/email/alert': 'Check watchlist for 5%+ drops and send email alerts'
                 }
             }
         }), 200

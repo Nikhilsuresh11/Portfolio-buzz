@@ -11,5 +11,11 @@ GROQ_API_KEY=your-groq-api-key
 ALPHA_VANTAGE_API_KEY=your-alpha-vantage-key
 FINNHUB_KEY=your-finnhub-key
 
+# Email Configuration (Optional - for price drop alerts)
+SMTP_SERVER=smtp.gmail.com
+SMTP_PORT=587
+SENDER_EMAIL=your-email@gmail.com
+SENDER_PASSWORD=your-gmail-app-password
+
 # Flask Environment
 FLASK_ENV=development
