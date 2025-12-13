@@ -12,6 +12,7 @@ from datetime import datetime
 from urllib.parse import quote_plus
 import re
 from scraper import fetch_url  # Import the robust fetcher with headers
+from utils.date_utils import parse_published_date, sort_articles_by_date
 
 
 class GoogleNewsRSSFetcher:
