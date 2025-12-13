@@ -11,7 +11,7 @@ import random
 from datetime import datetime
 from urllib.parse import quote_plus
 import re
-from utils.date_utils import parse_published_date, sort_articles_by_date
+from scraper import fetch_url  # Import the robust fetcher with headers
 
 
 class GoogleNewsRSSFetcher:
@@ -81,8 +81,14 @@ class GoogleNewsRSSFetcher:
             # Add small delay to be respectful
             time.sleep(random.uniform(0.5, 1.5))
             
-            # Parse RSS feed with timeout
-            feed = feedparser.parse(rss_url)
+            # Parse RSS feed with timeout AND custom headers using fetch_url
+            # feedparser.parse(url) uses generic User-Agent which gets blocked
+            response = fetch_url(rss_url)
+            if not response:
+                print(f"Failed to fetch RSS URL (blocked?): {rss_url}")
+                return articles
+                
+            feed = feedparser.parse(response.content)
             
             if not feed.entries:
                 print(f"No RSS entries found for query: {query}")
