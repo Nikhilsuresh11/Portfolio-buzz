@@ -37,10 +37,11 @@ class Config:
     
     # CORS
     CORS_ORIGINS = [
-        'https://portfolio-buzz.vercel.app',  # Removed trailing slash
+        'https://portfolio-buzz.vercel.app',
         'http://localhost:3000',
         'http://localhost:5173',
-        'http://localhost:8501'
+        'http://localhost:8501',
+        r"^https://portfolio-buzz.*\.vercel\.app$"  # Allow Vercel preview deployments
     ]
     
     # Performance
