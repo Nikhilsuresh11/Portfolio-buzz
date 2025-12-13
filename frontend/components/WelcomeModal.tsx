@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { X, Plus, Check, TrendingUp, ArrowRight } from 'lucide-react'
 import { getToken } from '../lib/auth'
+import { config } from '../config'
 
 interface Stock {
   ticker: string
@@ -39,7 +40,7 @@ export default function WelcomeModal({ isOpen, onClose, onAddStock, watchlist }:
       const headers: HeadersInit = {}
       if (token) headers['Authorization'] = `Bearer ${token}`
 
-      const res = await fetch('https://portfolio-buzz.onrender.com/api/search/default?limit=6', {
+      const res = await fetch(`${config.API_BASE_URL}/api/search/default?limit=6`, {
         headers
       })
 

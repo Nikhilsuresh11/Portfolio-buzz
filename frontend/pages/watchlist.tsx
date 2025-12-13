@@ -9,6 +9,7 @@ import StockResearchModal from '../components/StockResearchModal'
 import WelcomeModal from '../components/WelcomeModal'
 import AnalysisModal from '../components/AnalysisModal'
 import { getToken, getUser } from '../lib/auth'
+import { config } from '../config'
 
 type Stock = {
     ticker: string;
@@ -69,8 +70,8 @@ export default function Watchlist() {
 
             // Fetch watchlist and prices in parallel
             const [watchlistRes, pricesRes] = await Promise.all([
-                fetch('https://portfolio-buzz.onrender.com/api/watchlist', { headers }),
-                fetch('https://portfolio-buzz.onrender.com/api/watchlist/price', { headers })
+                fetch(`${config.API_BASE_URL}/api/watchlist`, { headers }),
+                fetch(`${config.API_BASE_URL}/api/watchlist/price`, { headers })
             ])
 
             const watchlistData = await watchlistRes.json()
@@ -124,7 +125,7 @@ export default function Watchlist() {
             const token = getToken()
             if (!token) return
 
-            const res = await fetch('https://portfolio-buzz.onrender.com/api/watchlist', {
+            const res = await fetch(`${config.API_BASE_URL}/api/watchlist`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -149,7 +150,7 @@ export default function Watchlist() {
             const token = getToken()
             if (!token) return
 
-            const res = await fetch(`https://portfolio-buzz.onrender.com/api/watchlist/${ticker}`, {
+            const res = await fetch(`${config.API_BASE_URL}/api/watchlist/\${ticker}`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${token}`

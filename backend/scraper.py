@@ -269,49 +269,64 @@ def scrape_finviz(ticker):
 
 
 def scrape_google_news(query):
-    """Google News aggregator"""
+    """Google News aggregator using RSS"""
+    import feedparser
     articles = []
     try:
-        url = f"https://www.google.com/search?q={quote_plus(query + ' stock news')}&tbm=nws&tbs=qdr:w"
-        response = fetch_url(url)
-        if response:
-            soup = BeautifulSoup(response.content, 'html.parser')
-            results = soup.find_all('div', class_='SoaBEf')
-            for result in results[:max_articles]:
-                title_elem = result.find('div', role='heading')
-                snippet_elem = result.find('div', class_='GI74Re')
-                if title_elem:
-                    articles.append({
-                        'title': title_elem.get_text().strip(),
-                        'content': snippet_elem.get_text().strip() if snippet_elem else '',
-                        'source': 'Google News',
-                        'premium': False
-                    })
-    except:
+        # Use Google News RSS feed which is more reliable than scraping HTML
+        url = f"https://news.google.com/rss/search?q={quote_plus(query + ' stock news')}&hl=en-US&gl=US&ceid=US:en"
+        feed = feedparser.parse(url)
+        
+        for entry in feed.entries[:max_articles]:
+            articles.append({
+                'title': entry.title,
+                'content': entry.summary if hasattr(entry, 'summary') else entry.title,
+                'source': 'Google News',
+                'premium': False,
+                'published_at': entry.published if hasattr(entry, 'published') else None,
+                'link': entry.link
+            })
+    except Exception as e:
+        print(f"Error scraping Google News RSS: {e}")
         pass
     return articles
 
 
 def scrape_bbc_business(query):
-    """BBC Business - Free UK/Global news"""
+    """BBC Business - Free UK/Global news using RSS"""
+    import feedparser
     articles = []
     try:
-        url = f"https://www.bbc.com/search?q={quote_plus(query)}&filter=business"
-        response = fetch_url(url)
-        if response:
-            soup = BeautifulSoup(response.content, 'html.parser')
-            results = soup.find_all('div', {'data-testid': 'card-text-wrapper'})
-            for result in results[:max_articles]:
-                title = result.find('h2')
-                desc = result.find('p')
-                if title:
-                    articles.append({
-                        'title': title.get_text().strip(),
-                        'content': desc.get_text().strip() if desc else '',
-                        'source': 'BBC Business',
-                        'premium': False
-                    })
-    except:
+        # Use BBC Business RSS feed
+        # Note: BBC RSS is by topic, not search query, but we can filter or just return latest
+        # For specific search we might need a different approach, but RSS is safer for "latest news"
+        # If query is generic like "market", RSS works well. 
+        # For specific stocks, we'll try to filter the RSS results.
+        
+        url = "http://feeds.bbci.co.uk/news/business/rss.xml"
+        feed = feedparser.parse(url)
+        
+        for entry in feed.entries:
+            if len(articles) >= max_articles:
+                break
+                
+            # Simple keyword matching if query is provided and not too generic
+            if query.lower() in ['market', 'stock', 'business', 'finance']:
+                # Return everything for generic queries
+                pass
+            elif query.lower() not in entry.title.lower() and query.lower() not in entry.summary.lower():
+                continue
+
+            articles.append({
+                'title': entry.title,
+                'content': entry.summary if hasattr(entry, 'summary') else entry.title,
+                'source': 'BBC Business',
+                'premium': False,
+                'published_at': entry.published if hasattr(entry, 'published') else None,
+                'link': entry.link
+            })
+    except Exception as e:
+        print(f"Error scraping BBC RSS: {e}")
         pass
     return articles
 
