@@ -57,12 +57,12 @@ export default function StockTable({ rows, onSelect, onAnalyze, onRemove, select
         <table className="w-full border-collapse text-left">
           <thead>
             <tr className="border-b border-white/10 text-xs font-semibold text-gray-400 uppercase tracking-wider">
-              <th className="px-6 py-4 bg-transparent">Company</th>
-              <th className="px-6 py-4 bg-transparent text-right">Price</th>
-              <th className="px-6 py-4 bg-transparent text-right">Change</th>
-              <th className="px-6 py-4 bg-transparent text-right">Volume</th>
-              <th className="px-6 py-4 bg-transparent text-right">Day Range</th>
-              <th className="px-6 py-4 bg-transparent text-right w-[100px]">Actions</th>
+              <th className="px-5 py-4 bg-transparent">Company</th>
+              <th className="px-5 py-4 bg-transparent text-right">Price</th>
+              <th className="px-5 py-4 bg-transparent text-right">Change</th>
+              <th className="px-5 py-4 bg-transparent text-right">Volume</th>
+              <th className="px-5 py-4 bg-transparent text-right">Day Range</th>
+              <th className="px-5 py-4 bg-transparent text-right w-[100px]">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-white/5">
