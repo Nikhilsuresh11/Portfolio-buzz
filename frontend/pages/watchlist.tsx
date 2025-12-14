@@ -183,7 +183,7 @@ export default function Watchlist() {
                 onResearchClick={() => setIsResearchOpen(true)}
             />
 
-            <main className="flex-1 ml-[72px] flex flex-col h-screen overflow-hidden relative">
+            <main className="flex-1 flex flex-col h-screen overflow-hidden relative">
                 <div className='p-6 pb-0 z-10'>
                     <Header user={user?.name || 'User'} />
                 </div>

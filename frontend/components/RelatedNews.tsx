@@ -64,7 +64,7 @@ export default function RelatedNews({ ticker, onClose }: Props) {
 
   return (
     <div className="h-full flex flex-col bg-transparent">
-      <div className="p-5 border-b border-white/10 flex items-center justify-between bg-white/5 backdrop-blur-sm sticky top-0 z-10">
+      <div className="p-5 border-b border-white/10 flex items-center justify-between bg-black/20 backdrop-blur-sm sticky top-0 z-10">
         <div className="flex items-center gap-3">
           <Newspaper size={20} className="text-blue-400" />
           <h3 className="text-sm font-semibold text-white tracking-wide">
@@ -78,7 +78,7 @@ export default function RelatedNews({ ticker, onClose }: Props) {
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto custom-scrollbar p-0">
+      <div className="flex-1 overflow-y-auto custom-scrollbar p-0 bg-transparent">
         {loading ? (
           <div className="p-10 text-center text-gray-500 text-sm animate-pulse">Loading market insights...</div>
         ) : news.length > 0 ? (
@@ -105,7 +105,7 @@ export default function RelatedNews({ ticker, onClose }: Props) {
               </div>
               {article.image_url && (
                 <div
-                  className="w-20 h-20 rounded-lg bg-cover bg-center bg-neutral-800 shrink-0 border border-white/5"
+                  className="w-20 h-20 rounded-lg bg-cover bg-center bg-neutral-900 shrink-0 border border-white/5"
                   style={{ backgroundImage: `url(${article.image_url})` }}
                 />
               )}

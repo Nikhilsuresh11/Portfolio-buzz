@@ -60,11 +60,11 @@ export default function AnalysisModal({ ticker, open, onClose }: { ticker?: stri
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 transition-opacity animate-in fade-in duration-200">
       <div
-        className="w-[900px] max-w-full bg-[#1e293b] rounded-xl shadow-2xl border border-white/10 overflow-hidden flex flex-col max-h-[90vh]"
+        className="w-[900px] max-w-full bg-black rounded-xl shadow-2xl border border-white/10 overflow-hidden flex flex-col max-h-[90vh]"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex justify-between items-start p-6 border-b border-white/10 bg-[#0f172a]">
+        <div className="flex justify-between items-start p-6 border-b border-white/10 bg-black">
           <div>
             <h2 className="text-xl font-bold text-white tracking-tight">{ticker} Analysis</h2>
             <p className="text-sm text-gray-400 mt-1">AI-powered insights and related news</p>
@@ -75,7 +75,7 @@ export default function AnalysisModal({ ticker, open, onClose }: { ticker?: stri
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-2 p-4 bg-[#0f172a] border-b border-white/5">
+        <div className="flex gap-2 p-4 bg-black border-b border-white/5">
           <Button
             variant={tab === 'insights' ? 'secondary' : 'ghost'}
             onClick={() => setTab('insights')}
@@ -99,7 +99,7 @@ export default function AnalysisModal({ ticker, open, onClose }: { ticker?: stri
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6 bg-[#1e293b] min-h-[400px]">
+        <div className="flex-1 overflow-y-auto p-6 bg-black min-h-[400px]">
           {tab === 'insights' ? (
             <div className="bg-white/5 border border-white/10 rounded-xl p-6 h-full min-h-[400px]">
               {loading ? (

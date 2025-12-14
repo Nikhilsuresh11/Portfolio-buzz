@@ -131,7 +131,7 @@ export default function StockTable({ rows, onSelect, onAnalyze, onRemove, select
 
                   {/* Actions */}
                   <td className="px-6 py-5 text-right">
-                    <div className="flex gap-2 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex gap-2 justify-end">
                       <Button
                         size="icon"
                         variant="ghost"

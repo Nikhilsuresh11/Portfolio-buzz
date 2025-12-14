@@ -108,11 +108,11 @@ export default function StockSearchModal({ isOpen, onClose, onAddStock, watchlis
     return (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-start justify-center pt-24 transition-opacity">
             <div
-                className="w-full max-w-xl bg-[#1e293b] rounded-xl shadow-2xl border border-white/10 overflow-hidden animate-in slide-in-from-top-4 fade-in duration-200"
+                className="w-full max-w-xl bg-black rounded-xl shadow-2xl border border-white/10 overflow-hidden animate-in slide-in-from-top-4 fade-in duration-200"
                 ref={modalRef}
                 onClick={e => e.stopPropagation()}
             >
-                <div className="relative flex items-center px-4 py-3 border-b border-white/10 bg-[#0f172a]">
+                <div className="relative flex items-center px-4 py-3 border-b border-white/10 bg-black">
                     <Search className="h-5 w-5 text-gray-400 absolute left-4" />
                     <input
                         ref={inputRef}
@@ -128,7 +128,7 @@ export default function StockSearchModal({ isOpen, onClose, onAddStock, watchlis
                     </Button>
                 </div>
 
-                <div className="max-h-[400px] overflow-y-auto bg-[#1e293b]">
+                <div className="max-h-[400px] overflow-y-auto bg-black">
                     {loading ? (
                         <div className="flex justify-center p-8">
                             <Loader2 className="animate-spin text-blue-500 h-8 w-8" />

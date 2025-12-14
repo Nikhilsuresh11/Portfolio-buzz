@@ -32,8 +32,6 @@ import {
     Notification,
     Integration,
 } from "@carbon/icons-react";
-import Link from 'next/link';
-import { useRouter } from 'next/router';
 
 /** ======================= Local SVG paths (inline) ======================= */
 const svgPaths = {
@@ -88,7 +86,7 @@ function BrandBadge() {
 
 function AvatarCircle() {
     return (
-        <div className="relative rounded-full shrink-0 size-8 bg-black/40">
+        <div className="relative rounded-full shrink-0 size-8 bg-black">
             <div className="flex items-center justify-center size-8">
                 <UserIcon size={16} className="text-neutral-50" />
             </div>
@@ -102,12 +100,8 @@ function AvatarCircle() {
 
 /* ------------------------------ Search Input ----------------------------- */
 
-function SearchContainer({ isCollapsed = false, onSearchClick }: { isCollapsed?: boolean, onSearchClick?: () => void }) {
+function SearchContainer({ isCollapsed = false }: { isCollapsed?: boolean }) {
     const [searchValue, setSearchValue] = useState("");
-
-    const handleClick = () => {
-        if (onSearchClick) onSearchClick();
-    }
 
     return (
         <div
@@ -116,10 +110,9 @@ function SearchContainer({ isCollapsed = false, onSearchClick }: { isCollapsed?:
             style={{ transitionTimingFunction: softSpringEasing }}
         >
             <div
-                className={`bg-black/40 h-10 relative rounded-lg flex items-center transition-all duration-500 cursor-pointer ${isCollapsed ? "w-10 min-w-10 justify-center" : "w-full"
+                className={`bg-black h-10 relative rounded-lg flex items-center transition-all duration-500 ${isCollapsed ? "w-10 min-w-10 justify-center" : "w-full"
                     }`}
                 style={{ transitionTimingFunction: softSpringEasing }}
-                onClick={handleClick}
             >
                 <div
                     className={`flex items-center justify-center shrink-0 transition-all duration-500 ${isCollapsed ? "p-1" : "px-1"
@@ -140,11 +133,10 @@ function SearchContainer({ isCollapsed = false, onSearchClick }: { isCollapsed?:
                         <div className="flex flex-col gap-2 items-start justify-center pr-2 py-1 w-full">
                             <input
                                 type="text"
-                                placeholder="Search Stocks..."
+                                placeholder="Search..."
                                 value={searchValue}
                                 onChange={(e) => setSearchValue(e.target.value)}
-                                className="w-full bg-transparent border-none outline-none font-['Lexend:Regular',_sans-serif] text-[14px] text-neutral-50 placeholder:text-neutral-400 leading-[20px] cursor-pointer"
-                                readOnly
+                                className="w-full bg-transparent border-none outline-none font-['Lexend:Regular',_sans-serif] text-[14px] text-neutral-50 placeholder:text-neutral-400 leading-[20px]"
                                 tabIndex={isCollapsed ? -1 : 0}
                             />
                         </div>
@@ -168,8 +160,6 @@ interface MenuItemT {
     hasDropdown?: boolean;
     isActive?: boolean;
     children?: MenuItemT[];
-    onClick?: () => void;
-    href?: string;
 }
 interface MenuSectionT {
     title: string;
@@ -180,9 +170,7 @@ interface SidebarContent {
     sections: MenuSectionT[];
 }
 
-function getSidebarContent(activeSection: string, router: any, props: any): SidebarContent {
-    const isActive = (path: string) => router.pathname === path;
-
+function getSidebarContent(activeSection: string): SidebarContent {
     const contentMap: Record<string, SidebarContent> = {
         dashboard: {
             title: "Dashboard",
@@ -190,14 +178,78 @@ function getSidebarContent(activeSection: string, router: any, props: any): Side
                 {
                     title: "Overview",
                     items: [
-                        { icon: <Dashboard size={16} className="text-neutral-50" />, label: "Watchlist", isActive: isActive('/watchlist'), onClick: () => router.push('/watchlist') },
-                        { icon: <Report size={16} className="text-neutral-50" />, label: "Deep Research", isActive: isActive('/research'), onClick: () => router.push('/research') },
+                        { icon: <View size={16} className="text-neutral-50" />, label: "Market Overview", isActive: true },
+                        { icon: <Dashboard size={16} className="text-neutral-50" />, label: "Portfolio Summary" },
+                        { icon: <Analytics size={16} className="text-neutral-50" />, label: "AI Insights" },
                     ],
                 },
                 {
-                    title: "Alerts",
+                    title: "Lists",
                     items: [
-                        { icon: <Notification size={16} className="text-neutral-50" />, label: "Notifications" },
+                        { icon: <StarFilled size={16} className="text-neutral-50" />, label: "Watchlist" },
+                        { icon: <Report size={16} className="text-neutral-50" />, label: "Alerts" },
+                    ],
+                },
+            ],
+        },
+        // We can keep the other sections as provided or customize them for Portfolio Buzz. 
+        // For now, keeping the provided structure as per instructions to "copy-paste".
+        tasks: {
+            title: "Tasks",
+            sections: [
+                {
+                    title: "Quick Actions",
+                    items: [
+                        { icon: <AddLarge size={16} className="text-neutral-50" />, label: "New task" },
+                        { icon: <Filter size={16} className="text-neutral-50" />, label: "Filter tasks" },
+                    ],
+                },
+                {
+                    title: "My Tasks",
+                    items: [
+                        {
+                            icon: <Time size={16} className="text-neutral-50" />,
+                            label: "Due today",
+                            hasDropdown: true,
+                            children: [
+                                { icon: <Flag size={14} className="text-neutral-300" />, label: "Review design mockups" },
+                                { icon: <CheckmarkOutline size={14} className="text-neutral-300" />, label: "Update documentation" },
+                                { icon: <InProgress size={14} className="text-neutral-300" />, label: "Test new feature" },
+                            ],
+                        },
+                    ],
+                },
+            ],
+        },
+        projects: {
+            title: "Projects",
+            sections: [
+                {
+                    title: "Quick Actions",
+                    items: [
+                        { icon: <AddLarge size={16} className="text-neutral-50" />, label: "New project" },
+                    ],
+                },
+            ],
+        },
+        calendar: {
+            title: "Calendar",
+            sections: [
+                {
+                    title: "Views",
+                    items: [
+                        { icon: <View size={16} className="text-neutral-50" />, label: "Month view" },
+                    ],
+                },
+            ],
+        },
+        teams: {
+            title: "Teams",
+            sections: [
+                {
+                    title: "My Teams",
+                    items: [
+                        { icon: <Group size={16} className="text-neutral-50" />, label: "Development Team" },
                     ],
                 },
             ],
@@ -206,13 +258,44 @@ function getSidebarContent(activeSection: string, router: any, props: any): Side
             title: "Analytics",
             sections: [
                 {
-                    title: "Deep Dive",
+                    title: "Reports",
                     items: [
-                        { icon: <Analytics size={16} className="text-neutral-50" />, label: "Stock Analysis", isActive: isActive('/research'), onClick: () => router.push('/research') },
-                    ]
-                }
-            ]
-        }
+                        { icon: <Report size={16} className="text-neutral-50" />, label: "Performance report" },
+                    ],
+                },
+            ],
+        },
+        files: {
+            title: "Files",
+            sections: [
+                {
+                    title: "Quick Actions",
+                    items: [
+                        { icon: <CloudUpload size={16} className="text-neutral-50" />, label: "Upload file" },
+                    ],
+                },
+            ],
+        },
+
+        settings: {
+            title: "Settings",
+            sections: [
+                {
+                    title: "Account",
+                    items: [
+                        { icon: <UserIcon size={16} className="text-neutral-50" />, label: "Profile settings" },
+                        { icon: <Security size={16} className="text-neutral-50" />, label: "Security" },
+                        { icon: <Notification size={16} className="text-neutral-50" />, label: "Notifications" },
+                    ],
+                },
+                {
+                    title: "Workspace",
+                    items: [
+                        { icon: <SettingsIcon size={16} className="text-neutral-50" />, label: "Preferences" },
+                    ],
+                },
+            ],
+        },
     };
 
     return contentMap[activeSection] || contentMap.dashboard;
@@ -245,17 +328,18 @@ function IconNavButton({
 function IconNavigation({
     activeSection,
     onSectionChange,
-    props,
-    router
 }: {
     activeSection: string;
     onSectionChange: (section: string) => void;
-    props: any;
-    router: any;
 }) {
     const navItems = [
         { id: "dashboard", icon: <Dashboard size={16} />, label: "Dashboard" },
-        { id: "settings", icon: <SettingsIcon size={16} />, label: "Settings", isBottom: true },
+        { id: "tasks", icon: <Task size={16} />, label: "Tasks" },
+        { id: "projects", icon: <Folder size={16} />, label: "Projects" },
+        { id: "calendar", icon: <CalendarIcon size={16} />, label: "Calendar" },
+        { id: "teams", icon: <UserMultiple size={16} />, label: "Teams" },
+        { id: "analytics", icon: <Analytics size={16} />, label: "Analytics" },
+        { id: "files", icon: <DocumentAdd size={16} />, label: "Files" },
     ];
 
     return (
@@ -269,7 +353,7 @@ function IconNavigation({
 
             {/* Navigation Icons */}
             <div className="flex flex-col gap-2 w-full items-center">
-                {navItems.filter(i => !i.isBottom).map((item) => (
+                {navItems.map((item) => (
                     <IconNavButton
                         key={item.id}
                         isActive={activeSection === item.id}
@@ -284,7 +368,7 @@ function IconNavigation({
 
             {/* Bottom section */}
             <div className="flex flex-col gap-2 w-full items-center">
-                <IconNavButton isActive={activeSection === "settings"} onClick={() => { onSectionChange("settings"); router.push('/settings'); }}>
+                <IconNavButton isActive={activeSection === "settings"} onClick={() => onSectionChange("settings")}>
                     <SettingsIcon size={16} />
                 </IconNavButton>
                 <div className="size-8">
@@ -350,10 +434,10 @@ function SectionTitle({
     );
 }
 
-function DetailSidebar({ activeSection, props, router }: { activeSection: string, props: any, router: any }) {
+function DetailSidebar({ activeSection }: { activeSection: string }) {
     const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
     const [isCollapsed, setIsCollapsed] = useState(false);
-    const content = getSidebarContent(activeSection, router, props);
+    const content = getSidebarContent(activeSection);
 
     const toggleExpanded = (itemKey: string) => {
         setExpandedItems((prev) => {
@@ -368,16 +452,14 @@ function DetailSidebar({ activeSection, props, router }: { activeSection: string
 
     return (
         <aside
-            className={`bg-black/80 backdrop-blur-xl flex flex-col gap-4 items-start p-4 rounded-r-2xl border-r border-white/10 transition-all duration-500 h-full ${isCollapsed ? "w-16 min-w-16 !px-0 justify-center" : "w-64"
+            className={`bg-black/60 backdrop-blur-xl flex flex-col gap-4 items-start p-4 rounded-r-2xl border-r border-white/10 transition-all duration-500 h-full ${isCollapsed ? "w-16 min-w-16 !px-0 justify-center" : "w-80"
                 }`}
             style={{ transitionTimingFunction: softSpringEasing }}
         >
             {!isCollapsed && <BrandBadge />}
 
-            {!isCollapsed && <SectionTitle title={content.title} onToggleCollapse={toggleCollapse} isCollapsed={isCollapsed} />}
-            {isCollapsed && <SectionTitle title="" onToggleCollapse={toggleCollapse} isCollapsed={isCollapsed} />}
-
-            <SearchContainer isCollapsed={isCollapsed} onSearchClick={props.onSearchClick} />
+            <SectionTitle title={content.title} onToggleCollapse={toggleCollapse} isCollapsed={isCollapsed} />
+            <SearchContainer isCollapsed={isCollapsed} />
 
             <div
                 className={`flex flex-col w-full overflow-y-auto transition-all duration-500 custom-scrollbar ${isCollapsed ? "gap-2 items-center" : "gap-4 items-start"
@@ -399,7 +481,7 @@ function DetailSidebar({ activeSection, props, router }: { activeSection: string
                 <div className="w-full mt-auto pt-2 border-t border-neutral-800">
                     <div className="flex items-center gap-2 px-2 py-2">
                         <AvatarCircle />
-                        <div className="font-['Lexend:Regular',_sans-serif] text-[14px] text-neutral-50 truncate">User</div>
+                        <div className="font-['Lexend:Regular',_sans-serif] text-[14px] text-neutral-50">User Profile</div>
                         <button
                             type="button"
                             className="ml-auto size-8 rounded-md flex items-center justify-center hover:bg-neutral-800"
@@ -529,17 +611,13 @@ function MenuSection({
             {section.items.map((item, index) => {
                 const itemKey = `${section.title}-${index}`;
                 const isExpanded = expandedItems.has(itemKey);
-
-                // Use custom click handler if present, else default
-                const handleClick = item.onClick || (() => console.log(`Clicked ${item.label}`));
-
                 return (
                     <div key={itemKey} className="w-full flex flex-col">
                         <MenuItem
                             item={item}
                             isExpanded={isExpanded}
                             onToggle={() => onToggleExpanded(itemKey)}
-                            onItemClick={handleClick}
+                            onItemClick={() => console.log(`Clicked ${item.label}`)}
                             isCollapsed={isCollapsed}
                         />
                         {isExpanded && item.children && !isCollapsed && (
@@ -548,7 +626,7 @@ function MenuSection({
                                     <SubMenuItem
                                         key={`${itemKey}-${childIndex}`}
                                         item={child}
-                                        onItemClick={child.onClick || (() => console.log(`Clicked ${child.label}`))}
+                                        onItemClick={() => console.log(`Clicked ${child.label}`)}
                                     />
                                 ))}
                             </div>
@@ -562,29 +640,25 @@ function MenuSection({
 
 /* --------------------------------- Layout -------------------------------- */
 
-interface SidebarProps {
-    onSearchClick?: () => void
-    onResearchClick?: () => void
-}
-
-function TwoLevelSidebar(props: SidebarProps) {
+function TwoLevelSidebar() {
     const [activeSection, setActiveSection] = useState("dashboard");
-    const router = useRouter();
 
     return (
-        <div className="flex flex-row h-full sticky left-0 top-0 bottom-0 z-50">
-            <IconNavigation activeSection={activeSection} onSectionChange={setActiveSection} props={props} router={router} />
-            <DetailSidebar activeSection={activeSection} props={props} router={router} />
+        <div className="flex flex-row h-full">
+            <IconNavigation activeSection={activeSection} onSectionChange={setActiveSection} />
+            <DetailSidebar activeSection={activeSection} />
         </div>
     );
 }
 
 /* ------------------------------- Root Frame ------------------------------ */
 
-export default function Sidebar(props: SidebarProps) {
+export function Frame760() {
     return (
-        <div className="h-full flex items-start z-50 relative">
-            <TwoLevelSidebar {...props} />
+        <div className="h-full flex items-start">
+            <TwoLevelSidebar />
         </div>
     );
 }
+
+export default Frame760;

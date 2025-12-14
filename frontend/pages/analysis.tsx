@@ -42,7 +42,7 @@ export default function Analysis() {
     <div className="flex min-h-screen bg-gradient-to-br from-[#000] to-[#1A2428] text-white">
       <Sidebar />
 
-      <main className="flex-1 ml-[72px] flex flex-col min-h-screen relative p-6">
+      <main className="flex-1 flex flex-col min-h-screen relative p-6">
         <Header user={user?.name || 'User'} />
 
         <div className="max-w-4xl mx-auto w-full z-10">

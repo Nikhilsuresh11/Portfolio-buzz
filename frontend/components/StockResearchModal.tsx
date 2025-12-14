@@ -146,10 +146,10 @@ export default function StockResearchModal({ isOpen, onClose }: StockResearchMod
     if (!isOpen) return null
 
     return (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 transition-opacity animate-in fade-in duration-200">
-            <div className="w-[1000px] max-w-full bg-[#0f172a] rounded-2xl shadow-2xl border border-white/10 flex flex-col h-[90vh] overflow-hidden">
+        <div className="fixed inset-0 bg-black/95 backdrop-blur-md z-50 flex items-center justify-center p-4 transition-opacity animate-in fade-in duration-200">
+            <div className="w-[1000px] max-w-full bg-[#000] rounded-2xl shadow-2xl border border-white/10 flex flex-col h-[90vh] overflow-hidden">
                 {/* Header */}
-                <div className="flex justify-between items-center p-6 border-b border-white/10 bg-[#1e293b]">
+                <div className="flex justify-between items-center p-6 border-b border-white/10 bg-[#0a0a0a]">
                     <div className="flex items-center gap-4">
                         <div className="p-2 bg-blue-500/10 rounded-lg text-blue-400">
                             <FlaskConical size={24} />
@@ -165,11 +165,11 @@ export default function StockResearchModal({ isOpen, onClose }: StockResearchMod
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 overflow-y-auto p-6 custom-scrollbar bg-[#0f172a]">
+                <div className="flex-1 overflow-y-auto p-6 custom-scrollbar bg-black">
                     {!selectedStock ? (
                         // Search View
                         <div className="flex flex-col gap-8 max-w-2xl mx-auto mt-10">
-                            <div className="bg-[#1e293b] rounded-xl border border-white/10 p-4 flex items-center gap-3 shadow-lg">
+                            <div className="bg-[#111] rounded-xl border border-white/10 p-4 flex items-center gap-3 shadow-lg">
                                 <Search className="text-gray-400" size={20} />
                                 <input
                                     ref={inputRef}
@@ -192,14 +192,14 @@ export default function StockResearchModal({ isOpen, onClose }: StockResearchMod
                                         {searchResults.map(stock => (
                                             <div
                                                 key={stock.ticker}
-                                                className="flex items-center justify-between p-4 bg-[#1e293b] rounded-xl border border-white/5 cursor-pointer hover:bg-blue-600/10 hover:border-blue-500/30 transition-all group"
+                                                className="flex items-center justify-between p-4 bg-[#111] rounded-xl border border-white/5 cursor-pointer hover:bg-blue-600/10 hover:border-blue-500/30 transition-all group"
                                                 onClick={() => handleStockClick(stock)}
                                             >
                                                 <div>
                                                     <span className="block font-bold text-white text-lg group-hover:text-blue-400 transition-colors">{stock.ticker}</span>
                                                     <span className="text-sm text-gray-400">{stock.name}</span>
                                                 </div>
-                                                <Badge variant="secondary" className="bg-black/30 border-0 text-gray-400">
+                                                <Badge variant="secondary" className="bg-black/30 border border-white/10 text-gray-400">
                                                     {stock.exchange || 'NSE'}
                                                 </Badge>
                                             </div>
@@ -252,7 +252,7 @@ export default function StockResearchModal({ isOpen, onClose }: StockResearchMod
                             ) : researchData ? (
                                 <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
                                     {researchData.format === 'text' ? (
-                                        <div className="bg-[#1e293b] p-8 rounded-2xl border border-white/10 shadow-xl">
+                                        <div className="bg-[#111] p-8 rounded-2xl border border-white/10 shadow-xl">
                                             <pre className="whitespace-pre-wrap font-mono text-gray-300 leading-relaxed text-sm">{researchData.analysis}</pre>
                                         </div>
                                     ) : (
@@ -330,7 +330,7 @@ function Section({ icon, title, content, positive, negative, highlight, classNam
             ${positive ? 'bg-emerald-500/5 border-emerald-500/20' :
                 negative ? 'bg-red-500/5 border-red-500/20' :
                     highlight ? 'bg-blue-600/10 border-blue-500/30 shadow-lg shadow-blue-900/20' :
-                        'bg-[#1e293b] border-white/5 hover:border-white/10'}
+                        'bg-[#111] border-white/5 hover:border-white/10'}
             ${className}
         `}>
             <div className="flex items-center gap-3 mb-3">
