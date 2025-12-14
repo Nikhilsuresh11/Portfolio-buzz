@@ -3,16 +3,32 @@ import { useState, useEffect } from 'react'
 import { saveToken, saveUser, isAuthenticated } from '../../lib/auth'
 import { toast } from 'react-toastify'
 import { config } from '../../config'
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { AuthPage } from '@/components/ui/auth-page'
+import { AtSignIcon, Loader2 } from "lucide-react"
 
 export default function Login() {
   const router = useRouter()
+  // Default to login, but check query param
   const [isLogin, setIsLogin] = useState(true)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  // Check query param for default mode
+  useEffect(() => {
+    if (router.query.mode === 'signup') {
+      setIsLogin(false);
+    } else if (router.query.mode === 'login') {
+      setIsLogin(true);
+    }
+
+    // Enforce dark mode
+    document.documentElement.setAttribute('data-theme', 'dark');
+  }, [router.query.mode]);
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -94,177 +110,110 @@ export default function Login() {
   }
 
   return (
-    <div className="auth-container">
-      {/* Left Side - Testimonial/Branding */}
-      <div className="auth-left">
-        <div className="auth-brand">
-          <h1 className="brand-name">Portfolio Buzz</h1>
-        </div>
+    <AuthPage>
+      <div className="flex flex-col space-y-1">
+        <h1 className="font-heading text-2xl font-bold tracking-wide text-white">
+          {isLogin ? 'Sign In or Join Now!' : 'Create an Account'}
+        </h1>
+        <p className="text-gray-400 text-base">
+          {isLogin ? 'Login or create your Portfolio Buzz account.' : 'Enter your details to get started.'}
+        </p>
+      </div>
 
-        <div className="testimonial">
-          <blockquote className="testimonial-quote">
-            "Your watchlist, enriched with live news and AI-generated insights."
-          </blockquote>
-          {/* <div className="testimonial-author">
-            <div className="author-avatar">PB</div>
-            <div className="author-info">
-              <div className="author-name">Ali Hassan</div>
-              <div className="author-role">Portfolio Manager</div>
+      <form onSubmit={handleSubmit} className="space-y-4 pt-4">
+        <p className="text-gray-400 text-start text-xs">
+          Enter your email address to {isLogin ? 'sign in' : 'create an account'}
+        </p>
+
+        <div className="space-y-3">
+          <div className="relative h-max">
+            <Input
+              placeholder="your.email@example.com"
+              className="peer ps-9 bg-neutral-900/50 border-neutral-800 text-white placeholder:text-neutral-500 focus:border-blue-500/50"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              disabled={loading}
+              required
+            />
+            <div className="text-gray-400 pointer-events-none absolute inset-y-0 start-0 flex items-center justify-center ps-3 peer-disabled:opacity-50">
+              <AtSignIcon className="size-4" aria-hidden="true" />
             </div>
-          </div> */}
-        </div>
-
-        <div className="auth-decorations">
-          <div className="decoration-circle decoration-1"></div>
-          <div className="decoration-circle decoration-2"></div>
-          <div className="decoration-circle decoration-3"></div>
-        </div>
-      </div>
-
-      {/* Right Side - Auth Form */}
-      <div className="auth-right">
-        <div className="auth-form-container">
-          <div className="auth-header">
-            <button className="back-button" onClick={() => router.push('/')}>
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M12 4L6 10L12 16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-              </svg>
-              Home
-            </button>
           </div>
 
-          <div className="auth-form-content">
-            <h2 className="auth-title">
-              {isLogin ? 'Sign In or Join Now!' : 'Create Your Account'}
-            </h2>
-            <p className="auth-subtitle">
-              {isLogin
-                ? 'Login or create your portfolio buzz account.'
-                : 'Join us to start managing your portfolio.'}
-            </p>
+          <div className="relative h-max">
+            <Input
+              placeholder="Password"
+              className="peer ps-9 bg-neutral-900/50 border-neutral-800 text-white placeholder:text-neutral-500 focus:border-blue-500/50"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              disabled={loading}
+              required
+            />
+            <div className="text-gray-400 pointer-events-none absolute inset-y-0 start-0 flex items-center justify-center ps-3 peer-disabled:opacity-50">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-lock"><rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
+            </div>
+          </div>
 
-            <form onSubmit={handleSubmit} className="auth-form">
-              <div className="form-group">
-                <label htmlFor="email" className="form-label">Email Address</label>
-                <div className="input-wrapper">
-                  <svg className="input-icon" width="20" height="20" viewBox="0 0 20 20" fill="none">
-                    <path d="M3 6L10 11L17 6M3 6V14C3 14.5523 3.44772 15 4 15H16C16.5523 15 17 14.5523 17 14V6M3 6C3 5.44772 3.44772 5 4 5H16C16.5523 5 17 5.44772 17 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                  <input
-                    id="email"
-                    type="email"
-                    className="auth-input"
-                    placeholder="your.email@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    disabled={loading}
-                  />
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="password" className="form-label">Password</label>
-                <div className="input-wrapper">
-                  <svg className="input-icon" width="20" height="20" viewBox="0 0 20 20" fill="none">
-                    <path d="M5 10V7C5 4.79086 6.79086 3 9 3H11C13.2091 3 15 4.79086 15 7V10M4 10H16C16.5523 10 17 10.4477 17 11V16C17 16.5523 16.5523 17 16 17H4C3.44772 17 3 16.5523 3 16V11C3 10.4477 3.44772 10 4 10Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                  </svg>
-                  <input
-                    id="password"
-                    type={showPassword ? 'text' : 'password'}
-                    className="auth-input"
-                    placeholder="Enter your password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    disabled={loading}
-                  />
-                  <button
-                    type="button"
-                    className="password-toggle"
-                    onClick={() => setShowPassword(!showPassword)}
-                    disabled={loading}
-                  >
-                    {showPassword ? (
-                      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                        <path d="M3 3L17 17M10 7C11.6569 7 13 8.34315 13 10C13 10.3506 12.9448 10.6872 12.8433 11M7.36364 7.36364C7.13333 7.88889 7 8.47407 7 9C7 10.6569 8.34315 12 10 12C10.5259 12 11.1111 11.8667 11.6364 11.6364M7.36364 7.36364L11.6364 11.6364M7.36364 7.36364L4 4M11.6364 11.6364L16 16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                      </svg>
-                    ) : (
-                      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                        <path d="M10 7C8.34315 7 7 8.34315 7 10C7 11.6569 8.34315 13 10 13C11.6569 13 13 11.6569 13 10C13 8.34315 11.6569 7 10 7ZM10 7V4M10 13V16M17 10C17 10 14.5 14 10 14C5.5 14 3 10 3 10C3 10 5.5 6 10 6C14.5 6 17 10 17 10Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              {!isLogin && (
-                <div className="form-group">
-                  <label htmlFor="confirmPassword" className="form-label">Confirm Password</label>
-                  <div className="input-wrapper">
-                    <svg className="input-icon" width="20" height="20" viewBox="0 0 20 20" fill="none">
-                      <path d="M5 10V7C5 4.79086 6.79086 3 9 3H11C13.2091 3 15 4.79086 15 7V10M4 10H16C16.5523 10 17 10.4477 17 11V16C17 16.5523 16.5523 17 16 17H4C3.44772 17 3 16.5523 3 16V11C3 10.4477 3.44772 10 4 10Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                    </svg>
-                    <input
-                      id="confirmPassword"
-                      type={showPassword ? 'text' : 'password'}
-                      className="auth-input"
-                      placeholder="Confirm your password"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      required
-                      disabled={loading}
-                    />
-                  </div>
-                </div>
-              )}
-
-              {error && (
-                <div className="error-message">
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                    <path d="M8 0C3.58 0 0 3.58 0 8C0 12.42 3.58 16 8 16C12.42 16 16 12.42 16 8C16 3.58 12.42 0 8 0ZM9 12H7V10H9V12ZM9 9H7V4H9V9Z" />
-                  </svg>
-                  {error}
-                </div>
-              )}
-
-              <button
-                type="submit"
-                className="auth-button"
+          {!isLogin && (
+            <div className="relative h-max">
+              <Input
+                placeholder="Confirm Password"
+                className="peer ps-9 bg-neutral-900/50 border-neutral-800 text-white placeholder:text-neutral-500 focus:border-blue-500/50"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
                 disabled={loading}
-              >
-                {loading ? (
-                  <span className="loading-spinner"></span>
-                ) : (
-                  isLogin ? 'Sign In' : 'Create Account'
-                )}
-              </button>
-
-              <div className="auth-divider">
-                <span>OR</span>
+                required
+              />
+              <div className="text-gray-400 pointer-events-none absolute inset-y-0 start-0 flex items-center justify-center ps-3 peer-disabled:opacity-50">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-lock"><rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
               </div>
-
-              <p className="auth-footer">
-                {isLogin ? "Don't have an account? " : "Already have an account? "}
-                <button
-                  type="button"
-                  className="toggle-link"
-                  onClick={toggleMode}
-                  disabled={loading}
-                >
-                  {isLogin ? 'Create account' : 'Sign in'}
-                </button>
-              </p>
-
-              <p className="terms-text">
-                By clicking continue, you agree to our{' '}
-                <a href="#" className="terms-link">Terms of Service</a> and{' '}
-                <a href="#" className="terms-link">Privacy Policy</a>.
-              </p>
-            </form>
-          </div>
+            </div>
+          )}
         </div>
-      </div>
-    </div>
+
+        {error && (
+          <div className="p-3 rounded-md bg-red-500/10 border border-red-500/20 text-red-500 text-xs flex items-center gap-2">
+            {error}
+          </div>
+        )}
+
+        <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-500 text-white" disabled={loading}>
+          {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          {isLogin ? 'Continue' : 'Create Account'}
+        </Button>
+      </form>
+
+      <p className="text-gray-400 mt-8 text-sm text-center">
+        {isLogin ? "Don't have an account? " : "Already have an account? "}
+        <button
+          onClick={toggleMode}
+          className="hover:text-blue-300 text-blue-400 underline underline-offset-4 cursor-pointer"
+          disabled={loading}
+        >
+          {isLogin ? 'Sign up' : 'Log in'}
+        </button>
+      </p>
+
+      <p className="text-gray-500 mt-4 text-xs text-center">
+        By clicking continue, you agree to our{' '}
+        <a
+          href="#"
+          className="hover:text-white underline underline-offset-4"
+        >
+          Terms of Service
+        </a>{' '}
+        and{' '}
+        <a
+          href="#"
+          className="hover:text-white underline underline-offset-4"
+        >
+          Privacy Policy
+        </a>
+        .
+      </p>
+    </AuthPage>
   )
 }
