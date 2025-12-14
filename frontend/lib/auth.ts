@@ -34,6 +34,8 @@ export const removeToken = (): void => {
     }
 };
 
+export const logout = removeToken;
+
 /**
  * Check if user is authenticated
  */
