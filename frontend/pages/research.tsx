@@ -7,6 +7,7 @@ import { config } from '../config'
 import { Search, Loader2, FlaskConical, TrendingUp, DollarSign, BarChart3, AlertCircle } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { MessageLoading } from '@/components/ui/message-loading'
 
 interface Stock {
     ticker: string
@@ -193,7 +194,7 @@ export default function ResearchPage() {
                             <div className="min-h-[200px]">
                                 {searchLoading ? (
                                     <div className="flex flex-col items-center justify-center gap-4 text-gray-400 py-12">
-                                        <Loader2 className="animate-spin text-blue-500" size={32} />
+                                        <MessageLoading />
                                         <p>Searching market data...</p>
                                     </div>
                                 ) : searchResults.length > 0 ? (

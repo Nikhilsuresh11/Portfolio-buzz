@@ -10,6 +10,7 @@ import WelcomeModal from '../components/WelcomeModal'
 import AnalysisModal from '../components/AnalysisModal'
 import { getToken, getUser } from '../lib/auth'
 import { config } from '../config'
+import { MessageLoading } from '@/components/ui/message-loading'
 
 type Stock = {
     ticker: string;
@@ -174,7 +175,19 @@ export default function Watchlist() {
         setIsAnalysisOpen(true)
     }
 
-    if (loading) return null // Or a loading spinner
+    if (loading) {
+        return (
+            <div className="flex min-h-screen bg-black text-white">
+                <Sidebar
+                    onSearchClick={() => setIsSearchOpen(true)}
+                    onResearchClick={() => setIsResearchOpen(true)}
+                />
+                <div className="flex-1 flex items-center justify-center">
+                    <MessageLoading />
+                </div>
+            </div>
+        )
+    }
 
     return (
         <div className="flex min-h-screen bg-gradient-to-br from-[#000] to-[#1A2428] text-white">
