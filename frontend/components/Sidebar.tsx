@@ -1,5 +1,7 @@
 import Link from 'next/link'
+import { useRouter } from 'next/router'
 import { Home, TrendingUp, Star, Newspaper, Settings, Search, FlaskConical } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 interface SidebarProps {
     onSearchClick?: () => void
@@ -7,89 +9,51 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ onSearchClick, onResearchClick }: SidebarProps) {
+    const router = useRouter()
+
+    // Helper to check active state
+    const isActive = (path: string) => router.pathname === path
+
+    const NavItem = ({ href, icon: Icon, title, onClick, active }: any) => {
+        const content = (
+            <div className={cn(
+                "w-11 h-11 flex items-center justify-center rounded-xl transition-all duration-200 cursor-pointer",
+                active
+                    ? "bg-blue-600/20 text-blue-400 shadow-lg shadow-blue-900/20"
+                    : "bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white"
+            )}
+                title={title}
+            >
+                <Icon size={20} strokeWidth={2} />
+            </div>
+        )
+
+        if (onClick) {
+            return <button onClick={onClick} className="border-0 bg-transparent p-0">{content}</button>
+        }
+
+        return <Link href={href} legacyBehavior><a className="no-underline">{content}</a></Link>
+    }
+
     return (
-        <aside style={sidebarStyle} aria-label="Main navigation">
-            <nav style={navStyle}>
-                <Link href="/watchlist" passHref legacyBehavior>
-                    <a title="Home" style={iconStyle}>
-                        <Home size={20} strokeWidth={2} />
-                    </a>
-                </Link>
+        <aside className="fixed left-0 top-0 bottom-0 w-[72px] flex flex-col gap-4 items-center pt-7 pb-5 bg-black/60 backdrop-blur-xl border-r border-white/10 shadow-2xl z-50">
+            <nav className="flex flex-col gap-4 mt-5 w-full items-center">
+                <NavItem href="/watchlist" icon={Home} title="Home" active={isActive('/watchlist')} />
 
-                <button
-                    onClick={onSearchClick}
-                    title="Search Stocks"
-                    style={{ ...iconStyle, border: 'none' }}
-                >
-                    <Search size={20} strokeWidth={2} />
-                </button>
+                <NavItem onClick={onSearchClick} icon={Search} title="Search Stocks" />
 
-                <button
-                    onClick={onResearchClick}
-                    title="Deep Research"
-                    style={{ ...iconStyle, border: 'none' }}
-                >
-                    <FlaskConical size={20} strokeWidth={2} />
-                </button>
+                <NavItem onClick={onResearchClick} icon={FlaskConical} title="Deep Research" />
 
-                <a href="#" title="Portfolio" style={iconStyle}>
-                    <TrendingUp size={20} strokeWidth={2} />
-                </a>
-                <a href="#" title="Watchlist" style={iconStyle}>
-                    <Star size={20} strokeWidth={2} />
-                </a>
-                <a href="#" title="News" style={iconStyle}>
-                    <Newspaper size={20} strokeWidth={2} />
-                </a>
-                <Link href="/settings" passHref legacyBehavior>
-                    <a title="Settings" style={iconStyle}>
-                        <Settings size={20} strokeWidth={2} />
-                    </a>
-                </Link>
+                <div className="w-8 h-px bg-white/10 my-1" />
+
+                <NavItem href="#" icon={TrendingUp} title="Portfolio" />
+                <NavItem href="#" icon={Star} title="Watchlist" />
+                <NavItem href="#" icon={Newspaper} title="News" />
+
+                <div className="mt-auto flex flex-col gap-4 items-center w-full">
+                    <NavItem href="/settings" icon={Settings} title="Settings" active={isActive('/settings')} />
+                </div>
             </nav>
         </aside>
     )
-}
-
-const sidebarStyle: React.CSSProperties = {
-    position: 'fixed',
-    left: 0,
-    top: 0,
-    bottom: 0,
-    width: 72,
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 14,
-    alignItems: 'center',
-    paddingTop: 28,
-    paddingBottom: 20,
-    background: '#000000',
-    backdropFilter: 'blur(12px)',
-    borderRight: '1px solid rgba(248, 250, 252, 0.08)',
-    boxShadow: '2px 0 16px rgba(0, 0, 0, 0.3)',
-    zIndex: 70,
-    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-}
-
-const navStyle: React.CSSProperties = {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 16,
-    marginTop: 20,
-    width: '100%',
-    alignItems: 'center',
-}
-
-const iconStyle: React.CSSProperties = {
-    width: 44,
-    height: 44,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 12,
-    background: 'rgba(30, 41, 59, 0.4)',
-    textDecoration: 'none',
-    color: '#94a3b8',
-    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-    cursor: 'pointer',
 }

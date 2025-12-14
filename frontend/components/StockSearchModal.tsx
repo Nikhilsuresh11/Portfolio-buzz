@@ -2,6 +2,9 @@ import React, { useState, useEffect, useRef } from 'react'
 import { Search, X, Plus, Check, Loader2 } from 'lucide-react'
 import { getToken } from '../lib/auth'
 import { config } from '../config'
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 
 interface Stock {
     ticker: string
@@ -103,14 +106,14 @@ export default function StockSearchModal({ isOpen, onClose, onAddStock, watchlis
     if (!isOpen) return null
 
     return (
-        <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-start justify-center pt-24 transition-opacity">
             <div
-                className="search-modal"
+                className="w-full max-w-xl bg-[#1e293b] rounded-xl shadow-2xl border border-white/10 overflow-hidden animate-in slide-in-from-top-4 fade-in duration-200"
                 ref={modalRef}
                 onClick={e => e.stopPropagation()}
             >
-                <div className="search-header">
-                    <Search className="search-icon" size={20} />
+                <div className="relative flex items-center px-4 py-3 border-b border-white/10 bg-[#0f172a]">
+                    <Search className="h-5 w-5 text-gray-400 absolute left-4" />
                     <input
                         ref={inputRef}
                         type="text"
@@ -118,49 +121,47 @@ export default function StockSearchModal({ isOpen, onClose, onAddStock, watchlis
                         value={query}
                         onChange={e => setQuery(e.target.value)}
                         onKeyDown={handleKeyDown}
-                        className="search-input"
+                        className="flex-1 bg-transparent border-none outline-none text-white placeholder:text-gray-500 pl-10 h-9 text-base"
                     />
-                    <button onClick={onClose} className="close-btn">
-                        <X size={20} />
-                    </button>
+                    <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8 text-gray-400 hover:text-white ml-2">
+                        <X size={18} />
+                    </Button>
                 </div>
 
-                <div className="search-results">
+                <div className="max-h-[400px] overflow-y-auto bg-[#1e293b]">
                     {loading ? (
-                        <div className="search-loading">
-                            <Loader2 className="animate-spin" size={24} />
+                        <div className="flex justify-center p-8">
+                            <Loader2 className="animate-spin text-blue-500 h-8 w-8" />
                         </div>
                     ) : results.length > 0 ? (
-                        <ul className="results-list">
+                        <ul className="divide-y divide-white/5">
                             {results.map((stock, index) => {
                                 const inWatchlist = isStockInWatchlist(stock.ticker)
+                                const isSelected = index === selectedIndex
                                 return (
                                     <li
                                         key={stock.ticker}
-                                        className={`result-item ${index === selectedIndex ? 'selected' : ''}`}
+                                        className={`flex items-center justify-between px-5 py-3 cursor-pointer transition-colors ${isSelected ? 'bg-blue-500/10' : 'hover:bg-white/5'
+                                            }`}
                                         onClick={() => !inWatchlist && handleAdd(stock.ticker)}
                                         onMouseEnter={() => setSelectedIndex(index)}
                                     >
-                                        <div className="stock-info">
-                                            <span className="stock-ticker">{stock.ticker}</span>
-                                            <span className="stock-name">{stock.name}</span>
+                                        <div className="flex flex-col">
+                                            <span className="font-semibold text-white">{stock.ticker}</span>
+                                            <span className="text-sm text-gray-400">{stock.name}</span>
                                         </div>
-                                        <div className="stock-meta">
-                                            <span className="stock-exchange">{stock.exchange || 'NSE'}</span>
+                                        <div className="flex items-center gap-3">
+                                            <Badge variant="secondary" className="bg-black/20 text-gray-400 font-normal border-0">
+                                                {stock.exchange || 'NSE'}
+                                            </Badge>
                                             {inWatchlist ? (
-                                                <span className="in-watchlist">
-                                                    <Check size={16} /> Added
+                                                <span className="flex items-center text-sm text-emerald-500 font-medium">
+                                                    <Check size={14} className="mr-1" /> Added
                                                 </span>
                                             ) : (
-                                                <button
-                                                    className="add-btn"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation()
-                                                        handleAdd(stock.ticker)
-                                                    }}
-                                                >
+                                                <Button size="icon" variant="ghost" className="h-8 w-8 text-blue-400 bg-blue-500/10 hover:bg-blue-500 hover:text-white rounded-md">
                                                     <Plus size={16} />
-                                                </button>
+                                                </Button>
                                             )}
                                         </div>
                                     </li>
@@ -168,191 +169,16 @@ export default function StockSearchModal({ isOpen, onClose, onAddStock, watchlis
                             })}
                         </ul>
                     ) : query.length > 0 ? (
-                        <div className="no-results">
+                        <div className="p-8 text-center text-gray-400 text-sm">
                             No stocks found for "{query}"
                         </div>
                     ) : (
-                        <div className="search-placeholder">
-                            Type to search for Indian stocks
+                        <div className="p-8 text-center text-gray-500 text-sm">
+                            Type to search for Indian stocks to add to your watchlist.
                         </div>
                     )}
                 </div>
             </div>
-
-            <style jsx>{`
-        .modal-overlay {
-          position: fixed;
-          inset: 0;
-          background: rgba(0, 0, 0, 0.7);
-          backdrop-filter: blur(4px);
-          display: flex;
-          align-items: flex-start;
-          justify-content: center;
-          padding-top: 100px;
-          z-index: 100;
-          animation: fadeIn 0.2s ease;
-        }
-
-        .search-modal {
-          width: 600px;
-          max-width: 90vw;
-          background: #1e293b;
-          border-radius: 12px;
-          box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          overflow: hidden;
-          animation: slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-
-        .search-header {
-          display: flex;
-          align-items: center;
-          padding: 16px 20px;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-          background: #0f172a;
-        }
-
-        .search-icon {
-          color: #94a3b8;
-          margin-right: 12px;
-        }
-
-        .search-input {
-          flex: 1;
-          background: transparent;
-          border: none;
-          color: #f8fafc;
-          font-size: 16px;
-          outline: none;
-        }
-
-        .search-input::placeholder {
-          color: #64748b;
-        }
-
-        .close-btn {
-          background: transparent;
-          border: none;
-          color: #94a3b8;
-          cursor: pointer;
-          padding: 4px;
-          border-radius: 4px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        .close-btn:hover {
-          background: rgba(255, 255, 255, 0.1);
-          color: #f8fafc;
-        }
-
-        .search-results {
-          max-height: 400px;
-          overflow-y: auto;
-          background: #1e293b;
-        }
-
-        .results-list {
-          list-style: none;
-          padding: 0;
-          margin: 0;
-        }
-
-        .result-item {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 12px 20px;
-          cursor: pointer;
-          transition: background 0.1s ease;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        .result-item:last-child {
-          border-bottom: none;
-        }
-
-        .result-item:hover, .result-item.selected {
-          background: rgba(59, 130, 246, 0.1);
-        }
-
-        .stock-info {
-          display: flex;
-          flex-direction: column;
-          gap: 2px;
-        }
-
-        .stock-ticker {
-          font-weight: 600;
-          color: #f8fafc;
-          font-size: 15px;
-        }
-
-        .stock-name {
-          color: #94a3b8;
-          font-size: 13px;
-        }
-
-        .stock-meta {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-        }
-
-        .stock-exchange {
-          font-size: 12px;
-          color: #64748b;
-          background: rgba(0, 0, 0, 0.2);
-          padding: 2px 6px;
-          border-radius: 4px;
-        }
-
-        .add-btn {
-          background: rgba(59, 130, 246, 0.1);
-          color: #3b82f6;
-          border: 1px solid rgba(59, 130, 246, 0.2);
-          width: 32px;
-          height: 32px;
-          border-radius: 8px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-          transition: all 0.2s ease;
-        }
-
-        .add-btn:hover {
-          background: #3b82f6;
-          color: white;
-        }
-
-        .in-watchlist {
-          display: flex;
-          align-items: center;
-          gap: 4px;
-          font-size: 13px;
-          color: #10b981;
-          font-weight: 500;
-        }
-
-        .search-loading, .no-results, .search-placeholder {
-          padding: 40px;
-          text-align: center;
-          color: #94a3b8;
-          font-size: 14px;
-        }
-
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-
-        @keyframes slideDown {
-          from { opacity: 0; transform: translateY(-20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-      `}</style>
         </div>
     )
 }

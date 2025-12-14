@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react'
-import { X, Plus, Check, TrendingUp, ArrowRight } from 'lucide-react'
+import { Plus, Check, TrendingUp, ArrowRight, Loader2 } from 'lucide-react'
 import { getToken } from '../lib/auth'
 import { config } from '../config'
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 
 interface Stock {
   ticker: string
@@ -67,227 +69,67 @@ export default function WelcomeModal({ isOpen, onClose, onAddStock, watchlist }:
   if (!isOpen) return null
 
   return (
-    <div className="modal-overlay">
-      <div className="welcome-modal">
-        <div className="modal-content">
-          <div className="modal-header">
-            <div className="icon-wrapper">
-              <TrendingUp size={32} color="#3b82f6" />
+    <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-[60] flex items-center justify-center p-4 animate-in fade-in duration-500">
+      <div className="w-[600px] max-w-full bg-gradient-to-br from-[#1e293b] to-[#0f172a] rounded-3xl shadow-2xl border border-white/10 overflow-hidden relative animate-in zoom-in-95 duration-300">
+        {/* Glow effect */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-32 bg-blue-500/20 blur-[60px] pointer-events-none" />
+
+        <div className="p-10 relative z-10">
+          <div className="text-center mb-8">
+            <div className="w-20 h-20 bg-blue-600/20 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-blue-900/30 ring-1 ring-blue-500/30">
+              <TrendingUp size={40} className="text-blue-400" />
             </div>
-            <h2>Welcome to Portfolio Buzz</h2>
-            <p>Start by adding some popular stocks to your watchlist to track their performance and news.</p>
+            <h2 className="text-3xl font-bold text-white tracking-tight mb-3">Welcome to Portfolio Buzz</h2>
+            <p className="text-gray-400 text-lg">Start by adding popular stocks to your watchlist to track their performance.</p>
           </div>
 
-          <div className="stocks-grid">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
             {loading ? (
-              <div className="loading-state">Loading suggestions...</div>
+              <div className="col-span-2 flex justify-center py-10">
+                <Loader2 className="animate-spin text-blue-500 h-8 w-8" />
+              </div>
             ) : (
               trendingStocks.map(stock => {
                 const added = isStockInWatchlist(stock.ticker)
                 return (
-                  <div key={stock.ticker} className={`stock-card ${added ? 'added' : ''}`}>
-                    <div className="stock-info">
-                      <span className="ticker">{stock.ticker}</span>
-                      <span className="name">{stock.name}</span>
+                  <div
+                    key={stock.ticker}
+                    className={`
+                                    flex items-center justify-between p-4 rounded-xl border transition-all duration-300
+                                    ${added ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-white/5 border-white/5 hover:bg-white/10 hover:border-white/10'}
+                                `}
+                  >
+                    <div className="flex flex-col overflow-hidden">
+                      <span className="font-bold text-white text-base">{stock.ticker}</span>
+                      <span className="text-sm text-gray-400 truncate w-32">{stock.name}</span>
                     </div>
-                    <button
-                      className={`action-btn ${added ? 'added' : ''}`}
+                    <Button
+                      size="icon"
                       onClick={() => !added && handleAdd(stock.ticker)}
                       disabled={added}
+                      className={`
+                                        h-10 w-10 rounded-xl transition-all
+                                        ${added ? 'bg-emerald-500 text-white hover:bg-emerald-600 opacity-100' : 'bg-blue-600 text-white hover:bg-blue-500 hover:scale-105 shadow-md shadow-blue-600/20'}
+                                    `}
                     >
-                      {added ? <Check size={18} /> : <Plus size={18} />}
-                    </button>
+                      {added ? <Check size={20} strokeWidth={3} /> : <Plus size={20} strokeWidth={3} />}
+                    </Button>
                   </div>
                 )
               })
             )}
           </div>
 
-          <div className="modal-footer">
-            <button className="continue-btn" onClick={onClose}>
-              Get Started <ArrowRight size={18} />
-            </button>
+          <div className="flex justify-center">
+            <Button
+              className="w-full h-14 text-lg font-semibold bg-white text-black hover:bg-gray-100 rounded-xl shadow-xl shadow-white/5 transform transition-transform active:scale-95"
+              onClick={onClose}
+            >
+              Get Started <ArrowRight className="ml-2 h-5 w-5" />
+            </Button>
           </div>
         </div>
       </div>
-
-      <style jsx>{`
-        .modal-overlay {
-          position: fixed;
-          inset: 0;
-          background: rgba(0, 0, 0, 0.8);
-          backdrop-filter: blur(8px);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          z-index: 200;
-          animation: fadeIn 0.3s ease;
-        }
-
-        .welcome-modal {
-          width: 500px;
-          max-width: 90vw;
-          background: linear-gradient(145deg, #1e293b, #0f172a);
-          border-radius: 24px;
-          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          overflow: hidden;
-          animation: scaleUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-
-        .modal-content {
-          padding: 40px;
-        }
-
-        .modal-header {
-          text-align: center;
-          margin-bottom: 32px;
-        }
-
-        .icon-wrapper {
-          width: 64px;
-          height: 64px;
-          background: rgba(59, 130, 246, 0.1);
-          border-radius: 20px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          margin: 0 auto 24px;
-          box-shadow: 0 0 20px rgba(59, 130, 246, 0.2);
-        }
-
-        h2 {
-          font-size: 24px;
-          font-weight: 700;
-          color: #f8fafc;
-          margin: 0 0 12px;
-        }
-
-        p {
-          color: #94a3b8;
-          font-size: 15px;
-          line-height: 1.5;
-          margin: 0;
-        }
-
-        .stocks-grid {
-          display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 12px;
-          margin-bottom: 32px;
-        }
-
-        .stock-card {
-          background: rgba(255, 255, 255, 0.03);
-          border: 1px solid rgba(255, 255, 255, 0.05);
-          border-radius: 12px;
-          padding: 12px 16px;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          transition: all 0.2s ease;
-        }
-
-        .stock-card:hover {
-          background: rgba(255, 255, 255, 0.06);
-          border-color: rgba(255, 255, 255, 0.1);
-        }
-
-        .stock-card.added {
-          background: rgba(16, 185, 129, 0.1);
-          border-color: rgba(16, 185, 129, 0.2);
-        }
-
-        .stock-info {
-          display: flex;
-          flex-direction: column;
-          gap: 2px;
-          overflow: hidden;
-        }
-
-        .ticker {
-          font-weight: 600;
-          color: #f8fafc;
-          font-size: 14px;
-        }
-
-        .name {
-          font-size: 12px;
-          color: #64748b;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        }
-
-        .action-btn {
-          width: 32px;
-          height: 32px;
-          border-radius: 8px;
-          border: none;
-          background: #3b82f6;
-          color: white;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          flex-shrink: 0;
-        }
-
-        .action-btn:hover {
-          background: #2563eb;
-          transform: scale(1.05);
-        }
-
-        .action-btn.added {
-          background: #10b981;
-          cursor: default;
-          transform: none;
-        }
-
-        .modal-footer {
-          display: flex;
-          justify-content: center;
-        }
-
-        .continue-btn {
-          background: white;
-          color: #0f172a;
-          border: none;
-          padding: 14px 32px;
-          border-radius: 12px;
-          font-weight: 600;
-          font-size: 16px;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          transition: all 0.2s ease;
-        }
-
-        .continue-btn:hover {
-          background: #f1f5f9;
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(255, 255, 255, 0.1);
-        }
-
-        .loading-state {
-          grid-column: span 2;
-          text-align: center;
-          padding: 20px;
-          color: #64748b;
-        }
-
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-
-        @keyframes scaleUp {
-          from { opacity: 0; transform: scale(0.95); }
-          to { opacity: 1; transform: scale(1); }
-        }
-      `}</style>
     </div>
   )
 }

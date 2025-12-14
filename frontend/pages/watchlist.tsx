@@ -177,33 +177,42 @@ export default function Watchlist() {
     if (loading) return null // Or a loading spinner
 
     return (
-        <div className="app-root">
+        <div className="flex min-h-screen bg-gradient-to-br from-[#000] to-[#1A2428] text-white">
             <Sidebar
                 onSearchClick={() => setIsSearchOpen(true)}
                 onResearchClick={() => setIsResearchOpen(true)}
             />
 
-            <main className="main-col">
-                <Header user={user?.name || 'User'} />
+            <main className="flex-1 ml-[72px] flex flex-col h-screen overflow-hidden relative">
+                <div className='p-6 pb-0 z-10'>
+                    <Header user={user?.name || 'User'} />
+                </div>
 
-                <div className="content-grid">
-                    <div className="watchlist-section">
-                        <StockTable
-                            rows={watchlist}
-                            onSelect={setSelectedTicker}
-                            onAnalyze={handleAnalyze}
-                            onRemove={removeStock}
-                            selectedTicker={selectedTicker}
-                        />
+                <div className="flex-1 grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-6 p-6 pt-0 overflow-hidden">
+                    <div className="overflow-y-auto pr-2 custom-scrollbar">
+                        {/* We will refactor StockTable styles next, but container needs glass effect */}
+                        <div className="bg-white/5 border border-white/10 backdrop-blur-sm rounded-2xl p-1 h-full shadow-xl">
+                            <StockTable
+                                rows={watchlist}
+                                onSelect={setSelectedTicker}
+                                onAnalyze={handleAnalyze}
+                                onRemove={removeStock}
+                                selectedTicker={selectedTicker}
+                            />
+                        </div>
                     </div>
 
-                    <div className="news-section">
+                    <div className="hidden lg:block h-full overflow-hidden bg-white/5 border border-white/10 backdrop-blur-sm rounded-2xl shadow-xl">
                         <RelatedNews
                             ticker={selectedTicker}
                             onClose={() => setSelectedTicker(null)}
                         />
                     </div>
                 </div>
+
+                {/* Background ambient light effects */}
+                <div className="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 bg-blue-500/10 rounded-full blur-[100px] pointer-events-none z-0" />
+                <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 bg-purple-500/10 rounded-full blur-[100px] pointer-events-none z-0" />
             </main>
 
             <StockSearchModal
@@ -230,57 +239,6 @@ export default function Watchlist() {
                 isOpen={isResearchOpen}
                 onClose={() => setIsResearchOpen(false)}
             />
-
-            <style jsx>{`
-        .app-root {
-          display: flex;
-          min-height: 100vh;
-          background: var(--bg-primary);
-        }
-
-        .main-col {
-          flex: 1;
-          margin-left: 72px; /* Sidebar width */
-          display: flex;
-          flex-direction: column;
-          height: 100vh;
-          overflow: hidden;
-        }
-
-        .content-grid {
-          flex: 1;
-          display: grid;
-          grid-template-columns: 1fr 380px;
-          gap: 24px;
-          padding: 24px;
-          overflow: hidden;
-        }
-
-        .watchlist-section {
-          overflow-y: auto;
-          padding-right: 8px;
-        }
-
-        .news-section {
-          height: 100%;
-          overflow: hidden;
-          border-radius: 16px;
-          background: rgba(30, 41, 59, 0.2);
-          border: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        @media (max-width: 1024px) {
-          .content-grid {
-            grid-template-columns: 1fr;
-          }
-
-          .news-section {
-            display: none; /* Hide news on smaller screens or make it a modal */
-          }
-
-          /* If a stock is selected, we could show news in a modal or overlay on mobile */
-        }
-      `}</style>
         </div>
     )
 }

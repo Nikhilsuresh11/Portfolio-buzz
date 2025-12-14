@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { Search, X, Loader2, FlaskConical, TrendingUp, DollarSign, BarChart3, AlertCircle } from 'lucide-react'
+import { Search, X, Loader2, FlaskConical, TrendingUp, DollarSign, BarChart3, AlertCircle, ArrowLeft } from 'lucide-react'
 import { getAuthHeaders } from '../lib/auth'
 import { config } from '../config'
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 
 interface Stock {
     ticker: string
@@ -144,170 +146,169 @@ export default function StockResearchModal({ isOpen, onClose }: StockResearchMod
     if (!isOpen) return null
 
     return (
-        <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
-            <div className="research-modal">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 transition-opacity animate-in fade-in duration-200">
+            <div className="w-[1000px] max-w-full bg-[#0f172a] rounded-2xl shadow-2xl border border-white/10 flex flex-col h-[90vh] overflow-hidden">
                 {/* Header */}
-                <div className="modal-header">
-                    <div className="header-left">
-                        <FlaskConical size={24} className="header-icon" />
+                <div className="flex justify-between items-center p-6 border-b border-white/10 bg-[#1e293b]">
+                    <div className="flex items-center gap-4">
+                        <div className="p-2 bg-blue-500/10 rounded-lg text-blue-400">
+                            <FlaskConical size={24} />
+                        </div>
                         <div>
-                            <h2 className="modal-title">Deep Stock Research</h2>
-                            <p className="modal-subtitle">Comprehensive fundamental analysis powered by AI</p>
+                            <h2 className="text-xl font-bold text-white tracking-tight">Deep Stock Research</h2>
+                            <p className="text-sm text-gray-400 mt-1">Comprehensive fundamental analysis powered by AI</p>
                         </div>
                     </div>
-                    <button onClick={onClose} className="close-btn">
+                    <Button variant="ghost" size="icon" onClick={onClose} className="text-gray-400 hover:text-white hover:bg-white/10">
                         <X size={20} />
-                    </button>
+                    </Button>
                 </div>
 
                 {/* Content */}
-                <div className="modal-content">
+                <div className="flex-1 overflow-y-auto p-6 custom-scrollbar bg-[#0f172a]">
                     {!selectedStock ? (
                         // Search View
-                        <>
-                            <div className="search-container">
-                                <Search className="search-icon" size={20} />
+                        <div className="flex flex-col gap-8 max-w-2xl mx-auto mt-10">
+                            <div className="bg-[#1e293b] rounded-xl border border-white/10 p-4 flex items-center gap-3 shadow-lg">
+                                <Search className="text-gray-400" size={20} />
                                 <input
                                     ref={inputRef}
                                     type="text"
                                     placeholder="Search for a stock to analyze (e.g., RELIANCE, TCS)..."
                                     value={query}
                                     onChange={e => setQuery(e.target.value)}
-                                    className="search-input"
+                                    className="flex-1 bg-transparent border-none outline-none text-white text-lg placeholder:text-gray-500"
                                 />
                             </div>
 
-                            <div className="search-results">
+                            <div className="min-h-[300px]">
                                 {searchLoading ? (
-                                    <div className="loading-state">
-                                        <Loader2 className="animate-spin" size={24} />
+                                    <div className="flex flex-col items-center justify-center gap-4 text-gray-400 py-12">
+                                        <Loader2 className="animate-spin text-blue-500" size={32} />
                                         <p>Searching...</p>
                                     </div>
                                 ) : searchResults.length > 0 ? (
-                                    <div className="results-list">
+                                    <div className="space-y-2">
                                         {searchResults.map(stock => (
                                             <div
                                                 key={stock.ticker}
-                                                className="result-item"
+                                                className="flex items-center justify-between p-4 bg-[#1e293b] rounded-xl border border-white/5 cursor-pointer hover:bg-blue-600/10 hover:border-blue-500/30 transition-all group"
                                                 onClick={() => handleStockClick(stock)}
                                             >
-                                                <div className="stock-info">
-                                                    <span className="stock-ticker">{stock.ticker}</span>
-                                                    <span className="stock-name">{stock.name}</span>
+                                                <div>
+                                                    <span className="block font-bold text-white text-lg group-hover:text-blue-400 transition-colors">{stock.ticker}</span>
+                                                    <span className="text-sm text-gray-400">{stock.name}</span>
                                                 </div>
-                                                <div className="stock-exchange">{stock.exchange || 'NSE'}</div>
+                                                <Badge variant="secondary" className="bg-black/30 border-0 text-gray-400">
+                                                    {stock.exchange || 'NSE'}
+                                                </Badge>
                                             </div>
                                         ))}
                                     </div>
                                 ) : query.length > 0 ? (
-                                    <div className="empty-state">
-                                        <Search size={48} />
+                                    <div className="flex flex-col items-center justify-center gap-4 text-gray-500 py-12">
+                                        <Search size={48} className="opacity-20" />
                                         <p>No stocks found for "{query}"</p>
                                     </div>
                                 ) : (
-                                    <div className="empty-state">
-                                        <FlaskConical size={48} />
-                                        <p>Search for a stock to get detailed fundamental analysis</p>
-                                        <span className="hint">Covers 17+ key metrics for long-term investment</span>
+                                    <div className="flex flex-col items-center justify-center gap-4 text-gray-500 py-12 text-center opacity-60">
+                                        <FlaskConical size={64} className="opacity-20 mb-2" />
+                                        <p className="text-lg">Search for a stock to get detailed fundamental analysis</p>
+                                        <span className="text-sm">Covers 17+ key metrics for long-term investment</span>
                                     </div>
                                 )}
                             </div>
-                        </>
+                        </div>
                     ) : (
                         // Research View
-                        <div className="research-view">
-                            <div className="research-header">
-                                <button onClick={handleBack} className="back-btn">
-                                    ← Back to Search
-                                </button>
-                                <div className="stock-title">
-                                    <h3>{selectedStock.ticker}</h3>
-                                    <span>{selectedStock.name}</span>
+                        <div className="flex flex-col gap-6 max-w-5xl mx-auto">
+                            <div className="flex items-center justify-between">
+                                <Button variant="ghost" onClick={handleBack} className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 gap-2 pl-0">
+                                    <ArrowLeft size={16} /> Back to Search
+                                </Button>
+                                <div className="text-right">
+                                    <h3 className="text-3xl font-bold text-white">{selectedStock.ticker}</h3>
+                                    <span className="text-gray-400">{selectedStock.name}</span>
                                 </div>
                             </div>
 
                             {researchLoading ? (
-                                <div className="loading-research">
-                                    <Loader2 className="animate-spin" size={40} />
-                                    <p>Analyzing {selectedStock.ticker}...</p>
-                                    <span>This may take 10-30 seconds</span>
+                                <div className="flex flex-col items-center justify-center gap-6 py-20">
+                                    <div className="relative">
+                                        <div className="absolute inset-0 bg-blue-500 blur-xl opacity-20 rounded-full"></div>
+                                        <Loader2 className="animate-spin text-blue-500 relative z-10" size={64} />
+                                    </div>
+                                    <div className="text-center space-y-2">
+                                        <p className="text-xl font-medium text-white">Analyzing {selectedStock.ticker}...</p>
+                                        <p className="text-sm text-gray-400">AI is gathering financial data and generating insights. This may take 10-30 seconds.</p>
+                                    </div>
                                 </div>
                             ) : error ? (
-                                <div className="error-state">
-                                    <AlertCircle size={48} />
-                                    <p>{error}</p>
-                                    <button onClick={handleBack} className="retry-btn">Try Another Stock</button>
+                                <div className="flex flex-col items-center justify-center gap-6 py-20 text-red-500">
+                                    <AlertCircle size={64} className="opacity-80" />
+                                    <p className="text-xl font-medium">{error}</p>
+                                    <Button onClick={handleBack} className="bg-red-600 hover:bg-red-700 text-white">Try Another Stock</Button>
                                 </div>
                             ) : researchData ? (
-                                <div className="research-content">
+                                <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
                                     {researchData.format === 'text' ? (
-                                        <div className="research-text">
-                                            <pre>{researchData.analysis}</pre>
+                                        <div className="bg-[#1e293b] p-8 rounded-2xl border border-white/10 shadow-xl">
+                                            <pre className="whitespace-pre-wrap font-mono text-gray-300 leading-relaxed text-sm">{researchData.analysis}</pre>
                                         </div>
                                     ) : (
-                                        <div className="research-sections">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            {/* We map specific fields to Section components carefully */}
+
                                             {researchData.business_model && (
-                                                <Section icon={<TrendingUp />} title="Business Model" content={researchData.business_model} />
+                                                <Section icon={<TrendingUp />} title="Business Model" content={researchData.business_model} className="md:col-span-2" />
                                             )}
+
                                             {researchData.core_focus && (
                                                 <Section icon={<BarChart3 />} title="Core Focus & Strengths" content={researchData.core_focus} />
                                             )}
+
                                             {researchData.revenue_profit_growth && (
                                                 <Section icon={<DollarSign />} title="Revenue & Profit Growth" content={researchData.revenue_profit_growth} />
                                             )}
-                                            {researchData.pe_pb_ratio && (
-                                                <Section title="PE & PB Ratio" content={researchData.pe_pb_ratio} />
+
+                                            {researchData.future_outlook && (
+                                                <Section title="Future Outlook" content={researchData.future_outlook} className="md:col-span-2 bg-blue-900/10 border-blue-500/20" />
                                             )}
-                                            {researchData.roe_roce && (
-                                                <Section title="ROE & ROCE" content={researchData.roe_roce} />
+
+                                            {researchData.recommendation && (
+                                                <Section title="AI Recommendation" content={researchData.recommendation} highlight className="md:col-span-2 text-lg" />
                                             )}
-                                            {researchData.debt_level && (
-                                                <Section title="Debt Level (10Y)" content={researchData.debt_level} />
-                                            )}
-                                            {researchData.cash_flow && (
-                                                <Section title="Cash Flow (10Y)" content={researchData.cash_flow} />
-                                            )}
-                                            {researchData.profit_margin && (
-                                                <Section title="Profit Margin (10Y)" content={researchData.profit_margin} />
-                                            )}
-                                            {researchData.dividend_history && (
-                                                <Section title="Dividend History" content={researchData.dividend_history} />
-                                            )}
-                                            {researchData.price_movement_reason && (
-                                                <Section title="Recent Price Movement" content={researchData.price_movement_reason} />
-                                            )}
-                                            {researchData.competitors && (
-                                                <Section title="Competitors Analysis" content={researchData.competitors} />
-                                            )}
-                                            {researchData.capex && (
-                                                <Section title="Capital Expenditure" content={researchData.capex} />
-                                            )}
+
+                                            {/* Financial Metrics Grid */}
+                                            <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-6">
+                                                {researchData.pe_pb_ratio && <Section title="PE & PB Ratio" content={researchData.pe_pb_ratio} />}
+                                                {researchData.roe_roce && <Section title="ROE & ROCE" content={researchData.roe_roce} />}
+                                                {researchData.profit_margin && <Section title="Profit Margin (10Y)" content={researchData.profit_margin} />}
+                                                {researchData.debt_level && <Section title="Debt Level (10Y)" content={researchData.debt_level} />}
+                                                {researchData.cash_flow && <Section title="Cash Flow (10Y)" content={researchData.cash_flow} />}
+                                                {researchData.dividend_history && <Section title="Dividend History" content={researchData.dividend_history} />}
+                                            </div>
+
                                             {researchData.investment_pros && (
                                                 <Section title="Investment Advantages" content={researchData.investment_pros} positive />
                                             )}
                                             {researchData.investment_cons && (
                                                 <Section title="Investment Disadvantages" content={researchData.investment_cons} negative />
                                             )}
-                                            {researchData.future_outlook && (
-                                                <Section title="Future Outlook" content={researchData.future_outlook} />
-                                            )}
-                                            {researchData.analyst_opinion && (
-                                                <Section title="Analyst Opinion" content={researchData.analyst_opinion} />
-                                            )}
-                                            {researchData.recent_news && (
-                                                <Section title="Recent News" content={researchData.recent_news} />
-                                            )}
-                                            {researchData.legal_patents && (
-                                                <Section title="Legal & Patents" content={researchData.legal_patents} />
-                                            )}
-                                            {researchData.recommendation && (
-                                                <Section title="Recommendation" content={researchData.recommendation} highlight />
-                                            )}
+
+                                            {/* Other Sections */}
+                                            {researchData.price_movement_reason && <Section title="Recent Price Movement" content={researchData.price_movement_reason} />}
+                                            {researchData.competitors && <Section title="Competitors Analysis" content={researchData.competitors} />}
+                                            {researchData.capex && <Section title="Capital Expenditure" content={researchData.capex} />}
+                                            {researchData.analyst_opinion && <Section title="Analyst Opinion" content={researchData.analyst_opinion} />}
+                                            {researchData.recent_news && <Section title="Recent News" content={researchData.recent_news} />}
+                                            {researchData.legal_patents && <Section title="Legal & Patents" content={researchData.legal_patents} />}
+
                                         </div>
                                     )}
 
                                     {researchData.generated_at && (
-                                        <div className="research-footer">
+                                        <div className="text-center py-6 text-gray-500 text-xs border-t border-white/5">
                                             Generated at {new Date(researchData.generated_at).toLocaleString()}
                                         </div>
                                     )}
@@ -317,367 +318,26 @@ export default function StockResearchModal({ isOpen, onClose }: StockResearchMod
                     )}
                 </div>
             </div>
-
-            <style jsx>{`
-                .modal-overlay {
-                    position: fixed;
-                    inset: 0;
-                    background: rgba(0, 0, 0, 0.8);
-                    backdrop-filter: blur(4px);
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    z-index: 100;
-                    padding: 20px;
-                }
-
-                .research-modal {
-                    width: 900px;
-                    max-width: 95vw;
-                    max-height: 90vh;
-                    background: #0f172a;
-                    border-radius: 16px;
-                    border: 1px solid rgba(255, 255, 255, 0.1);
-                    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-                    display: flex;
-                    flex-direction: column;
-                    overflow: hidden;
-                }
-
-                .modal-header {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    padding: 24px;
-                    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-                    background: #1e293b;
-                }
-
-                .header-left {
-                    display: flex;
-                    gap: 16px;
-                    align-items: center;
-                }
-
-                .header-icon {
-                    color: #3b82f6;
-                }
-
-                .modal-title {
-                    font-size: 20px;
-                    font-weight: 700;
-                    color: #f8fafc;
-                    margin: 0;
-                }
-
-                .modal-subtitle {
-                    font-size: 13px;
-                    color: #94a3b8;
-                    margin: 4px 0 0 0;
-                }
-
-                .close-btn {
-                    background: transparent;
-                    border: none;
-                    color: #94a3b8;
-                    cursor: pointer;
-                    padding: 8px;
-                    border-radius: 8px;
-                    display: flex;
-                    align-items: center;
-                    transition: all 0.2s;
-                }
-
-                .close-btn:hover {
-                    background: rgba(255, 255, 255, 0.1);
-                    color: #f8fafc;
-                }
-
-                .modal-content {
-                    flex: 1;
-                    overflow-y: auto;
-                    padding: 24px;
-                }
-
-                .search-container {
-                    display: flex;
-                    align-items: center;
-                    gap: 12px;
-                    padding: 16px;
-                    background: #1e293b;
-                    border-radius: 12px;
-                    border: 1px solid rgba(255, 255, 255, 0.1);
-                    margin-bottom: 24px;
-                }
-
-                .search-icon {
-                    color: #94a3b8;
-                }
-
-                .search-input {
-                    flex: 1;
-                    background: transparent;
-                    border: none;
-                    color: #f8fafc;
-                    font-size: 15px;
-                    outline: none;
-                }
-
-                .search-input::placeholder {
-                    color: #64748b;
-                }
-
-                .search-results {
-                    min-height: 300px;
-                }
-
-                .results-list {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 8px;
-                }
-
-                .result-item {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    padding: 16px;
-                    background: #1e293b;
-                    border-radius: 12px;
-                    border: 1px solid rgba(255, 255, 255, 0.05);
-                    cursor: pointer;
-                    transition: all 0.2s;
-                }
-
-                .result-item:hover {
-                    background: rgba(59, 130, 246, 0.1);
-                    border-color: rgba(59, 130, 246, 0.3);
-                    transform: translateX(4px);
-                }
-
-                .stock-info {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 4px;
-                }
-
-                .stock-ticker {
-                    font-weight: 600;
-                    color: #f8fafc;
-                    font-size: 15px;
-                }
-
-                .stock-name {
-                    color: #94a3b8;
-                    font-size: 13px;
-                }
-
-                .stock-exchange {
-                    font-size: 12px;
-                    color: #64748b;
-                    background: rgba(0, 0, 0, 0.3);
-                    padding: 4px 8px;
-                    border-radius: 6px;
-                }
-
-                .loading-state, .empty-state {
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    justify-content: center;
-                    padding: 60px 20px;
-                    color: #94a3b8;
-                    gap: 12px;
-                }
-
-                .empty-state .hint {
-                    font-size: 13px;
-                    color: #64748b;
-                }
-
-                .research-view {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 24px;
-                }
-
-                .research-header {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 16px;
-                }
-
-                .back-btn {
-                    background: transparent;
-                    border: none;
-                    color: #3b82f6;
-                    cursor: pointer;
-                    font-size: 14px;
-                    font-weight: 500;
-                    padding: 0;
-                    text-align: left;
-                }
-
-                .back-btn:hover {
-                    text-decoration: underline;
-                }
-
-                .stock-title h3 {
-                    font-size: 24px;
-                    font-weight: 700;
-                    color: #f8fafc;
-                    margin: 0;
-                }
-
-                .stock-title span {
-                    color: #94a3b8;
-                    font-size: 14px;
-                }
-
-                .loading-research {
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    justify-content: center;
-                    padding: 80px 20px;
-                    gap: 16px;
-                    color: #94a3b8;
-                }
-
-                .loading-research p {
-                    font-size: 16px;
-                    font-weight: 500;
-                    color: #f8fafc;
-                }
-
-                .loading-research span {
-                    font-size: 13px;
-                    color: #64748b;
-                }
-
-                .error-state {
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    padding: 60px 20px;
-                    gap: 16px;
-                    color: #ef4444;
-                }
-
-                .retry-btn {
-                    background: #3b82f6;
-                    color: white;
-                    border: none;
-                    padding: 12px 24px;
-                    border-radius: 8px;
-                    font-weight: 500;
-                    cursor: pointer;
-                    margin-top: 8px;
-                }
-
-                .retry-btn:hover {
-                    background: #2563eb;
-                }
-
-                .research-content {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 16px;
-                }
-
-                .research-sections {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 16px;
-                }
-
-                .research-text pre {
-                    white-space: pre-wrap;
-                    color: #e2e8f0;
-                    line-height: 1.6;
-                    font-family: inherit;
-                }
-
-                .research-footer {
-                    text-align: center;
-                    padding: 16px;
-                    color: #64748b;
-                    font-size: 12px;
-                    border-top: 1px solid rgba(255, 255, 255, 0.05);
-                }
-
-                .animate-spin {
-                    animation: spin 1s linear infinite;
-                }
-
-                @keyframes spin {
-                    from { transform: rotate(0deg); }
-                    to { transform: rotate(360deg); }
-                }
-            `}</style>
         </div>
     )
 }
 
 // Section Component
-function Section({ icon, title, content, positive, negative, highlight }: any) {
+function Section({ icon, title, content, positive, negative, highlight, className }: any) {
     return (
-        <div className={`section ${positive ? 'positive' : ''} ${negative ? 'negative' : ''} ${highlight ? 'highlight' : ''}`}>
-            <div className="section-header">
-                {icon && <span className="section-icon">{icon}</span>}
-                <h4>{title}</h4>
+        <div className={`
+            p-6 rounded-2xl border transition-all duration-300
+            ${positive ? 'bg-emerald-500/5 border-emerald-500/20' :
+                negative ? 'bg-red-500/5 border-red-500/20' :
+                    highlight ? 'bg-blue-600/10 border-blue-500/30 shadow-lg shadow-blue-900/20' :
+                        'bg-[#1e293b] border-white/5 hover:border-white/10'}
+            ${className}
+        `}>
+            <div className="flex items-center gap-3 mb-3">
+                {icon && <span className="text-blue-400">{icon}</span>}
+                <h4 className={`font-semibold text-gray-100 ${highlight ? 'text-lg text-blue-200' : 'text-base'}`}>{title}</h4>
             </div>
-            <div className="section-content">{content}</div>
-
-            <style jsx>{`
-                .section {
-                    background: #1e293b;
-                    padding: 20px;
-                    border-radius: 12px;
-                    border: 1px solid rgba(255, 255, 255, 0.05);
-                }
-
-                .section.positive {
-                    border-color: rgba(34, 197, 94, 0.2);
-                    background: rgba(34, 197, 94, 0.05);
-                }
-
-                .section.negative {
-                    border-color: rgba(239, 68, 68, 0.2);
-                    background: rgba(239, 68, 68, 0.05);
-                }
-
-                .section.highlight {
-                    border-color: rgba(59, 130, 246, 0.3);
-                    background: rgba(59, 130, 246, 0.1);
-                }
-
-                .section-header {
-                    display: flex;
-                    align-items: center;
-                    gap: 8px;
-                    margin-bottom: 12px;
-                }
-
-                .section-icon {
-                    color: #3b82f6;
-                    display: flex;
-                }
-
-                .section-header h4 {
-                    font-size: 15px;
-                    font-weight: 600;
-                    color: #f8fafc;
-                    margin: 0;
-                }
-
-                .section-content {
-                    color: #cbd5e1;
-                    font-size: 14px;
-                    line-height: 1.6;
-                    white-space: pre-wrap;
-                }
-            `}</style>
+            <div className={`whitespace-pre-wrap leading-relaxed ${highlight ? 'text-gray-200' : 'text-gray-400 text-sm'}`}>{content}</div>
         </div>
     )
 }

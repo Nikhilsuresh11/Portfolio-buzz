@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react'
 import RelatedNews from './RelatedNews'
 import { getToken } from '../lib/auth'
 import { config } from '../config'
+import { Button } from "@/components/ui/button"
+import { X, Loader2, Sparkles, Newspaper } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 export default function AnalysisModal({ ticker, open, onClose }: { ticker?: string | null, open: boolean, onClose: () => void }) {
   const [tab, setTab] = useState<'insights' | 'news'>('insights')
@@ -55,142 +58,72 @@ export default function AnalysisModal({ ticker, open, onClose }: { ticker?: stri
   if (!open) return null
 
   return (
-    <div className="modal-overlay" onMouseDown={onClose} aria-modal="true" role="dialog">
-      <div className="modal" onMouseDown={e => e.stopPropagation()} style={modalStyle}>
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 transition-opacity animate-in fade-in duration-200">
+      <div
+        className="w-[900px] max-w-full bg-[#1e293b] rounded-xl shadow-2xl border border-white/10 overflow-hidden flex flex-col max-h-[90vh]"
+        onClick={e => e.stopPropagation()}
+      >
         {/* Header */}
-        <div style={headerStyle}>
+        <div className="flex justify-between items-start p-6 border-b border-white/10 bg-[#0f172a]">
           <div>
-            <h2 style={titleStyle}>{ticker} Analysis</h2>
-            <p style={subtitleStyle}>AI-powered insights and related news</p>
+            <h2 className="text-xl font-bold text-white tracking-tight">{ticker} Analysis</h2>
+            <p className="text-sm text-gray-400 mt-1">AI-powered insights and related news</p>
           </div>
-          <button onClick={onClose} style={closeButtonStyle} aria-label="Close">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </button>
+          <Button variant="ghost" size="icon" onClick={onClose} className="text-gray-400 hover:text-white hover:bg-white/10">
+            <X size={20} />
+          </Button>
         </div>
 
         {/* Tabs */}
-        <div style={tabsContainerStyle}>
-          <button
-            className={`pill ${tab === 'insights' ? 'active' : ''}`}
+        <div className="flex gap-2 p-4 bg-[#0f172a] border-b border-white/5">
+          <Button
+            variant={tab === 'insights' ? 'secondary' : 'ghost'}
             onClick={() => setTab('insights')}
-            style={tabButtonStyle}
+            className={cn(
+              "gap-2",
+              tab === 'insights' ? "bg-blue-600/20 text-blue-400 hover:bg-blue-600/30" : "text-gray-400 hover:text-white"
+            )}
           >
-            AI Insights
-          </button>
-          <button
-            className={`pill ${tab === 'news' ? 'active' : ''}`}
+            <Sparkles size={16} /> AI Insights
+          </Button>
+          <Button
+            variant={tab === 'news' ? 'secondary' : 'ghost'}
             onClick={() => setTab('news')}
-            style={tabButtonStyle}
+            className={cn(
+              "gap-2",
+              tab === 'news' ? "bg-blue-600/20 text-blue-400 hover:bg-blue-600/30" : "text-gray-400 hover:text-white"
+            )}
           >
-            News
-          </button>
+            <Newspaper size={16} /> News
+          </Button>
         </div>
 
         {/* Content */}
-        <div style={contentWrapperStyle}>
+        <div className="flex-1 overflow-y-auto p-6 bg-[#1e293b] min-h-[400px]">
           {tab === 'insights' ? (
-            <div style={contentBoxStyle}>
+            <div className="bg-white/5 border border-white/10 rounded-xl p-6 h-full min-h-[400px]">
               {loading ? (
-                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
-                  <div className="loading-spinner"></div>
+                <div className="flex flex-col items-center justify-center h-full gap-4 text-gray-400">
+                  <Loader2 className="animate-spin h-8 w-8 text-blue-500" />
+                  <p>Analyzing stock data...</p>
                 </div>
               ) : error ? (
-                <div style={{ color: '#ef4444', textAlign: 'center' }}>{error}</div>
+                <div className="flex items-center justify-center h-full text-red-400">
+                  {error}
+                </div>
               ) : (
-                <pre style={textStyle}>{analysis}</pre>
+                <pre className="whitespace-pre-wrap font-mono text-sm leading-relaxed text-gray-300 font-normal">
+                  {analysis}
+                </pre>
               )}
             </div>
           ) : (
-            <div style={contentBoxStyle}>
-              <RelatedNews isModal={true} />
+            <div className="bg-white/5 border border-white/10 rounded-xl h-full overflow-hidden">
+              <RelatedNews isModal={true} ticker={ticker} />
             </div>
           )}
         </div>
       </div>
     </div>
   )
-}
-
-const modalStyle: React.CSSProperties = {
-  background: '#0f172a',
-  border: '1px solid rgba(248, 250, 252, 0.1)',
-}
-
-const headerStyle: React.CSSProperties = {
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'flex-start',
-  marginBottom: 28,
-  paddingBottom: 20,
-  borderBottom: '1px solid rgba(248, 250, 252, 0.08)',
-}
-
-const titleStyle: React.CSSProperties = {
-  margin: 0,
-  fontSize: 24,
-  fontWeight: 700,
-  color: '#f8fafc',
-  letterSpacing: '-0.02em',
-}
-
-const subtitleStyle: React.CSSProperties = {
-  margin: 0,
-  marginTop: 6,
-  fontSize: 14,
-  color: '#94a3b8',
-  fontWeight: 500,
-}
-
-const closeButtonStyle: React.CSSProperties = {
-  background: 'transparent',
-  border: '1px solid rgba(248, 250, 252, 0.1)',
-  borderRadius: 8,
-  width: 36,
-  height: 36,
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  cursor: 'pointer',
-  color: '#cbd5e1',
-  transition: 'all 0.2s ease',
-}
-
-const tabsContainerStyle: React.CSSProperties = {
-  display: 'flex',
-  gap: 8,
-  marginBottom: 24,
-  padding: 4,
-  background: 'rgba(30, 41, 59, 0.5)',
-  borderRadius: 12,
-  border: '1px solid rgba(248, 250, 252, 0.05)',
-}
-
-const tabButtonStyle: React.CSSProperties = {
-  fontSize: 14,
-  padding: '10px 20px',
-  fontWeight: 500,
-}
-
-const contentWrapperStyle: React.CSSProperties = {
-  minHeight: 400,
-}
-
-const contentBoxStyle: React.CSSProperties = {
-  padding: 28,
-  background: 'rgba(30, 41, 59, 0.4)',
-  border: '1px solid rgba(248, 250, 252, 0.08)',
-  borderRadius: 12,
-  minHeight: 400,
-}
-
-const textStyle: React.CSSProperties = {
-  whiteSpace: 'pre-wrap',
-  fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
-  margin: 0,
-  lineHeight: 1.7,
-  fontSize: 14,
-  color: '#e2e8f0',
-  fontWeight: 400,
 }
