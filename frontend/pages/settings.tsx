@@ -7,10 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Check, Shield, User } from 'lucide-react';
+import { MessageLoading } from '@/components/ui/message-loading';
 
 export default function SettingsPage() {
     const router = useRouter();
     const [user, setUser] = useState<any>(null);
+
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const userData = getUser();
@@ -20,14 +23,26 @@ export default function SettingsPage() {
             router.push('/auth/login');
         }
         document.documentElement.setAttribute('data-theme', 'dark');
+        setLoading(false);
     }, [router]);
+
+    if (loading) {
+        return (
+            <div className="flex min-h-screen bg-black text-white">
+                <Sidebar />
+                <div className="flex-1 flex items-center justify-center">
+                    <MessageLoading />
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="flex min-h-screen bg-gradient-to-br from-[#000] to-[#1A2428] text-white">
             <Sidebar />
 
             <main className="flex-1 flex flex-col min-h-screen relative p-6">
-                <Header user={user?.name || 'User'} />
+                <Header user={user?.name && user.name !== 'User' ? user.name : (user?.email?.split('@')[0] || 'User')} />
 
                 <div className="max-w-4xl mx-auto w-full z-10 space-y-8">
                     <div className="bg-white/5 border border-white/10 backdrop-blur-sm rounded-2xl p-8 shadow-xl">
@@ -45,7 +60,7 @@ export default function SettingsPage() {
                             <div className="space-y-2">
                                 <Label>Display Name</Label>
                                 <Input
-                                    defaultValue={user?.name || 'Guest User'}
+                                    defaultValue={user?.name && user.name !== 'User' ? user.name : (user?.email?.split('@')[0] || 'Guest User')}
                                     className="bg-black/20 border-white/10 text-white"
                                 />
                             </div>

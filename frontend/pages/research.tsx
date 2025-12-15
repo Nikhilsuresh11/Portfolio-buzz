@@ -4,10 +4,14 @@ import Sidebar from '../components/Sidebar'
 import Header from '../components/Header'
 import { getUser, getAuthHeaders } from '../lib/auth'
 import { config } from '../config'
-import { Search, Loader2, FlaskConical, TrendingUp, DollarSign, BarChart3, AlertCircle } from 'lucide-react'
+import { Search, Loader2, FlaskConical, TrendingUp, DollarSign, BarChart3, AlertCircle, CheckCircle2, XCircle } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { MessageLoading } from '@/components/ui/message-loading'
+import { ArrowLeft } from '@carbon/icons-react'
+
+// Toggle for development
+const USE_MOCK = false
 
 interface Stock {
     ticker: string
@@ -42,6 +46,30 @@ interface ResearchData {
     generated_at?: string
 }
 
+const MOCK_DATA: ResearchData = {
+    stock_name: "Reliance Industries",
+    ticker: "RELIANCE",
+    format: "json",
+    recommendation: "STRONG BUY. The company is pivoting effectively towards future-ready businesses (Green Energy, 5G/6G, Retail) while maintaining cash cow stability from O2C. Valuation is attractive at 22x FY25E EPS compared to historical average.",
+    future_outlook: "Highly Positive. 5G rollout monetization, rapid retail footprint expansion, and New Energy giga-factories coming online by 2025 will drive next leg of growth. Earnings expected to compound at 15-18% over next 3 years.",
+    business_model: "Diversified conglomerate operating an integrated ecosystem. Oil-to-Chemicals (O2C) provides steady cash flows which fund high-growth Digital Services (Jio) and Retail segments.",
+    core_focus: "Aggressive transition to Green Energy (Solar/Hydrogen), extending 5G leadership to AirFiber/Enterprise, and omnichannel Retail dominance.",
+    revenue_profit_growth: "Revenue: ₹9.8 Trillion (+2.6% YoY)\nEBITDA: ₹1.7 Trillion (+16% YoY)\nNet Profit: ₹79,020 Cr (+10% YoY)",
+    profit_margin: "Net Margin: 8.5% (Expanding)",
+    debt_level: "Net Debt/EBITDA: 0.65x (Healthy)",
+    cash_flow: "Operating Cash Flow: ₹1.4 Trillion (Robust)",
+    roe_roce: "ROE: 13.5% | ROCE: 14.2%",
+    pe_pb_ratio: "P/E: 26.4x | P/B: 2.1x",
+    dividend_history: "Dividend Yield: 0.3% (Reinvents profits)",
+    price_movement_reason: "Recent upside driven by details on New Energy listing unlocking value and tariff hikes in Telecom sector.",
+    competitors: "Digital: Airtel, TCS\nRetail: D-Mart, Tata Trent\nEnergy: Adani Green, IOCL",
+    investment_pros: "1. Market leader in Telecom & Retail\n2. Robust O2C cash flows acting as buffer\n3. Visionary management with execution track record\n4. New Energy could be a massive value creator",
+    investment_cons: "1. Massive capex of ₹75,000 Cr/year drags free cash flow\n2. O2C highly cyclical and linked to oil prices\n3. Conglomerate discount in valuation",
+    analyst_opinion: "Consensus: BUY (28 Analysts), HOLD (4), SELL (2). Avg Target: ₹3,250 (+12% upside).",
+    recent_news: "- Jio Financial Services demerger complete\n- Secured $2B credit line for 5G expansion\n- Acquired Metro Cash & Carry India",
+    generated_at: new Date().toISOString()
+}
+
 export default function ResearchPage() {
     const router = useRouter()
     const [user, setUser] = useState<any>(null)
@@ -53,6 +81,8 @@ export default function ResearchPage() {
     const [researchLoading, setResearchLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const inputRef = useRef<HTMLInputElement>(null)
+
+    const [loading, setLoading] = useState(true)
 
     useEffect(() => {
         // Auth check
@@ -66,7 +96,28 @@ export default function ResearchPage() {
 
         // Auto focus search on mount if empty
         setTimeout(() => inputRef.current?.focus(), 100)
+        setLoading(false)
     }, [router])
+
+    // Keyboard shortcuts
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                e.preventDefault()
+                // If in search view with query, clear query
+                if (!selectedStock && query) {
+                    setQuery('')
+                    setSearchResults([])
+                }
+                // If viewing stock details, go back to search
+                if (selectedStock) {
+                    handleBack()
+                }
+            }
+        }
+        window.addEventListener('keydown', handleKeyDown)
+        return () => window.removeEventListener('keydown', handleKeyDown)
+    }, [query, selectedStock])
 
     // Search stocks
     useEffect(() => {
@@ -103,6 +154,16 @@ export default function ResearchPage() {
         setError(null)
         setResearchData(null)
 
+        if (USE_MOCK) {
+            setTimeout(() => {
+                setResearchData({ ...MOCK_DATA, ticker: stock.ticker, stock_name: stock.name })
+                setResearchLoading(false)
+                setQuery('')
+                setSearchResults([])
+            }, 1000)
+            return
+        }
+
         try {
             const res = await fetch(`${config.API_BASE_URL}/api/stock-research`, {
                 method: 'POST',
@@ -126,7 +187,7 @@ export default function ResearchPage() {
             console.error('Research error:', error)
             setError('Failed to connect to research service')
         } finally {
-            setResearchLoading(false)
+            if (!USE_MOCK) setResearchLoading(false)
         }
     }
 
@@ -140,6 +201,8 @@ export default function ResearchPage() {
         setError(null)
         setTimeout(() => inputRef.current?.focus(), 100)
     }
+
+
 
     return (
         <div className="flex min-h-screen bg-black text-white">
@@ -198,28 +261,30 @@ export default function ResearchPage() {
                                         <p>Searching market data...</p>
                                     </div>
                                 ) : searchResults.length > 0 ? (
-                                    <div className="grid gap-3 animate-in fade-in duration-300">
-                                        <div className="text-sm font-medium text-gray-500 uppercase tracking-widest pl-2 mb-1">Results</div>
-                                        {searchResults.map(stock => (
-                                            <div
-                                                key={stock.ticker}
-                                                className="flex items-center justify-between p-4 bg-[#111] rounded-xl border border-white/5 cursor-pointer hover:bg-white/5 hover:border-blue-500/30 transition-all group"
-                                                onClick={() => handleStockClick(stock)}
-                                            >
-                                                <div className="flex items-center gap-4">
-                                                    <div className="w-10 h-10 rounded-full bg-blue-900/20 flex items-center justify-center text-blue-400 font-bold text-sm border border-blue-500/10">
-                                                        {stock.ticker.substring(0, 2)}
+                                    <div className="flex flex-col gap-2 animate-in fade-in duration-300 mt-2">
+                                        <div className="text-xs font-semibold text-gray-500 uppercase tracking-widest px-2">Results</div>
+                                        <div className="bg-[#111] border border-white/10 rounded-xl overflow-hidden divide-y divide-white/5">
+                                            {searchResults.map(stock => (
+                                                <div
+                                                    key={stock.ticker}
+                                                    className="flex items-center justify-between p-3 cursor-pointer hover:bg-white/5 transition-colors group"
+                                                    onClick={() => handleStockClick(stock)}
+                                                >
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-400 font-bold text-xs">
+                                                            {stock.ticker.substring(0, 2)}
+                                                        </div>
+                                                        <div className="flex flex-col">
+                                                            <span className="font-semibold text-white text-sm group-hover:text-blue-400 transition-colors">{stock.ticker}</span>
+                                                            <span className="text-xs text-gray-500 line-clamp-1">{stock.name}</span>
+                                                        </div>
                                                     </div>
-                                                    <div>
-                                                        <span className="block font-bold text-white text-lg group-hover:text-blue-400 transition-colors">{stock.ticker}</span>
-                                                        <span className="text-sm text-gray-400">{stock.name}</span>
-                                                    </div>
+                                                    <Badge variant="outline" className="text-[10px] py-0 h-5 border-white/10 text-gray-500">
+                                                        {stock.exchange || 'NSE'}
+                                                    </Badge>
                                                 </div>
-                                                <Badge variant="secondary" className="bg-black/30 border border-white/10 text-gray-400 group-hover:border-blue-500/30 transition-colors">
-                                                    {stock.exchange || 'NSE'}
-                                                </Badge>
-                                            </div>
-                                        ))}
+                                            ))}
+                                        </div>
                                     </div>
                                 ) : query.length > 0 ? (
                                     <div className="flex flex-col items-center justify-center gap-4 text-gray-500 py-12">
@@ -244,18 +309,17 @@ export default function ResearchPage() {
                         </div>
                     ) : (
                         // Research View
-                        <div className="max-w-6xl mx-auto animate-in slide-in-from-right-8 duration-500">
-                            <div className="flex items-center justify-between mb-8">
+                        <div className="max-w-7xl mx-auto animate-in scale-[0.98] fade-in duration-500">
+                            <div className="flex items-center justify-between mb-6">
                                 <Button
                                     variant="outline"
                                     onClick={handleBack}
-                                    className="border-white/10 text-gray-300 hover:text-white hover:bg-white/10 hover:border-white/20 gap-2 bg-black/40 backdrop-blur-sm"
+                                    className="border-white/10 text-gray-300 hover:text-white hover:bg-white/10 hover:border-white/20 gap-2 bg-black/40 backdrop-blur-sm h-9 px-4 text-xs uppercase tracking-wider"
                                 >
-                                    <Search size={16} /> Search Another
+                                    <ArrowLeft size={14} /> Back
                                 </Button>
-                                <div className="text-right">
-                                    <h1 className="text-4xl font-bold text-white tracking-tight">{selectedStock.ticker}</h1>
-                                    <p className="text-lg text-gray-400">{selectedStock.name}</p>
+                                <div className="text-right flex items-center gap-3">
+                                    <h1 className="text-l font-bold text-white tracking-tight">{selectedStock.ticker}</h1>
                                 </div>
                             </div>
 
@@ -271,11 +335,6 @@ export default function ResearchPage() {
                                         <h3 className="text-2xl font-semibold text-white">Analyzing Fundamentals</h3>
                                         <p className="text-gray-400">Our AI agents are reading financial reports, checking market sentiment, and evaluating growth metrics for <span className="text-blue-400 font-medium">{selectedStock.ticker}</span>...</p>
                                     </div>
-                                    <div className="flex gap-2">
-                                        <span className="w-2 h-2 rounded-full bg-blue-500 animate-bounce delay-0"></span>
-                                        <span className="w-2 h-2 rounded-full bg-blue-500 animate-bounce delay-150"></span>
-                                        <span className="w-2 h-2 rounded-full bg-blue-500 animate-bounce delay-300"></span>
-                                    </div>
                                 </div>
                             ) : error ? (
                                 <div className="flex flex-col items-center justify-center gap-6 py-20 text-red-500 bg-red-500/5 rounded-3xl border border-red-500/10">
@@ -284,78 +343,130 @@ export default function ResearchPage() {
                                     <Button onClick={handleBack} className="bg-red-600 hover:bg-red-700 text-white border-none">Try Another Stock</Button>
                                 </div>
                             ) : researchData ? (
-                                <div className="space-y-8 pb-20">
+                                <div className="space-y-6 pb-20">
                                     {researchData.format === 'text' ? (
                                         <div className="bg-[#111] p-8 rounded-3xl border border-white/10 shadow-2xl">
                                             <pre className="whitespace-pre-wrap font-mono text-gray-300 leading-relaxed text-sm">{researchData.analysis}</pre>
                                         </div>
                                     ) : (
-                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                            {/* Key Highlights / Recommendation - Full Width */}
-                                            {researchData.recommendation && (
-                                                <div className="md:col-span-2 lg:col-span-3 p-8 rounded-3xl border border-blue-500/30 bg-gradient-to-br from-blue-900/10 to-black shadow-2xl relative overflow-hidden group">
-                                                    <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-[80px] -mr-16 -mt-16 pointer-events-none"></div>
-                                                    <div className="relative z-10">
-                                                        <div className="flex items-center gap-3 mb-4">
-                                                            <div className="p-2 bg-blue-500 rounded-lg text-white">
-                                                                <FlaskConical size={24} />
+                                        <>
+                                            {/* Top Section: Verdict */}
+                                            {/* Top Section: Verdict */}
+                                            <div className="w-full mb-8">
+                                                {researchData.recommendation && (
+                                                    <div className="w-full p-8 rounded-3xl border border-blue-500/20 bg-gradient-to-r from-blue-900/20 to-[#111] shadow-2xl relative overflow-hidden">
+                                                        <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/10 rounded-full blur-[100px] -mr-20 -mt-20 pointer-events-none"></div>
+                                                        <div className="relative z-10 flex flex-col md:flex-row gap-6 md:items-start">
+                                                            <div className="flex-shrink-0">
+                                                                <div className="p-3 bg-blue-500 rounded-2xl text-white shadow-lg shadow-blue-500/20 inline-flex">
+                                                                    <FlaskConical size={32} />
+                                                                </div>
                                                             </div>
-                                                            <h3 className="text-2xl font-bold text-white">AI Investment Verdict</h3>
-                                                        </div>
-                                                        <div className="text-lg text-gray-200 leading-relaxed whitespace-pre-wrap">
-                                                            {researchData.recommendation}
+                                                            <div className="flex-1 min-w-0">
+                                                                <h3 className="text-2xl font-bold text-white tracking-wide mb-3 truncate">AI Investment Verdict</h3>
+                                                                <div className="text-lg text-gray-200 leading-relaxed font-light whitespace-pre-line break-words">
+                                                                    {researchData.recommendation}
+                                                                </div>
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                </div>
-                                            )}
-
-                                            {researchData.future_outlook && (
-                                                <Section title="Future Outlook & Growth" content={researchData.future_outlook} className="md:col-span-2 lg:col-span-2 bg-[#1a1a1a]/50 border-white/10" icon={<TrendingUp />} />
-                                            )}
-
-                                            {researchData.business_model && (
-                                                <Section title="Business Model" content={researchData.business_model} />
-                                            )}
-
-                                            {researchData.core_focus && (
-                                                <Section title="Core Focus" content={researchData.core_focus} icon={<BarChart3 />} />
-                                            )}
-
-                                            {researchData.revenue_profit_growth && (
-                                                <Section title="Financial Growth" content={researchData.revenue_profit_growth} icon={<DollarSign />} />
-                                            )}
-
-                                            {/* Financial Metrics Strip */}
-                                            <div className="md:col-span-2 lg:col-span-3 p-6 rounded-3xl bg-black border border-white/10 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                                                <MetricCard title="P/E & P/B" value={researchData.pe_pb_ratio} />
-                                                <MetricCard title="ROE & ROCE" value={researchData.roe_roce} />
-                                                <MetricCard title="Margins" value={researchData.profit_margin} />
-                                                <MetricCard title="Debt" value={researchData.debt_level} />
-                                                <MetricCard title="Cash Flow" value={researchData.cash_flow} />
-                                                <MetricCard title="Dividends" value={researchData.dividend_history} />
+                                                )}
                                             </div>
 
-                                            {researchData.investment_pros && (
-                                                <Section title="Pros" content={researchData.investment_pros} positive className="lg:col-span-1.5" />
-                                            )}
-                                            {researchData.investment_cons && (
-                                                <Section title="Cons" content={researchData.investment_cons} negative className="lg:col-span-1.5" />
-                                            )}
+                                            {/* Financial Metrics & Outlook Grid */}
+                                            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 mb-6">
+                                                {/* Left Col: Financials (8/12) */}
+                                                <div className="md:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                    {researchData.pe_pb_ratio && (
+                                                        <Section
+                                                            title="Valuation Analysis"
+                                                            content={researchData.pe_pb_ratio}
+                                                            icon={<DollarSign size={18} />}
+                                                        />
+                                                    )}
+                                                    {researchData.roe_roce && (
+                                                        <Section
+                                                            title="Efficiency & Returns"
+                                                            content={researchData.roe_roce}
+                                                            icon={<BarChart3 size={18} />}
+                                                        />
+                                                    )}
+                                                </div>
+
+                                                {/* Right Col: Growth Outlook (4/12) */}
+                                                <div className="md:col-span-4">
+                                                    {researchData.future_outlook && (
+                                                        <Section
+                                                            title="Growth Outlook"
+                                                            content={researchData.future_outlook}
+                                                            icon={<TrendingUp size={18} />}
+                                                            className="h-full bg-emerald-950/10 border-emerald-500/10"
+                                                            headerColor="text-emerald-400"
+                                                            iconColor="text-emerald-400"
+                                                        />
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            {/* Business Model & Focus */}
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                                                {researchData.profit_margin && (
+                                                    <Section title="Profit Margins" content={researchData.profit_margin} />
+                                                )}
+                                                {researchData.debt_level && (
+                                                    <Section title="Debt Profile" content={researchData.debt_level} />
+                                                )}
+                                                {researchData.business_model && (
+                                                    <Section title="Business Model" content={researchData.business_model} />
+                                                )}
+                                                {researchData.core_focus && (
+                                                    <Section title="Core Strategic Focus" content={researchData.core_focus} icon={<BarChart3 size={18} />} />
+                                                )}
+                                            </div>
+
+                                            {/* Pros & Cons */}
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                {researchData.investment_pros && (
+                                                    <Section
+                                                        title="Investment Pros"
+                                                        content={researchData.investment_pros}
+                                                        icon={<CheckCircle2 size={18} />}
+                                                        className="bg-emerald-900/5 border-emerald-500/10"
+                                                        headerColor="text-emerald-400"
+                                                        iconColor="text-emerald-500"
+                                                    />
+                                                )}
+                                                {researchData.investment_cons && (
+                                                    <Section
+                                                        title="Risks & Cons"
+                                                        content={researchData.investment_cons}
+                                                        icon={<XCircle size={18} />}
+                                                        className="bg-red-900/5 border-red-500/10"
+                                                        headerColor="text-red-400"
+                                                        iconColor="text-red-500"
+                                                    />
+                                                )}
+                                            </div>
 
                                             {/* Detailed Sections */}
-                                            {researchData.competitors && <Section title="Competitors" content={researchData.competitors} />}
-                                            {researchData.price_movement_reason && <Section title="Price Action" content={researchData.price_movement_reason} />}
-                                            {researchData.capex && <Section title="Capex" content={researchData.capex} />}
-                                            {researchData.analyst_opinion && <Section title="Analyst Views" content={researchData.analyst_opinion} />}
-                                            {researchData.recent_news && <Section title="Recent News" content={researchData.recent_news} />}
-                                            {researchData.legal_patents && <Section title="Legal/Patents" content={researchData.legal_patents} />}
+                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                                {researchData.revenue_profit_growth && (
+                                                    <Section title="Financial Growth" content={researchData.revenue_profit_growth} icon={<DollarSign size={18} />} />
+                                                )}
+                                                {researchData.competitors && <Section title="Competitors" content={researchData.competitors} />}
+                                                {researchData.analyst_opinion && <Section title="Analyst Views" content={researchData.analyst_opinion} />}
+                                            </div>
 
-                                        </div>
+                                            {/* Bottom: News & Legal */}
+                                            <div className="grid grid-cols-1 gap-6">
+                                                {researchData.recent_news && <Section title="Recent Developments" content={researchData.recent_news} />}
+                                            </div>
+                                        </>
                                     )}
 
                                     {researchData.generated_at && (
-                                        <div className="text-center pt-8 text-gray-600 text-xs">
-                                            Analysis generated by PortfolioBuzz AI • {new Date(researchData.generated_at).toLocaleString()}
+                                        <div className="text-center pt-8 text-gray-700 text-[10px] uppercase tracking-widest">
+                                            AI Analysis • Generated {new Date(researchData.generated_at).toLocaleTimeString()}
                                         </div>
                                     )}
                                 </div>
@@ -372,32 +483,29 @@ export default function ResearchPage() {
     )
 }
 
-function Section({ icon, title, content, positive, negative, highlight, className }: any) {
+function Section({ icon, title, content, className, headerColor = "text-gray-100", iconColor = "text-blue-400" }: any) {
     if (!content) return null
     return (
         <div className={`
-            p-6 rounded-2xl border transition-all duration-300 flex flex-col h-full
-            ${positive ? 'bg-emerald-950/20 border-emerald-500/20' :
-                negative ? 'bg-red-950/20 border-red-500/20' :
-                    highlight ? 'bg-blue-900/10 border-blue-500/30' :
-                        'bg-[#111] border-white/5 hover:border-white/10 hover:bg-[#161616]'}
+            p-5 rounded-xl border transition-all duration-300 flex flex-col h-full
+            bg-[#111] border-white/5 hover:border-white/10 hover:bg-[#151515]
             ${className}
         `}>
-            <div className="flex items-center gap-3 mb-4">
-                {icon && <span className="text-blue-400">{icon}</span>}
-                <h4 className={`font-semibold ${positive ? 'text-emerald-400' : negative ? 'text-red-400' : 'text-gray-100'}`}>{title}</h4>
+            <div className="flex items-center gap-2.5 mb-3">
+                {icon && <span className={iconColor}>{icon}</span>}
+                <h4 className={`font-semibold text-sm tracking-wide ${headerColor}`}>{title}</h4>
             </div>
-            <div className="whitespace-pre-wrap leading-relaxed text-gray-400 text-sm flex-1">{content}</div>
+            <div className="whitespace-pre-line leading-relaxed text-gray-400 text-sm flex-1 font-light">{content}</div>
         </div>
     )
 }
 
-function MetricCard({ title, value }: any) {
+function MetricPill({ label, value }: { label: string, value?: string }) {
     if (!value) return null
     return (
-        <div className="flex flex-col justify-center p-2">
-            <span className="text-xs text-gray-500 uppercase tracking-wider mb-1">{title}</span>
-            <span className="text-sm font-medium text-white line-clamp-2" title={value}>{value}</span>
+        <div className="bg-[#111] border border-white/5 rounded-xl p-3 flex flex-col items-center justify-center hover:bg-white/5 transition-colors">
+            <span className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">{label}</span>
+            <span className="text-sm font-bold text-white">{value}</span>
         </div>
     )
 }
