@@ -319,10 +319,7 @@ export default function ResearchPage() {
                                     <ArrowLeft size={14} /> Back
                                 </Button>
                                 <div className="text-right flex items-center gap-3">
-                                    <div className="text-xs text-gray-500 bg-white/5 px-2 py-1 rounded-md border border-white/5">
-                                        {new Date().toLocaleDateString()}
-                                    </div>
-                                    <h1 className="text-2xl font-bold text-white tracking-tight">{selectedStock.ticker}</h1>
+                                    <h1 className="text-l font-bold text-white tracking-tight">{selectedStock.ticker}</h1>
                                 </div>
                             </div>
 
