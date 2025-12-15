@@ -40,10 +40,19 @@ export default function StockSearchModal({ isOpen, onClose, onAddStock, watchlis
             setQuery('')
             setResults([])
         }
+
+        const handleGlobalKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape' && isOpen) {
+                onClose()
+            }
+        }
+        window.addEventListener('keydown', handleGlobalKeyDown)
+
         return () => {
             document.body.style.overflow = 'unset'
+            window.removeEventListener('keydown', handleGlobalKeyDown)
         }
-    }, [isOpen])
+    }, [isOpen, onClose])
 
     useEffect(() => {
         const searchStocks = async () => {
@@ -106,7 +115,7 @@ export default function StockSearchModal({ isOpen, onClose, onAddStock, watchlis
     if (!isOpen) return null
 
     return (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-start justify-center pt-24 transition-opacity">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-start justify-center pt-24 transition-opacity" onClick={onClose}>
             <div
                 className="w-full max-w-xl bg-black rounded-xl shadow-2xl border border-white/10 overflow-hidden animate-in slide-in-from-top-4 fade-in duration-200"
                 ref={modalRef}

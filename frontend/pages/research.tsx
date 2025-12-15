@@ -71,6 +71,92 @@ export default function ResearchPage() {
         setLoading(false)
     }, [router])
 
+    // Keyboard shortcuts
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                e.preventDefault()
+                // If in search view with query, clear query
+                if (!selectedStock && query) {
+                    setQuery('')
+                    setSearchResults([])
+                }
+                // If viewing stock details, go back to search
+                if (selectedStock) {
+                    handleBack()
+                }
+            }
+        }
+        window.addEventListener('keydown', handleKeyDown)
+        return () => window.removeEventListener('keydown', handleKeyDown)
+    }, [query, selectedStock])
+
+    // Search stocks
+    useEffect(() => {
+        const searchStocks = async () => {
+            if (query.trim().length < 1) {
+                setSearchResults([])
+                return
+            }
+
+            setSearchLoading(true)
+            try {
+                const res = await fetch(
+                    `${config.API_BASE_URL}/api/search/autocomplete?q=${encodeURIComponent(query)}&limit=8`,
+                    { headers: getAuthHeaders() }
+                )
+                const data = await res.json()
+                if (data.success) {
+                    setSearchResults(data.data)
+                }
+            } catch (error) {
+                console.error('Search error:', error)
+            } finally {
+                setSearchLoading(false)
+            }
+        }
+
+        const debounce = setTimeout(searchStocks, 300)
+        return () => clearTimeout(debounce)
+    }, [query])
+
+    const fetchResearch = async (stock: Stock) => {
+        setSelectedStock(stock)
+        setResearchLoading(true)
+        setError(null)
+        setResearchData(null)
+
+        try {
+            const res = await fetch(`${config.API_BASE_URL}/api/stock-research`, {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({
+                    stock_name: stock.name,
+                    ticker_name: stock.ticker
+                })
+            })
+
+            const data = await res.json()
+
+            if (data.success) {
+                setResearchData(data.data)
+                setQuery('')
+                setSearchResults([])
+            } else {
+                setError(data.error || 'Failed to fetch research data')
+            }
+        } catch (error) {
+            console.error('Research error:', error)
+            setError('Failed to connect to research service')
+        } finally {
+            setResearchLoading(false)
+        }
+    }
+
+    const handleStockClick = (stock: Stock) => {
+        fetchResearch(stock)
+    }
+
     const handleBack = () => {
         setSelectedStock(null)
         setResearchData(null)
