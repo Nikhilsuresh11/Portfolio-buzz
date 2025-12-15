@@ -42,7 +42,7 @@ export default function Header({ user }: { user?: string | null }) {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-9 w-9 rounded-full ring-2 ring-white/10 hover:ring-white/20 p-0 overflow-hidden">
               <div className="h-full w-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold">
-                {user ? user[0].toUpperCase() : 'U'}
+                {user ? user[0].toUpperCase() : ''}
               </div>
             </Button>
           </DropdownMenuTrigger>

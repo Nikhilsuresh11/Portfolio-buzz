@@ -54,6 +54,8 @@ export default function ResearchPage() {
     const [error, setError] = useState<string | null>(null)
     const inputRef = useRef<HTMLInputElement>(null)
 
+    const [loading, setLoading] = useState(true)
+
     useEffect(() => {
         // Auth check
         const userData = getUser()
@@ -66,73 +68,8 @@ export default function ResearchPage() {
 
         // Auto focus search on mount if empty
         setTimeout(() => inputRef.current?.focus(), 100)
+        setLoading(false)
     }, [router])
-
-    // Search stocks
-    useEffect(() => {
-        const searchStocks = async () => {
-            if (query.trim().length < 1) {
-                setSearchResults([])
-                return
-            }
-
-            setSearchLoading(true)
-            try {
-                const res = await fetch(
-                    `${config.API_BASE_URL}/api/search/autocomplete?q=${encodeURIComponent(query)}&limit=8`,
-                    { headers: getAuthHeaders() }
-                )
-                const data = await res.json()
-                if (data.success) {
-                    setSearchResults(data.data)
-                }
-            } catch (error) {
-                console.error('Search error:', error)
-            } finally {
-                setSearchLoading(false)
-            }
-        }
-
-        const debounce = setTimeout(searchStocks, 300)
-        return () => clearTimeout(debounce)
-    }, [query])
-
-    const fetchResearch = async (stock: Stock) => {
-        setSelectedStock(stock)
-        setResearchLoading(true)
-        setError(null)
-        setResearchData(null)
-
-        try {
-            const res = await fetch(`${config.API_BASE_URL}/api/stock-research`, {
-                method: 'POST',
-                headers: getAuthHeaders(),
-                body: JSON.stringify({
-                    stock_name: stock.name,
-                    ticker_name: stock.ticker
-                })
-            })
-
-            const data = await res.json()
-
-            if (data.success) {
-                setResearchData(data.data)
-                setQuery('')
-                setSearchResults([])
-            } else {
-                setError(data.error || 'Failed to fetch research data')
-            }
-        } catch (error) {
-            console.error('Research error:', error)
-            setError('Failed to connect to research service')
-        } finally {
-            setResearchLoading(false)
-        }
-    }
-
-    const handleStockClick = (stock: Stock) => {
-        fetchResearch(stock)
-    }
 
     const handleBack = () => {
         setSelectedStock(null)
@@ -140,6 +77,8 @@ export default function ResearchPage() {
         setError(null)
         setTimeout(() => inputRef.current?.focus(), 100)
     }
+
+
 
     return (
         <div className="flex min-h-screen bg-black text-white">

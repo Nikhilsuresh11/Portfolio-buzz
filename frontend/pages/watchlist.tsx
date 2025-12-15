@@ -60,6 +60,16 @@ export default function Watchlist() {
             document.documentElement.setAttribute('data-theme', 'dark')
             localStorage.setItem('pb_theme', 'dark')
         }
+
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                e.preventDefault()
+                setIsSearchOpen(prev => !prev)
+            }
+        }
+
+        window.addEventListener('keydown', handleKeyDown)
+        return () => window.removeEventListener('keydown', handleKeyDown)
     }, [])
 
     const fetchWatchlistData = async () => {
