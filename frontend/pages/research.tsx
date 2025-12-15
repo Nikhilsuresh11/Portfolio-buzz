@@ -11,7 +11,7 @@ import { MessageLoading } from '@/components/ui/message-loading'
 import { ArrowLeft } from '@carbon/icons-react'
 
 // Toggle for development
-const USE_MOCK = true
+const USE_MOCK = false
 
 interface Stock {
     ticker: string
