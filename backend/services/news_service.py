@@ -40,12 +40,29 @@ class NewsService:
         try:
             all_articles = []
             
-            # 1. Google News RSS (primary source - bot-friendly and reliable)
-            if use_google_news:
+            # 1. DuckDuckGo News (PRIMARY - works on Render, no bot detection)
+            # DuckDuckGo doesn't block server IPs like Google does
+            if use_google_news:  # Reusing this flag for "use web sources"
+                try:
+                    from services.duckduckgo_news import fetch_duckduckgo_news
+                    
+                    # Map time_filter to days
+                    days_map = {'hour': 1, 'day': 1, 'week': 7, 'month': 30, 'year': 365}
+                    days = days_map.get(time_filter, 7)
+                    
+                    print(f"Fetching from DuckDuckGo: {stock_name} (last {days} days)")
+                    ddg_articles = fetch_duckduckgo_news(stock_name, ticker, max_articles, days)
+                    all_articles.extend(ddg_articles)
+                    print(f"DuckDuckGo returned {len(ddg_articles)} articles")
+                except Exception as e:
+                    print(f"DuckDuckGo error: {e}")
+            
+            # 2. Google News RSS (FALLBACK - may be blocked on Render)
+            # Only try if DuckDuckGo returned few/no results
+            if len(all_articles) < 5:
                 try:
                     from services.google_news_rss import fetch_google_news_rss
-                    
-                    print(f"Fetching from Google News RSS: {stock_name} (filter: {time_filter}, sort: {sort_by})")
+                    print(f"DuckDuckGo returned few results, trying Google News RSS...")
                     google_articles = fetch_google_news_rss(
                         stock_name=stock_name,
                         ticker=ticker,
@@ -54,28 +71,46 @@ class NewsService:
                     )
                     all_articles.extend(google_articles)
                     print(f"Google News RSS returned {len(google_articles)} articles")
-                
                 except Exception as e:
                     print(f"Google News RSS error: {e}")
-                    # Don't disable use_google_news here, let it fall through to legacy scraper
             
-            # 2. Legacy scraper DISABLED for Render free tier
-            # The legacy scraper takes 50+ seconds which causes 504 Gateway Timeout
-            # Google News RSS provides enough articles (15-20) for analysis
-            # UNCOMMENT BELOW FOR LOCAL DEVELOPMENT ONLY:
-            # if len(all_articles) == 0:
-            #     print(\"Google News RSS returned no articles, falling back to legacy scraper...\")
-            #     try:
-            #         query = ticker if ticker else stock_name
-            #         legacy_articles = scrape_all_sources(
-            #             query,
-            #             include_global=include_global,
-            #             include_indian=include_indian
-            #         )
-            #         all_articles.extend(legacy_articles[:max_articles])
-            #         print(f\"Legacy scraper returned {len(legacy_articles)} articles\")
-            #     except Exception as e:
-            #         print(f\"Legacy scraper error: {e}\")
+            # 2. Legacy scraper FALLBACK (strict limits for Render free tier)
+            # Only runs if Google News RSS returned 0 articles
+            # Uses minimal sources and strict timeout to prevent 504 errors
+            if len(all_articles) == 0:
+                print("Google News RSS returned no articles, trying limited legacy scraper...")
+                try:
+                    import signal
+                    from functools import wraps
+                    
+                    def timeout_handler(signum, frame):
+                        raise TimeoutError("Legacy scraper timeout")
+                    
+                    # Set 10-second timeout for entire legacy scraper operation
+                    if hasattr(signal, 'SIGALRM'):  # Unix only
+                        signal.signal(signal.SIGALRM, timeout_handler)
+                        signal.alarm(10)
+                    
+                    try:
+                        query = ticker if ticker else stock_name
+                        # Only use 3 fastest sources to prevent timeout
+                        from scraper import scrape_google_news, scrape_yahoo_finance, scrape_economic_times
+                        
+                        legacy_articles = []
+                        legacy_articles.extend(scrape_google_news(query)[:5])
+                        legacy_articles.extend(scrape_yahoo_finance(query)[:3])
+                        legacy_articles.extend(scrape_economic_times(query)[:2])
+                        
+                        all_articles.extend(legacy_articles[:10])  # Max 10 articles
+                        print(f"Limited legacy scraper returned {len(legacy_articles)} articles")
+                    finally:
+                        if hasattr(signal, 'SIGALRM'):
+                            signal.alarm(0)  # Cancel alarm
+                            
+                except TimeoutError:
+                    print("Legacy scraper timed out after 10 seconds")
+                except Exception as e:
+                    print(f"Legacy scraper error: {e}")
             
             # Limit and deduplicate
             unique_articles = NewsService._deduplicate_articles(all_articles)

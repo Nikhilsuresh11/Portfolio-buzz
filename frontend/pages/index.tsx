@@ -7,28 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Cpu, ShieldCheck, Layers, Zap, Menu, X, Loader2 } from "lucide-react";
 import { isAuthenticated } from '../lib/auth';
 
-const features = [
-    {
-        icon: Cpu,
-        title: "Performance",
-        description: "Ultra-fast data processing in every situation.",
-    },
-    {
-        icon: ShieldCheck,
-        title: "Security",
-        description: "Advanced protection for complete peace of mind.",
-    },
-    {
-        icon: Layers,
-        title: "Modularity",
-        description: "Easy integration with existing architecture.",
-    },
-    {
-        icon: Zap,
-        title: "Responsiveness",
-        description: "Instant response to every command.",
-    },
-];
+// Features section removed for cleaner landing page
 
 export default function LandingPage() {
     const router = useRouter();
@@ -53,7 +32,7 @@ export default function LandingPage() {
             {/* Navbar */}
             <nav className="relative z-50 w-full px-6 py-4 flex items-center justify-between max-w-7xl mx-auto">
                 <div className="flex items-center gap-2 font-bold text-xl tracking-tight">
-                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">Portfolio Buzz</span>
+                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-emerald-400">Portfolio Buzz</span>
                 </div>
 
                 {/* Desktop Nav */}
@@ -127,10 +106,10 @@ export default function LandingPage() {
 
                         <div className="space-y-6 flex items-center justify-center flex-col ">
                             <h1 className="text-3xl md:text-6xl font-semibold tracking-tight max-w-3xl">
-                                Discover minimalism and power in one place
+                                Track your watchlist with AI-powered insights
                             </h1>
                             <p className="text-lg text-neutral-300 max-w-2xl">
-                                Designed with aesthetics and performance in mind. Experience ultra-fast processing, advanced security, and intuitive design.
+                                Stay ahead with live news and AI-driven recommendations. Real-time market data, intelligent stock analysis, and personalized alerts.
                             </p>
                             <div className="flex flex-col sm:flex-row gap-4 items-center">
                                 {isLoggedIn ? (
@@ -160,18 +139,7 @@ export default function LandingPage() {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6 max-w-5xl mx-auto">
-                        {features.map((feature, idx) => (
-                            <div
-                                key={idx}
-                                className="backdrop-blur-sm bg-white/5 border border-white/10 rounded-xl p-4 md:p-6 h-40 md:h-48 flex flex-col justify-start items-start space-y-2 md:space-y-3 hover:bg-white/10 transition-colors"
-                            >
-                                <feature.icon size={18} className="text-white/80 md:w-5 md:h-5" />
-                                <h3 className="text-sm md:text-base font-medium">{feature.title}</h3>
-                                <p className="text-xs md:text-sm text-neutral-400">{feature.description}</p>
-                            </div>
-                        ))}
-                    </div>
+
                 </div>
             </div>
 

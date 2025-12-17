@@ -8,6 +8,7 @@ RSS feeds are official, reliable, and don't trigger Google's anti-bot measures.
 import feedparser
 import time
 import random
+import requests  # For direct HTTP calls with custom headers
 from datetime import datetime
 from urllib.parse import quote_plus
 import re
@@ -79,12 +80,45 @@ class GoogleNewsRSSFetcher:
             print(f"Fetching Google News RSS: {rss_url}")
             print(f"Time filter: {time_filter} (matches Google News UI filter)")
             
-            # Parse RSS feed with timeout AND custom headers using fetch_url
-            # feedparser.parse(url) uses generic User-Agent which gets blocked
-            # Use skip_delay=True for RSS feeds since they don't need rate limiting
-            response = fetch_url(rss_url, skip_delay=True)
-            if not response:
-                print(f"Failed to fetch RSS URL (blocked?): {rss_url}")
+            # ANTI-BOT: Try multiple User-Agents to bypass Render IP blocking
+            # Render's shared IPs are often flagged, so we rotate through different profiles
+            user_agents = [
+                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Safari/605.1.15',
+                'Mozilla/5.0 (X11; Linux x86_64; rv:121.0) Gecko/20100101 Firefox/121.0',
+            ]
+            
+            response = None
+            for attempt, ua in enumerate(user_agents):
+                try:
+                    headers = {
+                        'User-Agent': ua,
+                        'Accept': 'application/rss+xml, application/xml, text/xml, */*',
+                        'Accept-Language': 'en-US,en;q=0.9',
+                        'Accept-Encoding': 'gzip, deflate, br',
+                        'DNT': '1',
+                        'Connection': 'keep-alive',
+                        'Upgrade-Insecure-Requests': '1',
+                    }
+                    
+                    response = requests.get(rss_url, headers=headers, timeout=10, verify=True)
+                    
+                    if response.status_code == 200:
+                        print(f"✓ RSS fetch succeeded with User-Agent {attempt + 1}")
+                        break
+                    else:
+                        print(f"✗ RSS fetch failed (status {response.status_code}), trying next User-Agent...")
+                        response = None
+                        time.sleep(1)  # Brief delay before retry
+                        
+                except Exception as e:
+                    print(f"✗ RSS fetch error with User-Agent {attempt + 1}: {e}")
+                    response = None
+                    if attempt < len(user_agents) - 1:
+                        time.sleep(1)
+            
+            if not response or response.status_code != 200:
+                print(f"Failed to fetch RSS after {len(user_agents)} attempts (likely bot detection)")
                 return articles
                 
             feed = feedparser.parse(response.content)
