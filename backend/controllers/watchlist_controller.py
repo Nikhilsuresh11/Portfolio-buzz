@@ -148,8 +148,8 @@ class WatchlistController:
             sort_by = request.args.get('sort_by', 'date')
             max_articles = request.args.get('max_articles', 10, type=int)
             
-            print(f"[WATCHLIST_NEWS] Request from {current_user_email}")
-            print(f"[WATCHLIST_NEWS] Parameters: time_filter={time_filter}, sort_by={sort_by}, max_articles={max_articles}")
+            print(f"\n[WATCHLIST_NEWS] 📋 Request from {current_user_email}")
+            print(f"[WATCHLIST_NEWS] ⚙️  Parameters: time_filter={time_filter}, sort_by={sort_by}, max_articles={max_articles}")
             
             # Validate parameters
             valid_filters = ['hour', 'day', 'week', 'month', 'year', 'recent']
@@ -171,15 +171,15 @@ class WatchlistController:
             
             if success:
                 total_articles = sum(len(articles) for articles in news_data.values())
-                print(f"[WATCHLIST_NEWS] Success: {total_articles} total articles for {len(news_data)} tickers in {elapsed_time:.2f}s")
+                print(f"[WATCHLIST_NEWS] ✅ Success: {total_articles} total articles for {len(news_data)} tickers in {elapsed_time:.2f}s")
                 return success_response(news_data, message, 200)
             else:
-                print(f"[WATCHLIST_NEWS] Failed: {message} in {elapsed_time:.2f}s")
+                print(f"[WATCHLIST_NEWS] ❌ Failed: {message} in {elapsed_time:.2f}s")
                 return error_response(message, 400)
         
         except Exception as e:
             elapsed_time = time.time() - start_time
-            print(f"[WATCHLIST_NEWS] Error after {elapsed_time:.2f}s: {str(e)}")
+            print(f"[WATCHLIST_NEWS] ❌ Exception after {elapsed_time:.2f}s: {str(e)}")
             import traceback
             traceback.print_exc()
             return error_response(f"Error fetching news: {str(e)}", 500)

@@ -97,6 +97,7 @@ class AnalysisController:
             # Validate days parameter
             is_valid, error_msg = validate_days_parameter(days)
             if not is_valid:
+                print(f"[NEWS] ❌ Invalid days parameter: {error_msg}")
                 return error_response(error_msg, 400)
             
             days = int(days)
@@ -104,23 +105,33 @@ class AnalysisController:
             stock_name = request.args.get('stock_name', '').strip()
             ticker = request.args.get('ticker', '').strip() if request.args.get('ticker') else None
             
+            print(f"\n[NEWS] 📰 Request: stock_name='{stock_name}', ticker='{ticker}', days={days}")
+            
             if not stock_name:
+                print(f"[NEWS] ❌ Missing stock_name parameter")
                 return error_response("stock_name query parameter is required", 400)
             
+            print(f"[NEWS] 🔍 Fetching news for {stock_name}...")
             success, message, articles = NewsService.fetch_news_by_days(stock_name, ticker, days)
             
             if success:
                 # Include summary
                 summary = NewsService.get_news_summary(articles)
+                print(f"[NEWS] ✅ Success: {len(articles)} articles from {len(summary.get('sources', []))} sources")
+                print(f"[NEWS] 📊 Summary: {summary.get('total_articles', 0)} total, {summary.get('free_count', 0)} free, {summary.get('premium_count', 0)} premium")
                 return success_response({
                     'articles': articles,
                     'summary': summary,
                     'days': days
                 }, message, 200)
             else:
+                print(f"[NEWS] ❌ Failed: {message}")
                 return error_response(message, 400)
         
         except Exception as e:
+            print(f"[NEWS] ❌ Exception: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return error_response(f"Error fetching news: {str(e)}", 500)
     
     @staticmethod
