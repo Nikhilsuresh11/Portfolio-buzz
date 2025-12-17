@@ -20,13 +20,14 @@ import warnings
 # Suppress SSL certificate warnings from urllib3
 warnings.filterwarnings('ignore', message='Unverified HTTPS request')
 
-# Production-optimized settings for Render free tier (512MB RAM)
-# CRITICAL: These settings prevent 504 Gateway Timeout and OOM errors
-MAX_WORKERS = 4  # Reduced from 15 - limits concurrent threads
-REQUEST_DELAY = (0.05, 0.15)  # Ultra-fast delays to prevent timeouts
-MAX_RETRIES = 1  # Single retry to avoid compounding delays
-TIMEOUT = 5  # Short timeout - fail fast on slow sources
-print("[SCRAPER] Running with Render-optimized settings (512MB limit)")
+# PROVEN SETTINGS FROM STREAMLIT DEPLOYMENT (Works on Render!)
+# These settings successfully bypass bot detection on deployed servers
+# Key insight: SLOWER delays appear more human-like
+MAX_WORKERS = 4  # Parallel scraping for speed
+REQUEST_DELAY = (1.5, 4.0)  # Longer delays = more human-like
+MAX_RETRIES = 2  # More retries for reliability
+TIMEOUT = 15  # Longer timeout for slow sources
+print(" Using proven Streamlit deployment settings")
 
 # Reduced article count per source to limit memory usage
 max_articles = 5
@@ -59,7 +60,7 @@ def smart_delay():
     time.sleep(random.uniform(*REQUEST_DELAY))
 
 
-@lru_cache(maxsize=10)  # Small cache to save memory on Render free tier
+@lru_cache(maxsize=30)  # Proven size from Streamlit deployment
 def fetch_url(url: str, retries: int = MAX_RETRIES, skip_delay: bool = False) -> Optional[requests.Response]:
     """Fetch URL with environment-aware delays and retries
     
