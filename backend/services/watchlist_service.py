@@ -113,6 +113,7 @@ class WatchlistService:
     def get_watchlist_news(email, time_filter='week', sort_by='date', max_articles=10):
         """
         Get news for all stocks in user's watchlist with time filtering
+        OPTIMIZED for Render free tier: sequential processing with timeouts
         
         Args:
             email: User's email address
@@ -123,52 +124,73 @@ class WatchlistService:
         Returns:
             tuple: (success: bool, message: str, data: dict or None)
         """
+        import time
+        start_time = time.time()
+        GLOBAL_TIMEOUT = 25  # Must complete before Render's 30s timeout
+        PER_STOCK_TIMEOUT = 8  # Max time per stock
+        MAX_TICKERS = 5  # Limit tickers to prevent timeout
+        
         try:
             from services.news_service import NewsService
-            from concurrent.futures import ThreadPoolExecutor, as_completed
             
             tickers = Watchlist.get_user_watchlist(email)
             
             if not tickers:
                 return True, "Watchlist is empty", {}
             
+            # Limit tickers to prevent timeout on large watchlists
+            tickers_to_process = tickers[:MAX_TICKERS]
+            if len(tickers) > MAX_TICKERS:
+                print(f"[WATCHLIST] Limiting from {len(tickers)} to {MAX_TICKERS} tickers for timeout safety")
+            
             # Map time_filter to days for consistent filtering
             days = map_time_filter_to_days(time_filter)
             
-            # Fetch news for all tickers with days-based filtering
+            # Sequential processing - more memory-safe and predictable
             news_data = {}
+            stocks_processed = 0
             
-            with ThreadPoolExecutor(max_workers=3) as executor:  # Reduced from 8 for Render free tier
-                future_to_ticker = {
-                    executor.submit(
-                        NewsService.fetch_news_by_days,
+            for ticker in tickers_to_process:
+                # Check global timeout
+                elapsed = time.time() - start_time
+                if elapsed > GLOBAL_TIMEOUT:
+                    print(f"[WATCHLIST] Global timeout reached ({elapsed:.1f}s), returning partial results")
+                    break
+                
+                stock_start = time.time()
+                try:
+                    # Fetch news for this ticker
+                    success, message, articles = NewsService.fetch_news_by_days(
                         ticker,
                         ticker,
                         days
-                    ): ticker
-                    for ticker in tickers
-                }
-                
-                for future in as_completed(future_to_ticker, timeout=20):
-                    ticker = future_to_ticker[future]
-                    try:
-                        # Add timeout to prevent hanging on slow requests
-                        success, message, articles = future.result(timeout=10)
-                        if success:
-                            news_data[ticker] = articles
-                            print(f"[WATCHLIST] Fetched {len(articles)} articles for {ticker}")
-                        else:
-                            print(f"[WATCHLIST] Failed to fetch news for {ticker}: {message}")
-                            news_data[ticker] = []
-                    except Exception as e:
-                        print(f"[WATCHLIST] Error fetching news for {ticker}: {e}")
-                        import traceback
-                        traceback.print_exc()
+                    )
+                    
+                    stock_elapsed = time.time() - stock_start
+                    
+                    if success and articles:
+                        # Limit articles per stock to save memory
+                        news_data[ticker] = articles[:max_articles]
+                        print(f"[WATCHLIST] {ticker}: {len(articles[:max_articles])} articles in {stock_elapsed:.1f}s")
+                    else:
+                        print(f"[WATCHLIST] {ticker}: no articles ({message}) in {stock_elapsed:.1f}s")
                         news_data[ticker] = []
+                    
+                    stocks_processed += 1
+                    
+                except Exception as e:
+                    print(f"[WATCHLIST] Error fetching {ticker}: {e}")
+                    news_data[ticker] = []
+            
+            total_elapsed = time.time() - start_time
+            total_articles = sum(len(articles) for articles in news_data.values())
+            print(f"[WATCHLIST] Completed: {stocks_processed}/{len(tickers_to_process)} stocks, {total_articles} articles in {total_elapsed:.1f}s")
             
             return True, "News retrieved successfully", news_data
         
         except Exception as e:
+            import traceback
+            traceback.print_exc()
             return False, f"Error fetching news: {str(e)}", None
     
     @staticmethod

@@ -14,14 +14,19 @@ class Database:
         """Get MongoDB client (singleton pattern)"""
         if cls._client is None:
             try:
+                # Optimized connection pool for Render free tier (512MB RAM)
                 cls._client = MongoClient(
                     config.MONGODB_URI,
                     serverSelectionTimeoutMS=5000,
-                    maxPoolSize=50,
-                    minPoolSize=10
+                    maxPoolSize=10,  # Reduced from 50 for memory savings
+                    minPoolSize=2,   # Reduced from 10 for memory savings
+                    maxIdleTimeMS=30000,  # Close idle connections after 30s
+                    retryWrites=True,
+                    w='majority'
                 )
                 # Test connection
                 cls._client.admin.command('ping')
+                print("[DB] MongoDB connected with optimized pool (max=10, min=2)")
             except ConnectionFailure as e:
                 raise Exception(f"Failed to connect to MongoDB: {str(e)}")
         return cls._client
