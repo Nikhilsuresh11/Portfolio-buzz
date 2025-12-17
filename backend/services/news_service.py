@@ -40,29 +40,15 @@ class NewsService:
         try:
             all_articles = []
             
-            # 1. DuckDuckGo News (PRIMARY - works on Render, no bot detection)
-            # DuckDuckGo doesn't block server IPs like Google does
-            if use_google_news:  # Reusing this flag for "use web sources"
-                try:
-                    from services.duckduckgo_news import fetch_duckduckgo_news
-                    
-                    # Map time_filter to days
-                    days_map = {'hour': 1, 'day': 1, 'week': 7, 'month': 30, 'year': 365}
-                    days = days_map.get(time_filter, 7)
-                    
-                    print(f"Fetching from DuckDuckGo: {stock_name} (last {days} days)")
-                    ddg_articles = fetch_duckduckgo_news(stock_name, ticker, max_articles, days)
-                    all_articles.extend(ddg_articles)
-                    print(f"DuckDuckGo returned {len(ddg_articles)} articles")
-                except Exception as e:
-                    print(f"DuckDuckGo error: {e}")
+            # Strategy: Accept partial results - return whatever we can get
+            # Google News RSS with retry logic is our only reliable source
             
-            # 2. Google News RSS (FALLBACK - may be blocked on Render)
-            # Only try if DuckDuckGo returned few/no results
-            if len(all_articles) < 5:
+            # Google News RSS (with 3-attempt retry using different User-Agents)
+            if use_google_news:
                 try:
                     from services.google_news_rss import fetch_google_news_rss
-                    print(f"DuckDuckGo returned few results, trying Google News RSS...")
+                    
+                    print(f"Fetching from Google News RSS: {stock_name} (filter: {time_filter})")
                     google_articles = fetch_google_news_rss(
                         stock_name=stock_name,
                         ticker=ticker,
