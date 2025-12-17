@@ -20,7 +20,7 @@ class NewsService:
     
     @staticmethod
     def fetch_news(stock_name, ticker=None, include_global=True, include_indian=True, 
-                   max_articles=50, use_google_news=True, time_filter='week', sort_by='date'):
+                   max_articles=20, use_google_news=True, time_filter='week', sort_by='date'):
         """
         Fetch news for a single stock with enhanced Google News search
         
@@ -59,20 +59,23 @@ class NewsService:
                     print(f"Google News RSS error: {e}")
                     # Don't disable use_google_news here, let it fall through to legacy scraper
             
-            # 2. Legacy scraper (TRUE FALLBACK - only if Google RSS returned no results)
-            if len(all_articles) == 0:
-                print("Google News RSS returned no articles, falling back to legacy scraper...")
-                try:
-                    query = ticker if ticker else stock_name
-                    legacy_articles = scrape_all_sources(
-                        query,
-                        include_global=include_global,
-                        include_indian=include_indian
-                    )
-                    all_articles.extend(legacy_articles[:max_articles])
-                    print(f"Legacy scraper returned {len(legacy_articles)} articles")
-                except Exception as e:
-                    print(f"Legacy scraper error: {e}")
+            # 2. Legacy scraper DISABLED for Render free tier
+            # The legacy scraper takes 50+ seconds which causes 504 Gateway Timeout
+            # Google News RSS provides enough articles (15-20) for analysis
+            # UNCOMMENT BELOW FOR LOCAL DEVELOPMENT ONLY:
+            # if len(all_articles) == 0:
+            #     print(\"Google News RSS returned no articles, falling back to legacy scraper...\")
+            #     try:
+            #         query = ticker if ticker else stock_name
+            #         legacy_articles = scrape_all_sources(
+            #             query,
+            #             include_global=include_global,
+            #             include_indian=include_indian
+            #         )
+            #         all_articles.extend(legacy_articles[:max_articles])
+            #         print(f\"Legacy scraper returned {len(legacy_articles)} articles\")
+            #     except Exception as e:
+            #         print(f\"Legacy scraper error: {e}\")
             
             # Limit and deduplicate
             unique_articles = NewsService._deduplicate_articles(all_articles)
@@ -117,36 +120,31 @@ class NewsService:
         return unique_articles
     
     @staticmethod
-    def fetch_news_for_multiple_stocks(tickers, max_workers=2):  # Reduced from 8 to 2 for memory stability
+    def fetch_news_for_multiple_stocks(tickers, max_workers=1):
         """
-        Fetch news for multiple stocks in parallel
+        Fetch news for multiple stocks SEQUENTIALLY for memory safety
         
         Args:
             tickers: List of stock tickers
-            max_workers: Number of parallel workers
+            max_workers: Number of parallel workers (default 1 = sequential for Render free tier)
         
         Returns:
             dict: Dictionary mapping tickers to their news articles
         """
         news_data = {}
         
-        with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            future_to_ticker = {
-                executor.submit(NewsService.fetch_news, ticker, ticker): ticker
-                for ticker in tickers
-            }
-            
-            for future in as_completed(future_to_ticker):
-                ticker = future_to_ticker[future]
-                try:
-                    success, message, articles = future.result()
-                    if success:
-                        news_data[ticker] = articles
-                    else:
-                        news_data[ticker] = []
-                except Exception as e:
-                    print(f"Error fetching news for {ticker}: {e}")
+        # Sequential processing to minimize memory usage and prevent timeouts
+        # Each stock gets max 15 articles to limit memory
+        for ticker in tickers[:10]:  # Limit to 10 tickers max
+            try:
+                success, message, articles = NewsService.fetch_news(ticker, ticker, max_articles=15)
+                if success:
+                    news_data[ticker] = articles[:15]  # Hard limit per ticker
+                else:
                     news_data[ticker] = []
+            except Exception as e:
+                print(f"Error fetching news for {ticker}: {e}")
+                news_data[ticker] = []
         
         return news_data
     

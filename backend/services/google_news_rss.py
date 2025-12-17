@@ -39,7 +39,7 @@ class GoogleNewsRSSFetcher:
     }
     
     @staticmethod
-    def fetch_news(query, time_filter='week', max_articles=50, language='en-US', region='US'):
+    def fetch_news(query, time_filter='week', max_articles=15, language='en-US', region='US'):
         """
         Fetch news from Google News RSS feed using exact URL structure from Google News UI
         
@@ -175,7 +175,7 @@ class GoogleNewsRSSFetcher:
 
 
 # Convenience function
-def fetch_google_news_rss(stock_name, ticker=None, time_filter='week', max_articles=50):
+def fetch_google_news_rss(stock_name, ticker=None, time_filter='week', max_articles=15):
     """
     Fetch news from Google News RSS feed
     
@@ -194,10 +194,14 @@ def fetch_google_news_rss(stock_name, ticker=None, time_filter='week', max_artic
     articles = GoogleNewsRSSFetcher.fetch_news(stock_name, time_filter, max_articles)
     all_articles.extend(articles)
     
-    # If ticker provided and different from name, fetch by ticker too
-    if ticker and ticker != stock_name:
-        ticker_articles = GoogleNewsRSSFetcher.fetch_news(ticker, time_filter, max_articles // 2)
-        all_articles.extend(ticker_articles)
+    # Skip ticker-based secondary query for speed on Render free tier
+    # This reduces requests by 50% and prevents timeout issues
+    # The stock_name query usually captures ticker-related news anyway
+    
+    # OLD CODE (disabled for performance):
+    # if ticker and ticker != stock_name:
+    #     ticker_articles = GoogleNewsRSSFetcher.fetch_news(ticker, time_filter, max_articles // 2)
+    #     all_articles.extend(ticker_articles)
     
     # Deduplicate
     seen_titles = set()

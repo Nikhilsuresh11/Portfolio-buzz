@@ -34,11 +34,16 @@ class AlertScheduler:
                 print("ℹ️  No users found")
                 return
             
-            print(f"👥 Checking alerts for {len(users)} users...")
+            print(f"👥 Checking alerts for {len(users)} users (max 10 per cycle)...")
+            
+            # Limit to 10 users per cycle to prevent memory issues
+            users_to_check = users[:10]
+            if len(users) > 10:
+                print(f"   ℹ️  Limiting to 10 users (total: {len(users)})")
             
             total_alerts_sent = 0
             
-            for user in users:
+            for user in users_to_check:
                 user_email = user.get('email')
                 if not user_email:
                     continue
@@ -102,6 +107,10 @@ class AlertScheduler:
                     print(f"   📬 Sent {alerts_sent} alert(s) to {user_email}")
                 else:
                     print(f"   ℹ️  No alerts needed for {user_email}")
+                
+                # Add delay between users to spread load (Render free tier)
+                import time
+                time.sleep(2)
             
             print(f"\n{'='*60}")
             print(f"✅ Alert check completed. Total alerts sent: {total_alerts_sent}")
@@ -116,13 +125,13 @@ class AlertScheduler:
             print("⚠️  Scheduler is already running")
             return
         
-        # Run every 15 minutes (for testing and production)
+        # Run every 30 minutes (optimized for Render free tier)
         self.scheduler.add_job(
             self.check_all_users_alerts,
             'interval',
-            minutes=15,
+            minutes=30,  # Increased from 15 to reduce load
             id='stock_alert_check',
-            name='Stock Alert Check (Every 15 minutes)',
+            name='Stock Alert Check (Every 30 minutes)',
             replace_existing=True
         )
         
@@ -148,8 +157,8 @@ class AlertScheduler:
         print("\n" + "="*60)
         print("🚀 Alert Scheduler Started!")
         print("="*60)
-        print("⏰ Running every 15 minutes (24/7)")
-        print("📧 Will check all users' watchlists automatically")
+        print("⏰ Running every 30 minutes (optimized for Render free tier)")
+        print("📧 Will check up to 10 users per cycle")
         print("🎯 Alert threshold: -5% or more")
         print("="*60 + "\n")
     

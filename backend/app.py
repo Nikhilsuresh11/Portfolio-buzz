@@ -60,6 +60,28 @@ def create_app(config_name='development'):
     app.register_blueprint(stock_research_bp)
     app.register_blueprint(email_alert_bp)
     
+    # Request timing and memory logging for Render free tier monitoring
+    import time
+    import gc
+    
+    @app.before_request
+    def before_request():
+        from flask import g
+        g.start_time = time.time()
+    
+    @app.after_request
+    def after_request(response):
+        from flask import g, request
+        if hasattr(g, 'start_time'):
+            elapsed = time.time() - g.start_time
+            # Log slow requests (> 5 seconds)
+            if elapsed > 5:
+                print(f"[SLOW REQUEST] {request.method} {request.path} took {elapsed:.2f}s")
+            # Force GC after expensive operations
+            if elapsed > 3 or 'news' in request.path:
+                gc.collect()
+        return response
+    
     # Initialize and start alert scheduler
     from services.alert_scheduler import alert_scheduler
     alert_scheduler.start()

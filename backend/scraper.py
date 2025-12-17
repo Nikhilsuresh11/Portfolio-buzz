@@ -20,15 +20,16 @@ import warnings
 # Suppress SSL certificate warnings from urllib3
 warnings.filterwarnings('ignore', message='Unverified HTTPS request')
 
-# Production-optimized settings (used by default for both local and Render)
-# These faster settings prevent 502 gateway timeouts
-MAX_WORKERS = 2  # Optimized for Render free tier (512MB)
-REQUEST_DELAY = (0.1, 0.5)  # Fast delays to prevent timeouts
-MAX_RETRIES = 1  # Single retry to avoid timeouts
-TIMEOUT = 8  # Shorter timeout for production
-print("[SCRAPER] Running with production-optimized settings")
+# Production-optimized settings for Render free tier (512MB RAM)
+# CRITICAL: These settings prevent 504 Gateway Timeout and OOM errors
+MAX_WORKERS = 4  # Reduced from 15 - limits concurrent threads
+REQUEST_DELAY = (0.05, 0.15)  # Ultra-fast delays to prevent timeouts
+MAX_RETRIES = 1  # Single retry to avoid compounding delays
+TIMEOUT = 5  # Short timeout - fail fast on slow sources
+print("[SCRAPER] Running with Render-optimized settings (512MB limit)")
 
-max_articles = 10
+# Reduced article count per source to limit memory usage
+max_articles = 5
 
 HEADERS_POOL = [
     {
@@ -58,7 +59,7 @@ def smart_delay():
     time.sleep(random.uniform(*REQUEST_DELAY))
 
 
-@lru_cache(maxsize=20)  # Reduced from 100 to save memory
+@lru_cache(maxsize=10)  # Small cache to save memory on Render free tier
 def fetch_url(url: str, retries: int = MAX_RETRIES, skip_delay: bool = False) -> Optional[requests.Response]:
     """Fetch URL with environment-aware delays and retries
     
@@ -886,17 +887,19 @@ def scrape_all_sources(stock_name, include_global=True, include_indian=True):
             ('Zerodha Pulse', lambda: scrape_zerodha_pulse(stock_name)),
         ])
     
-    # Execute in parallel with progress tracking
-    with concurrent.futures.ThreadPoolExecutor(max_workers=15) as executor:
+    # Execute in parallel with REDUCED workers for Render free tier
+    # Using only 4 workers instead of 15 to limit memory and prevent timeouts
+    with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
         future_to_source = {executor.submit(func): name for name, func in tasks}
         
-        for future in concurrent.futures.as_completed(future_to_source):
+        # Add timeout to prevent hanging on slow sources
+        for future in concurrent.futures.as_completed(future_to_source, timeout=15):
             source_name = future_to_source[future]
             try:
-                articles = future.result()
+                articles = future.result(timeout=5)  # 5s per-source timeout
                 all_articles.extend(articles)
             except Exception as e:
-                pass
+                pass  # Silently skip failed sources
     
     # Deduplicate aggressively by URL + title hash
     seen = set()
