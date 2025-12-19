@@ -6,7 +6,22 @@ import { Button } from "@/components/ui/button"
 import { X, Loader2, Sparkles, Newspaper } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-export default function AnalysisModal({ ticker, open, onClose }: { ticker?: string | null, open: boolean, onClose: () => void }) {
+interface Article {
+  title: string
+  url?: string
+  content: string
+  source: string
+  published_at: string
+}
+
+interface AnalysisModalProps {
+  ticker?: string | null
+  open: boolean
+  onClose: () => void
+  newsArticles?: Article[]  // Pre-fetched news from watchlist
+}
+
+export default function AnalysisModal({ ticker, open, onClose, newsArticles = [] }: AnalysisModalProps) {
   const [tab, setTab] = useState<'insights' | 'news'>('insights')
   const [analysis, setAnalysis] = useState<string>('')
   const [loading, setLoading] = useState(false)
@@ -15,7 +30,8 @@ export default function AnalysisModal({ ticker, open, onClose }: { ticker?: stri
   useEffect(() => {
     if (open && ticker) {
       document.body.style.overflow = 'hidden'
-      fetchAnalysis(ticker)
+      // Use cached news articles if available
+      fetchAnalysis(ticker, newsArticles)
     } else {
       document.body.style.overflow = ''
       setTab('insights')
@@ -23,13 +39,22 @@ export default function AnalysisModal({ ticker, open, onClose }: { ticker?: stri
       setError('')
     }
     return () => { document.body.style.overflow = '' }
-  }, [open, ticker])
+  }, [open, ticker, newsArticles])
 
-  const fetchAnalysis = async (stockTicker: string) => {
+  const fetchAnalysis = async (stockTicker: string, articles: Article[]) => {
     setLoading(true)
     setError('')
     try {
       const token = getToken()
+
+      // Format articles for AI context
+      const newsContext = articles.map(article => ({
+        title: article.title,
+        content: article.content,
+        source: article.source,
+        published_at: article.published_at
+      }))
+
       const res = await fetch(`${config.API_BASE_URL}/api/ai-insight`, {
         method: 'POST',
         headers: {
@@ -37,8 +62,9 @@ export default function AnalysisModal({ ticker, open, onClose }: { ticker?: stri
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          stock_name: stockTicker.split('.')[0], // Simple heuristic for name
-          ticker: stockTicker
+          stock_name: stockTicker.split('.')[0],
+          ticker: stockTicker,
+          news_articles: newsContext  // Pass cached news articles
         })
       })
 

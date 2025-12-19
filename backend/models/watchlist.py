@@ -102,8 +102,20 @@ class Watchlist:
         Returns:
             bool: True if removed successfully
         """
+        import logging
+        logger = logging.getLogger(__name__)
+        
         watchlist_col = get_watchlist_collection()
         ticker = ticker.upper().strip()
+        
+        logger.info(f"[WATCHLIST] Attempting to remove ticker: '{ticker}' for user: {email}")
+        
+        # Check current watchlist before deletion
+        user_watchlist = watchlist_col.find_one({'email': email.lower()})
+        if user_watchlist:
+            current_tickers = user_watchlist.get('watchlist', [])
+            logger.info(f"[WATCHLIST] Current watchlist: {current_tickers}")
+            logger.info(f"[WATCHLIST] Ticker in watchlist: {ticker in current_tickers}")
         
         result = watchlist_col.update_one(
             {'email': email.lower()},
@@ -112,6 +124,8 @@ class Watchlist:
                 '$set': {'updated_at': datetime.utcnow()}
             }
         )
+        
+        logger.info(f"[WATCHLIST] Delete result - matched: {result.matched_count}, modified: {result.modified_count}")
         
         return result.modified_count > 0
     
