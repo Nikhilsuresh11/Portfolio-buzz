@@ -244,13 +244,23 @@ class NewsScraperService:
             logger.error(f"  [ERROR] Failed to save {news_data['ticker']}: {e}")
             return False
     
-    def scrape_all_tickers(self, tickers: List[Dict], test_mode: bool = False):
-        """Scrape news for all tickers"""
+    def scrape_all_tickers(self, tickers: List[Dict], test_mode: bool = False, max_workers: int = 3):
+        """
+        Scrape news for all tickers with parallel processing
+        
+        Args:
+            tickers: List of ticker dictionaries
+            test_mode: If True, only process first 3 tickers
+            max_workers: Number of parallel workers (default: 3)
+        """
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+        
         self.stats['total_tickers'] = len(tickers)
         self.stats['start_time'] = datetime.utcnow()
         
         logger.info("=" * 70)
         logger.info(f"STARTING NEWS SCRAPING FOR {len(tickers)} TICKERS")
+        logger.info(f"PARALLEL PROCESSING: {max_workers} workers")
         logger.info("=" * 70)
         
         # In test mode, only process first 3 tickers
@@ -258,40 +268,70 @@ class NewsScraperService:
             tickers = tickers[:3]
             logger.info(f"TEST MODE: Processing only {len(tickers)} tickers")
         
-        for idx, ticker_info in enumerate(tickers, 1):
-            ticker = ticker_info['ticker']
-            company_name = ticker_info['company_name']
+        # Process tickers in parallel
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            # Submit all scraping tasks
+            future_to_ticker = {
+                executor.submit(self._scrape_and_save_ticker, idx, len(tickers), ticker_info): ticker_info
+                for idx, ticker_info in enumerate(tickers, 1)
+            }
             
-            logger.info(f"\n[{idx}/{len(tickers)}] Processing {ticker}...")
-            
-            try:
-                # Scrape news
-                news_data = self.scrape_news_for_ticker(ticker, company_name)
-                
-                # Save to MongoDB
-                if self.save_to_mongodb(news_data):
-                    if news_data['scrape_status'] == 'success':
-                        self.stats['successful'] += 1
-                    elif news_data['scrape_status'] == 'partial':
-                        self.stats['partial'] += 1
-                    else:
-                        self.stats['failed'] += 1
-                    
-                    self.stats['total_articles'] += news_data['article_count']
-                else:
+            # Process completed tasks as they finish
+            for future in as_completed(future_to_ticker):
+                ticker_info = future_to_ticker[future]
+                try:
+                    result = future.result()
+                    # Stats are updated in _scrape_and_save_ticker
+                except Exception as e:
+                    ticker = ticker_info['ticker']
+                    logger.error(f"  ✗ Unexpected error for {ticker}: {e}")
                     self.stats['failed'] += 1
-                
-            except Exception as e:
-                logger.error(f"  ✗ Unexpected error for {ticker}: {e}")
-                self.stats['failed'] += 1
-            
-            # Small delay between tickers to be respectful
-            if idx < len(tickers):
-                time.sleep(1)
         
         # Ensure end_time is set even if loop completes normally
         self.stats['end_time'] = datetime.utcnow()
         self._print_summary()
+    
+    def _scrape_and_save_ticker(self, idx: int, total: int, ticker_info: Dict) -> bool:
+        """
+        Scrape and save news for a single ticker (used in parallel processing)
+        
+        Args:
+            idx: Current ticker index
+            total: Total number of tickers
+            ticker_info: Ticker information dict
+            
+        Returns:
+            bool: True if successful
+        """
+        ticker = ticker_info['ticker']
+        company_name = ticker_info['company_name']
+        
+        logger.info(f"\n[{idx}/{total}] Processing {ticker}...")
+        
+        try:
+            # Scrape news
+            news_data = self.scrape_news_for_ticker(ticker, company_name)
+            
+            # Save to MongoDB
+            if self.save_to_mongodb(news_data):
+                if news_data['scrape_status'] == 'success':
+                    self.stats['successful'] += 1
+                elif news_data['scrape_status'] == 'partial':
+                    self.stats['partial'] += 1
+                else:
+                    self.stats['failed'] += 1
+                
+                self.stats['total_articles'] += news_data['article_count']
+                return True
+            else:
+                self.stats['failed'] += 1
+                return False
+                
+        except Exception as e:
+            logger.error(f"  ✗ Error processing {ticker}: {e}")
+            self.stats['failed'] += 1
+            return False
+
     
     def _print_summary(self):
         """Print scraping summary statistics"""
@@ -321,6 +361,7 @@ def main():
     parser = argparse.ArgumentParser(description='Scrape news for company tickers')
     parser.add_argument('--ticker', type=str, help='Scrape news for a specific ticker only')
     parser.add_argument('--test', action='store_true', help='Test mode: process only 3 tickers')
+    parser.add_argument('--workers', type=int, default=3, help='Number of parallel workers (default: 3)')
     args = parser.parse_args()
     
     scraper = NewsScraperService()
@@ -344,8 +385,8 @@ def main():
                 logger.warning("No tickers found to scrape")
                 sys.exit(0)
         
-        # Scrape news
-        scraper.scrape_all_tickers(tickers, test_mode=args.test)
+        # Scrape news with parallel processing
+        scraper.scrape_all_tickers(tickers, test_mode=args.test, max_workers=args.workers)
         
         logger.info("\n[OK] News scraping completed successfully")
         
