@@ -46,11 +46,13 @@ class AnalysisController:
             
             stock_name = data.get('stock_name', '').strip()
             ticker = data.get('ticker', '').strip() if data.get('ticker') else None
+            news_articles = data.get('news_articles', None)  # Accept pre-fetched news articles
             
             if not stock_name:
                 return error_response("stock_name cannot be empty", 400)
             
-            success, message, result = AnalysisService.generate_ai_insight(stock_name, ticker)
+            # Pass news_articles to the service (will fetch if not provided)
+            success, message, result = AnalysisService.generate_ai_insight(stock_name, ticker, articles=news_articles)
             
             if success:
                 return success_response(result, message, 200)

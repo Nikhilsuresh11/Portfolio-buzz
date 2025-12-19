@@ -1,6 +1,9 @@
 from models.watchlist import Watchlist
 from models.stock import Stock
 from utils.date_utils import map_time_filter_to_days
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class WatchlistService:
@@ -112,8 +115,8 @@ class WatchlistService:
     @staticmethod
     def get_watchlist_news(email, time_filter='week', sort_by='date', max_articles=10):
         """
-        Get news for all stocks in user's watchlist with time filtering
-        OPTIMIZED for Render free tier: sequential processing with timeouts
+        Get news for all stocks in user's watchlist using MongoDB cache
+        OPTIMIZED: Uses pre-fetched news from MongoDB for sub-second response times
         
         Args:
             email: User's email address
@@ -126,65 +129,32 @@ class WatchlistService:
         """
         import time
         start_time = time.time()
-        GLOBAL_TIMEOUT = 25  # Must complete before Render's 30s timeout
-        PER_STOCK_TIMEOUT = 8  # Max time per stock
-        MAX_TICKERS = 5  # Limit tickers to prevent timeout
         
         try:
-            from services.news_service import NewsService
+            from services.news_db_service import NewsDBService
+            from utils.date_utils import map_time_filter_to_days
             
             tickers = Watchlist.get_user_watchlist(email)
             
             if not tickers:
                 return True, "Watchlist is empty", {}
             
-            # Limit tickers to prevent timeout on large watchlists
-            tickers_to_process = tickers[:MAX_TICKERS]
-            if len(tickers) > MAX_TICKERS:
-                print(f"[WATCHLIST] Limiting from {len(tickers)} to {MAX_TICKERS} tickers for timeout safety")
-            
             # Map time_filter to days for consistent filtering
             days = map_time_filter_to_days(time_filter)
             
-            # Sequential processing - more memory-safe and predictable
-            news_data = {}
-            stocks_processed = 0
+            logger.info(f"[WATCHLIST] Fetching news for {len(tickers)} tickers from MongoDB...")
             
-            for ticker in tickers_to_process:
-                # Check global timeout
-                elapsed = time.time() - start_time
-                if elapsed > GLOBAL_TIMEOUT:
-                    print(f"[WATCHLIST] Global timeout reached ({elapsed:.1f}s), returning partial results")
-                    break
-                
-                stock_start = time.time()
-                try:
-                    # Fetch news for this ticker
-                    success, message, articles = NewsService.fetch_news_by_days(
-                        ticker,
-                        ticker,
-                        days
-                    )
-                    
-                    stock_elapsed = time.time() - stock_start
-                    
-                    if success and articles:
-                        # Limit articles per stock to save memory
-                        news_data[ticker] = articles[:max_articles]
-                        print(f"[WATCHLIST] {ticker}: {len(articles[:max_articles])} articles in {stock_elapsed:.1f}s")
-                    else:
-                        print(f"[WATCHLIST] {ticker}: no articles ({message}) in {stock_elapsed:.1f}s")
-                        news_data[ticker] = []
-                    
-                    stocks_processed += 1
-                    
-                except Exception as e:
-                    print(f"[WATCHLIST] Error fetching {ticker}: {e}")
-                    news_data[ticker] = []
+            # Batch fetch from MongoDB (fast!)
+            news_data = NewsDBService.get_news_for_multiple_tickers(
+                tickers,
+                days=days,
+                max_articles=max_articles
+            )
             
             total_elapsed = time.time() - start_time
             total_articles = sum(len(articles) for articles in news_data.values())
-            print(f"[WATCHLIST] Completed: {stocks_processed}/{len(tickers_to_process)} stocks, {total_articles} articles in {total_elapsed:.1f}s")
+            
+            logger.info(f"[WATCHLIST] Completed: {len(tickers)} stocks, {total_articles} articles in {total_elapsed:.2f}s")
             
             return True, "News retrieved successfully", news_data
         

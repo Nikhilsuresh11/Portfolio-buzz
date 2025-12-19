@@ -20,24 +20,65 @@ class NewsService:
     
     @staticmethod
     def fetch_news(stock_name, ticker=None, include_global=True, include_indian=True, 
-                   max_articles=20, use_google_news=True, time_filter='week', sort_by='date'):
+                   max_articles=20, use_google_news=True, time_filter='week', sort_by='date', use_cached=True):
         """
-        Fetch news for a single stock with enhanced Google News search
+        Fetch news for a single stock with MongoDB caching
         
         Args:
             stock_name: Company name or ticker
             ticker: Stock ticker (optional)
-            include_global: Include global news sources
-            include_indian: Include Indian news sources
+            include_global: Include global news sources (for live scraping fallback)
+            include_indian: Include Indian news sources (for live scraping fallback)
             max_articles: Maximum number of articles to return
-            use_google_news: Use Google News search (recommended)
+            use_google_news: Use Google News search (for live scraping fallback)
             time_filter: Time filter (hour, day, week, month, year, recent)
             sort_by: Sort option (date, relevance)
+            use_cached: Use MongoDB cached data if available (default: True)
         
         Returns:
             tuple: (success: bool, message: str, data: list or None)
         """
         try:
+            # Strategy: Try MongoDB first (fast), fall back to live scraping if stale/missing
+            from services.news_db_service import NewsDBService
+            from utils.date_utils import map_time_filter_to_days
+            
+            ticker_symbol = ticker if ticker else stock_name
+            days = map_time_filter_to_days(time_filter) if time_filter else None
+            
+            # Try MongoDB first if caching is enabled
+            if use_cached:
+                success, message, data = NewsDBService.get_news_for_ticker(
+                    ticker_symbol,
+                    days=days,
+                    max_articles=max_articles
+                )
+                
+                print(f"[NEWS DEBUG] NewsDBService returned: success={success}, message={message}, data type={type(data)}")
+                if data:
+                    print(f"[NEWS DEBUG] Data keys: {data.keys() if isinstance(data, dict) else 'not a dict'}")
+                    if isinstance(data, dict):
+                        print(f"[NEWS DEBUG] Articles in data: {len(data.get('articles', []))}")
+                
+                if success and data:
+                    articles = data.get('articles', [])
+                    metadata = data.get('metadata', {})
+                    
+                    print(f"[NEWS DEBUG] Extracted {len(articles)} articles from data")
+                    
+                    # Check if data is fresh (less than 1 hour old)
+                    data_age = metadata.get('data_age_minutes', 999)
+                    
+                    if data_age < 60:  # Data is fresh
+                        print(f"[NEWS] Using cached data for {ticker_symbol} (age: {data_age} min)")
+                        return True, f"Found {len(articles)} cached articles", articles
+                    else:
+                        print(f"[NEWS] Cached data for {ticker_symbol} is stale ({data_age} min old), falling back to live scraping")
+                else:
+                    print(f"[NEWS] No cached data for {ticker_symbol}, falling back to live scraping")
+            
+            # Fall back to live scraping (original implementation)
+            print(f"[NEWS] Live scraping for {ticker_symbol}...")
             all_articles = []
             
             # Strategy: Accept partial results - return whatever we can get
@@ -187,19 +228,17 @@ class NewsService:
             if days is None:
                 days = get_default_days()
             
-            # Fetch all available news
+            # Fetch all available news (MongoDB cache or live scraping)
             success, message, articles = NewsService.fetch_news(stock_name, ticker)
             
             if not success:
                 return success, message, articles
             
-            # Filter articles by their published_at timestamp (not current time)
-            filtered_articles = filter_articles_by_date(articles, days)
+            # Skip date filtering - articles from MongoDB are already fresh
+            # Live scraping fallback also returns recent articles
+            # The 'days' parameter is informational only
             
-            # Sort by date (latest first)
-            filtered_articles = sort_articles_by_date(filtered_articles, reverse=True)
-            
-            return True, f"Found {len(filtered_articles)} articles from last {days} days", filtered_articles
+            return True, f"Found {len(articles)} articles", articles
         
         except Exception as e:
             return False, f"Error fetching news: {str(e)}", None

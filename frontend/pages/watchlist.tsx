@@ -38,6 +38,7 @@ export default function Watchlist() {
     const [isAnalysisOpen, setIsAnalysisOpen] = useState(false)
     const [analysisTicker, setAnalysisTicker] = useState<string | null>(null)
     const [loading, setLoading] = useState(true)
+    const [newsData, setNewsData] = useState<Record<string, any[]>>({})  // Store news by ticker
 
     useEffect(() => {
         // Check authentication
@@ -69,14 +70,16 @@ export default function Watchlist() {
 
             const headers = { 'Authorization': `Bearer ${token}` }
 
-            // Fetch watchlist and prices in parallel
-            const [watchlistRes, pricesRes] = await Promise.all([
+            // Fetch watchlist, prices, and news in parallel
+            const [watchlistRes, pricesRes, newsRes] = await Promise.all([
                 fetch(`${config.API_BASE_URL}/api/watchlist`, { headers }),
-                fetch(`${config.API_BASE_URL}/api/watchlist/price`, { headers })
+                fetch(`${config.API_BASE_URL}/api/watchlist/price`, { headers }),
+                fetch(`${config.API_BASE_URL}/api/watchlist/news`, { headers })
             ])
 
             const watchlistData = await watchlistRes.json()
             const pricesData = await pricesRes.json()
+            const newsDataResponse = await newsRes.json()
 
             if (watchlistData.success) {
                 let stocks = watchlistData.data as Stock[]
@@ -101,6 +104,11 @@ export default function Watchlist() {
                         }
                         return stock
                     })
+                }
+
+                // Store news data for AI insights
+                if (newsDataResponse.success && newsDataResponse.data) {
+                    setNewsData(newsDataResponse.data)
                 }
 
                 setWatchlist(stocks)
@@ -151,7 +159,7 @@ export default function Watchlist() {
             const token = getToken()
             if (!token) return
 
-            const res = await fetch(`${config.API_BASE_URL}/api/watchlist/\${ticker}`, {
+            const res = await fetch(`${config.API_BASE_URL}/api/watchlist/${ticker}`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${token}`
@@ -246,6 +254,7 @@ export default function Watchlist() {
                 ticker={analysisTicker}
                 open={isAnalysisOpen}
                 onClose={() => setIsAnalysisOpen(false)}
+                newsArticles={analysisTicker ? newsData[analysisTicker] || [] : []}
             />
 
             <StockResearchModal

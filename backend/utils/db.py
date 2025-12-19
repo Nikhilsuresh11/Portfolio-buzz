@@ -67,3 +67,9 @@ def get_watchlist_collection():
 def get_stock_mappings_collection():
     """Get stock mappings collection"""
     return Database.get_collection(config.STOCK_MAPPINGS_COLLECTION)
+
+
+def get_news_collection():
+    """Get company news collection (pre-fetched by cron scraper)"""
+    return Database.get_collection(config.NEWS_COLLECTION)
+

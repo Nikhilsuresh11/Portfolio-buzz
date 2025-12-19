@@ -31,25 +31,39 @@ export default function RelatedNews({ ticker, onClose }: Props) {
         const headers: HeadersInit = {}
         if (token) headers['Authorization'] = `Bearer ${token}`
 
-        // If ticker is provided, fetch news for that ticker
+        // If ticker is provided, fetch news specifically for that ticker
         // Otherwise fetch general watchlist news
-        const url = ticker
-          ? `${config.API_BASE_URL}/api/watchlist/news?ticker=${ticker}`
-          : `${config.API_BASE_URL}/api/watchlist/news`
+        let url: string
+        if (ticker) {
+          // Fetch news for specific ticker from /api/news endpoint (7 days default)
+          url = `${config.API_BASE_URL}/api/news/7?stock_name=${ticker}&ticker=${ticker}`
+        } else {
+          // Fetch all watchlist news
+          url = `${config.API_BASE_URL}/api/watchlist/news`
+        }
 
         const res = await fetch(url, { headers })
         const data = await res.json()
 
         if (data.success) {
-          // Handle different response structures depending on endpoint
-          if (ticker && Array.isArray(data.data)) {
-            setNews(data.data)
-          } else if (data.data && typeof data.data === 'object') {
-            // Flatten news from multiple stocks if needed, or just take the first batch
-            const allNews = Object.values(data.data).flat() as Article[]
-            setNews(allNews.sort((a, b) => new Date(b.published_at).getTime() - new Date(a.published_at).getTime()))
+          // Handle different response structures
+          if (ticker) {
+            // Response from /api/news endpoint
+            if (data.data?.articles && Array.isArray(data.data.articles)) {
+              setNews(data.data.articles)
+            } else if (Array.isArray(data.data)) {
+              setNews(data.data)
+            } else {
+              setNews([])
+            }
           } else {
-            setNews([])
+            // Watchlist response - flatten news from multiple stocks
+            if (data.data && typeof data.data === 'object') {
+              const allNews = Object.values(data.data).flat() as Article[]
+              setNews(allNews.sort((a, b) => new Date(b.published_at).getTime() - new Date(a.published_at).getTime()))
+            } else {
+              setNews([])
+            }
           }
         }
       } catch (error) {

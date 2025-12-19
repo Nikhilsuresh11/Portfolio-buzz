@@ -177,6 +177,53 @@ Write with quiet confidence — like you've seen this movie before."""
             }
         
         except Exception as e:
+            # Fallback to smaller, faster model on rate limit or error
+            error_msg = str(e).lower()
+            if 'rate' in error_msg or 'limit' in error_msg or 'quota' in error_msg or 'timeout' in error_msg:
+                try:
+                    print(f"[ANALYSIS] Primary model failed ({e}), falling back to llama-3.1-8b-instant...")
+                    
+                    # Retry with smaller model
+                    response = client.chat.completions.create(
+                        messages=[
+                            {
+                                "role": "system",
+                                "content": """You are a former #1-ranked Institutional Investor equity research analyst now running a $5B+ long/short hedge fund research desk.
+You write morning notes that move stocks. Your audience: CIOs, PMs, and risk teams who demand precision, evidence, and tradable conclusions.
+Never speculate. Never hedge with disclaimers. Never hallucinate. Every sentence must be grounded in the provided articles.
+Write with quiet confidence — like you've seen this movie before."""
+                            },
+                            {
+                                "role": "user",
+                                "content": prompt
+                            },
+                            {
+                                "role": "assistant",
+                                "content": f"Understood. Proceeding with institutional-grade analysis of {stock_name.upper()}. Output will follow exact structure with zero deviation."
+                            }
+                        ],
+                        model="llama-3.1-8b-instant",  # Fallback model
+                        temperature=0.12,
+                        max_tokens=3800,
+                        frequency_penalty=0.1,
+                        seed=42,
+                        top_p=0.95,
+                        timeout=60,
+                    )
+                    
+                    analysis = response.choices[0].message.content
+                    
+                    return True, "Analysis generated successfully (fallback model)", {
+                        'stock': stock_name.upper(),
+                        'ticker': ticker,
+                        'analysis': analysis,
+                        'articles_analyzed': len(articles),
+                        'generated_at': datetime.now().isoformat(),
+                        'model_used': 'llama-3.1-8b-instant'
+                    }
+                except Exception as fallback_error:
+                    return False, f"Error generating analysis (both models failed): {str(fallback_error)}", None
+            
             return False, f"Error generating analysis: {str(e)}", None
     
     @staticmethod
@@ -306,4 +353,59 @@ OUTPUT NOW:"""
             }
         
         except Exception as e:
+            # Fallback to smaller model on rate limit or error
+            error_msg = str(e).lower()
+            if 'rate' in error_msg or 'limit' in error_msg or 'quota' in error_msg or 'timeout' in error_msg:
+                try:
+                    print(f"[KEY_INSIGHTS] Primary model failed ({e}), falling back to llama-3.1-8b-instant...")
+                    
+                    response = client.chat.completions.create(
+                        model="llama-3.1-8b-instant",  # Fallback model
+                        messages=[
+                            {"role": "system", "content": "You are a ruthless, precise equity sales trader. Only material facts. No fluff ever."},
+                            {"role": "user", "content": prompt}
+                        ],
+                        temperature=0.08,
+                        top_p=0.92,
+                        max_tokens=380,
+                        frequency_penalty=0.15,
+                        seed=42,
+                        timeout=25,
+                    )
+                    
+                    raw = response.choices[0].message.content.strip()
+                    
+                    # Clean up bullets (same logic as before)
+                    lines = [l.strip() for l in raw.split('\n') if l.strip()]
+                    bullets = []
+                    
+                    for line in lines:
+                        line = line.strip("•-*0123456789. ")
+                        if len(line) > 15 and len(line) < 130:
+                            line = re.sub(r'^[•\-\*]+\s*', '', line)
+                            line = re.sub(r'\s*→.*$', '', line)
+                            line = line.split('(')[0].strip()
+                            line = line.split('- ')[-1].strip()
+                            if line and line not in [b.split('• ')[-1] for b in bullets]:
+                                bullets.append(f"• {line.capitalize()}")
+                    
+                    final_bullets = bullets[:5] if bullets else [
+                        f"• Monitoring {stock_name.upper()} for fresh catalysts",
+                        "• Recent news flow light",
+                        "• No major developments in past 48 hours"
+                    ]
+                    
+                    insights_text = "\n".join(final_bullets)
+                    
+                    return True, "Key insights generated (fallback model)", {
+                        'stock': stock_name.upper(),
+                        'ticker': ticker,
+                        'insights': insights_text,
+                        'bullet_points': final_bullets,
+                        'generated_at': datetime.now().isoformat(),
+                        'model_used': 'llama-3.1-8b-instant'
+                    }
+                except Exception as fallback_error:
+                    return False, f"Error generating insights (both models failed): {str(fallback_error)}", None
+            
             return False, f"Error generating insights: {str(e)}", None
