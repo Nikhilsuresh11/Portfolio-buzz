@@ -30,11 +30,9 @@ export function AuthPage({ children }: AuthPageProps) {
                 <div className="z-10 mt-auto">
                     <blockquote className="space-y-2">
                         <p className="text-xl">
-                            &ldquo;This Platform has helped me to save time and serve my
-                            clients faster than ever before.&rdquo;
+                            &ldquo;Stay ahead with live news and AI-driven recommendations. Real-time market data, intelligent stock analysis, and personalized alerts.&rdquo;
                         </p>
                         <footer className="font-mono text-sm font-semibold">
-                            ~ Ali Hassan
                         </footer>
                     </blockquote>
                 </div>
