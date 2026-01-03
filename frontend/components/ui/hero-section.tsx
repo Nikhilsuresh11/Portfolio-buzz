@@ -94,8 +94,23 @@ const AnimatedBoxes = () => {
     );
 };
 
+import { isWebGLAvailable } from '@/lib/utils';
+
 export const Scene = () => {
     const [cameraPosition, setCameraPosition] = React.useState<[number, number, number]>([5, 5, 20]);
+    const [webglSupported, setWebglSupported] = React.useState<boolean | null>(null);
+
+    React.useEffect(() => {
+        setWebglSupported(isWebGLAvailable());
+    }, []);
+
+    if (webglSupported === null) return <div className="w-full h-full bg-black/50" />;
+
+    if (!webglSupported) {
+        return (
+            <div className="w-full h-full bg-gradient-to-b from-[#000] via-[#0A1114] to-[#1A2428] opacity-50 transition-opacity duration-1000" />
+        );
+    }
 
     return (
         <div className="w-full h-full z-0">
