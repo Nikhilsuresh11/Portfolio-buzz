@@ -22,6 +22,7 @@ from routes.search_routes import search_bp
 from routes.analysis_routes import analysis_bp
 from routes.stock_research_routes import stock_research_bp
 from routes.email_alert_routes import email_alert_bp
+from routes.portfolio_analysis_routes import portfolio_analysis_bp
 
 
 def create_app(config_name='development'):
@@ -59,6 +60,7 @@ def create_app(config_name='development'):
     app.register_blueprint(analysis_bp)
     app.register_blueprint(stock_research_bp)
     app.register_blueprint(email_alert_bp)
+    app.register_blueprint(portfolio_analysis_bp)
     
     # Request timing and memory logging for Render free tier monitoring
     import time
