@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button"
 
 interface Article {
   title: string
-  link: string
+  url: string
+  link?: string
   source: string
   published_at: string
   summary?: string
@@ -99,7 +100,7 @@ export default function RelatedNews({ ticker, onClose }: Props) {
           news.map((article, i) => (
             <a
               key={i}
-              href={article.link}
+              href={article.url || article.link}
               target="_blank"
               rel="noopener noreferrer"
               className="group flex gap-4 p-5 border-b border-white/5 hover:bg-white/5 transition-colors no-underline block"

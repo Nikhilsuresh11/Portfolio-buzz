@@ -192,6 +192,7 @@ function getSidebarContent(activeSection: string, router: any, props: any): Side
                     items: [
                         { icon: <Dashboard size={16} className="text-neutral-50" />, label: "Watchlist", isActive: isActive('/watchlist'), onClick: () => router.push('/watchlist') },
                         { icon: <Report size={16} className="text-neutral-50" />, label: "Deep Research", isActive: isActive('/research'), onClick: () => router.push('/research') },
+                        { icon: <ChartBar size={16} className="text-neutral-50" />, label: "Market Metrics", isActive: isActive('/analytics'), onClick: () => router.push('/analytics') },
                     ],
                 },
                 {

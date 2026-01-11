@@ -1,3 +1,4 @@
+import ReactMarkdown from 'react-markdown'
 import { useEffect, useState } from 'react'
 import RelatedNews from './RelatedNews'
 import { getToken } from '../lib/auth'
@@ -138,9 +139,24 @@ export default function AnalysisModal({ ticker, open, onClose, newsArticles = []
                   {error}
                 </div>
               ) : (
-                <pre className="whitespace-pre-wrap font-mono text-sm leading-relaxed text-gray-300 font-normal">
-                  {analysis}
-                </pre>
+                <div className="prose prose-invert max-w-none text-gray-300 text-sm leading-relaxed overflow-hidden">
+                  <ReactMarkdown
+                    components={{
+                      h1: ({ node, ...props }) => <h1 className="text-xl font-bold text-white mb-4 mt-6 first:mt-0" {...props} />,
+                      h2: ({ node, ...props }) => <h2 className="text-lg font-bold text-blue-400 mb-3 mt-5" {...props} />,
+                      h3: ({ node, ...props }) => <h3 className="text-base font-semibold text-blue-300 mb-2 mt-4" {...props} />,
+                      p: ({ node, ...props }) => <p className="mb-4 text-gray-300" {...props} />,
+                      ul: ({ node, ...props }) => <ul className="list-disc list-outside ml-4 mb-4 space-y-2 marker:text-blue-500" {...props} />,
+                      ol: ({ node, ...props }) => <ol className="list-decimal list-outside ml-4 mb-4 space-y-2 marker:text-blue-500" {...props} />,
+                      li: ({ node, ...props }) => <li className="pl-1" {...props} />,
+                      strong: ({ node, ...props }) => <strong className="font-semibold text-white" {...props} />,
+                      blockquote: ({ node, ...props }) => <blockquote className="border-l-4 border-blue-500 pl-4 italic text-gray-400 my-4" {...props} />,
+                      code: ({ node, ...props }) => <code className="bg-white/10 rounded px-1 py-0.5 font-mono text-xs text-blue-300" {...props} />,
+                    }}
+                  >
+                    {analysis}
+                  </ReactMarkdown>
+                </div>
               )}
             </div>
           ) : (
