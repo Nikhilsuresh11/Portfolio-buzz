@@ -379,7 +379,7 @@ export default function Analytics() {
                                                 <Tooltip
                                                     contentStyle={{ backgroundColor: '#18181b', borderColor: '#27272a', color: '#fff', borderRadius: '8px' }}
                                                     itemStyle={{ color: '#fff' }}
-                                                    formatter={(value: number) => `${Number(value).toFixed(1)}%`}
+                                                    formatter={(value: any) => `${Number(value).toFixed(1)}%`}
                                                 />
                                                 <Legend
                                                     layout="vertical"
