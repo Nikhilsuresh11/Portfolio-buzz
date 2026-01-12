@@ -8,6 +8,25 @@ import { MessageLoading } from '@/components/ui/message-loading'
 import { AuthProvider } from '../lib/auth-context'
 import { PortfolioProvider } from '../lib/portfolio-context'
 
+import Sidebar from '../components/Sidebar'
+
+function Layout({ children }: { children: React.ReactNode }) {
+  const router = useRouter()
+  const isStandalonePage = router.pathname === '/' || router.pathname.startsWith('/auth')
+  const [isSearchOpen, setIsSearchOpen] = useState(false)
+
+  if (isStandalonePage) return <>{children}</>
+
+  return (
+    <div className="flex h-screen bg-black text-white overflow-hidden">
+      <Sidebar onSearchClick={() => setIsSearchOpen(true)} />
+      <main className="flex-1 overflow-auto relative">
+        {children}
+      </main>
+    </div>
+  )
+}
+
 export default function App({ Component, pageProps }: AppProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
@@ -31,12 +50,14 @@ export default function App({ Component, pageProps }: AppProps) {
     <>
       <AuthProvider>
         <PortfolioProvider>
-          {loading && (
-            <div className="fixed inset-0 left-[72px] z-[9999] flex items-center justify-center bg-black">
-              <MessageLoading />
-            </div>
-          )}
-          <Component {...pageProps} />
+          <Layout>
+            {loading && (
+              <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+                <MessageLoading />
+              </div>
+            )}
+            <Component {...pageProps} />
+          </Layout>
           <ToastContainer position="top-right" theme="dark" />
         </PortfolioProvider>
       </AuthProvider>

@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import Sidebar from '../components/Sidebar';
 import { useAuth } from '../lib/auth-context';
 import { usePortfolio } from '../lib/portfolio-context';
 import { Folder, Plus, ArrowRight, Loader2 } from 'lucide-react';
@@ -34,52 +33,49 @@ export default function SelectPortfolioPage() {
 
     if (isAuthLoading || isPortfolioLoading) {
         return (
-            <div className="flex h-screen bg-black text-white items-center justify-center">
+            <div className="flex-1 flex items-center justify-center">
                 <Loader2 className="w-12 h-12 animate-spin text-blue-500" />
             </div>
         );
     }
 
     return (
-        <div className="flex h-screen bg-black text-white">
-            <Sidebar />
-            <main className="flex-1 overflow-auto p-8 flex flex-col items-center justify-center">
-                <div className="max-w-4xl w-full">
-                    <h1 className="text-4xl font-bold mb-2 text-center">Select Portfolio</h1>
-                    <p className="text-neutral-400 text-center mb-12">Choose a portfolio to manage or create a new one</p>
+        <div className="flex-1 overflow-auto p-8 flex flex-col items-center justify-center">
+            <div className="max-w-4xl w-full">
+                <h1 className="text-4xl font-bold mb-2 text-center">Select Portfolio</h1>
+                <p className="text-neutral-400 text-center mb-12">Choose a portfolio to manage or create a new one</p>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {portfolios.map((p) => (
-                            <button
-                                key={p.portfolio_id}
-                                onClick={() => handleSelect(p)}
-                                className="group relative bg-white/5 border border-white/10 hover:border-blue-500/50 hover:bg-white/10 rounded-2xl p-6 text-left transition-all duration-300"
-                            >
-                                <div className="bg-blue-500/20 w-12 h-12 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                                    <Folder className="w-6 h-6 text-blue-400" />
-                                </div>
-                                <h3 className="text-xl font-bold mb-1">{p.portfolio_name}</h3>
-                                <p className="text-sm text-neutral-400 mb-4">{p.position_count || 0} Positions</p>
-
-                                <div className="flex items-center text-blue-400 text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity">
-                                    View Portfolio <ArrowRight className="w-4 h-4 ml-1" />
-                                </div>
-                            </button>
-                        ))}
-
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {portfolios.map((p) => (
                         <button
-                            onClick={handleCreate}
-                            disabled={creating}
-                            className="group border-2 border-dashed border-white/10 hover:border-white/30 rounded-2xl p-6 flex flex-col items-center justify-center text-center transition-all duration-300 min-h-[200px]"
+                            key={p.portfolio_id}
+                            onClick={() => handleSelect(p)}
+                            className="group relative bg-white/5 border border-white/10 hover:border-blue-500/50 hover:bg-white/10 rounded-2xl p-6 text-left transition-all duration-300"
                         >
-                            <div className="bg-white/5 w-12 h-12 rounded-full flex items-center justify-center mb-4 group-hover:bg-white/10 transition-colors">
-                                <Plus className="w-6 h-6 text-neutral-400 group-hover:text-white" />
+                            <div className="bg-blue-500/20 w-12 h-12 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                                <Folder className="w-6 h-6 text-blue-400" />
                             </div>
-                            <h3 className="text-lg font-semibold text-neutral-300 group-hover:text-white">Create New Portfolio</h3>
+                            <h3 className="text-xl font-bold mb-1">{p.portfolio_name}</h3>
+                            <p className="text-sm text-neutral-400 mb-4">{p.position_count || 0} Positions</p>
+
+                            <div className="flex items-center text-blue-400 text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+                                View Portfolio <ArrowRight className="w-4 h-4 ml-1" />
+                            </div>
                         </button>
-                    </div>
+                    ))}
+
+                    <button
+                        onClick={handleCreate}
+                        disabled={creating}
+                        className="group border-2 border-dashed border-white/10 hover:border-white/30 rounded-2xl p-6 flex flex-col items-center justify-center text-center transition-all duration-300 min-h-[200px]"
+                    >
+                        <div className="bg-white/5 w-12 h-12 rounded-full flex items-center justify-center mb-4 group-hover:bg-white/10 transition-colors">
+                            <Plus className="w-6 h-6 text-neutral-400 group-hover:text-white" />
+                        </div>
+                        <h3 className="text-lg font-semibold text-neutral-300 group-hover:text-white">Create New Portfolio</h3>
+                    </button>
                 </div>
-            </main>
+            </div>
         </div>
     );
 }

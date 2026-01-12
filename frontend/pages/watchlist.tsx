@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
-import Sidebar from '../components/Sidebar'
 import Header from '../components/Header'
 import StockTable from '../components/StockTable'
 import RelatedNews from '../components/RelatedNews'
@@ -375,115 +374,102 @@ export default function Watchlist() {
 
     if (loading && !currentWatchlistId && watchlists.length === 0) {
         return (
-            <div className="flex min-h-screen bg-black text-white">
-                <Sidebar
-                    onSearchClick={() => setIsSearchOpen(true)}
-                    onResearchClick={() => setIsResearchOpen(true)}
-                />
-                <div className="flex-1 flex items-center justify-center">
-                    <MessageLoading />
-                </div>
+            <div className="flex-1 flex items-center justify-center h-full">
+                <MessageLoading />
             </div>
         )
     }
 
     return (
-        <div className="flex min-h-screen bg-gradient-to-br from-[#000] to-[#1A2428] text-white">
-            <Sidebar
-                onSearchClick={() => setIsSearchOpen(true)}
-                onResearchClick={() => setIsResearchOpen(true)}
-            />
+        <div className="flex-1 flex flex-col h-full relative overflow-hidden">
+            <Header user={user?.email} />
 
-            <main className="flex-1 flex flex-col h-screen overflow-hidden relative">
-                <div className='p-6 pb-0 z-10'>
-                    <Header user={user?.name || 'User'} />
-
-                    {/* Watchlist Tabs */}
-                    <div className="mt-6 flex items-center gap-2 overflow-x-auto pb-2 custom-scrollbar no-scrollbar">
-                        {watchlists.map(w => (
-                            <div
-                                key={w.watchlist_id}
-                                onClick={() => setCurrentWatchlistId(w.watchlist_id)}
-                                className={`
-                                    group flex items-center gap-2 px-4 py-2 rounded-lg cursor-pointer whitespace-nowrap transition-all border
-                                    ${currentWatchlistId === w.watchlist_id
-                                        ? 'bg-blue-600 border-blue-500 text-white'
-                                        : 'bg-white/5 border-white/10 text-neutral-400 hover:bg-white/10 hover:text-neutral-200'
-                                    }
-                                `}
-                            >
-                                <span className="text-sm font-medium">{w.watchlist_name}</span>
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <button className={`opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-black/20 ${currentWatchlistId === w.watchlist_id ? 'opacity-100' : ''}`}>
-                                            <MoreVertical size={14} />
-                                        </button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent className="bg-[#1A1A1A] border-white/10 text-white">
-                                        <DropdownMenuItem
-                                            onClick={(e) => { e.stopPropagation(); handleDeleteWatchlist(w.watchlist_id) }}
-                                            className="text-red-400 focus:text-red-400 focus:bg-red-400/10 cursor-pointer"
-                                        >
-                                            <Trash2 className="w-4 h-4 mr-2" />
-                                            Delete Watchlist
-                                        </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
-                            </div>
-                        ))}
-
-                        <button
-                            onClick={() => setIsCreateModalOpen(true)}
-                            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-neutral-400 hover:bg-white/10 hover:text-white transition-all whitespace-nowrap"
+            <div className='p-6 pb-0 z-10'>
+                {/* Watchlist Tabs */}
+                <div className="mt-6 flex items-center gap-2 overflow-x-auto pb-2 custom-scrollbar no-scrollbar">
+                    {watchlists.map(w => (
+                        <div
+                            key={w.watchlist_id}
+                            onClick={() => setCurrentWatchlistId(w.watchlist_id)}
+                            className={`
+                                group flex items-center gap-2 px-4 py-2 rounded-lg cursor-pointer whitespace-nowrap transition-all border
+                                ${currentWatchlistId === w.watchlist_id
+                                    ? 'bg-blue-600 border-blue-500 text-white'
+                                    : 'bg-white/5 border-white/10 text-neutral-400 hover:bg-white/10 hover:text-neutral-200'
+                                }
+                            `}
                         >
-                            <Plus size={16} />
-                            <span className="text-sm font-medium">New List</span>
-                        </button>
-                    </div>
-                </div>
-
-                <div className="flex-1 grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-6 p-6 pt-4 overflow-hidden">
-                    <div className="overflow-y-auto pr-2 custom-scrollbar">
-                        <div className="bg-white/5 border border-white/10 backdrop-blur-sm rounded-2xl p-1 h-full shadow-xl">
-                            {stocks.length > 0 ? (
-                                <StockTable
-                                    rows={stocks}
-                                    onSelect={setSelectedTicker}
-                                    onAnalyze={handleAnalyze}
-                                    onRemove={removeStock}
-                                    selectedTicker={selectedTicker}
-                                />
-                            ) : (
-                                <div className="flex flex-col items-center justify-center h-full text-neutral-400 p-8 text-center">
-                                    <LayoutGrid className="w-16 h-16 mb-4 opacity-20" />
-                                    <h3 className="text-lg font-semibold mb-2">Watchlist is empty</h3>
-                                    <p className="text-sm max-w-xs mx-auto mb-6">
-                                        Add stocks to track their performance and get AI-powered insights.
-                                    </p>
-                                    <Button
-                                        onClick={() => setIsSearchOpen(true)}
-                                        className="bg-blue-600 hover:bg-blue-700 text-white"
+                            <span className="text-sm font-medium">{w.watchlist_name}</span>
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <button className={`opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-black/20 ${currentWatchlistId === w.watchlist_id ? 'opacity-100' : ''}`}>
+                                        <MoreVertical size={14} />
+                                    </button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent className="bg-[#1A1A1A] border-white/10 text-white">
+                                    <DropdownMenuItem
+                                        onClick={(e) => { e.stopPropagation(); handleDeleteWatchlist(w.watchlist_id) }}
+                                        className="text-red-400 focus:text-red-400 focus:bg-red-400/10 cursor-pointer"
                                     >
-                                        <Plus className="w-4 h-4 mr-2" />
-                                        Add Stocks
-                                    </Button>
-                                </div>
-                            )}
+                                        <Trash2 className="w-4 h-4 mr-2" />
+                                        Delete Watchlist
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
                         </div>
-                    </div>
+                    ))}
 
-                    <div className="hidden lg:block h-full overflow-hidden bg-white/5 border border-white/10 backdrop-blur-sm rounded-2xl shadow-xl">
-                        <RelatedNews
-                            ticker={selectedTicker}
-                            onClose={() => setSelectedTicker(null)}
-                        />
+                    <button
+                        onClick={() => setIsCreateModalOpen(true)}
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-neutral-400 hover:bg-white/10 hover:text-white transition-all whitespace-nowrap"
+                    >
+                        <Plus size={16} />
+                        <span className="text-sm font-medium">New List</span>
+                    </button>
+                </div>
+            </div>
+
+            <div className="flex-1 grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-6 p-6 pt-4 overflow-hidden">
+                <div className="overflow-y-auto pr-2 custom-scrollbar">
+                    <div className="bg-white/5 border border-white/10 backdrop-blur-sm rounded-2xl p-1 h-full shadow-xl">
+                        {stocks.length > 0 ? (
+                            <StockTable
+                                rows={stocks}
+                                onSelect={setSelectedTicker}
+                                onAnalyze={handleAnalyze}
+                                onRemove={removeStock}
+                                selectedTicker={selectedTicker}
+                            />
+                        ) : (
+                            <div className="flex flex-col items-center justify-center h-full text-neutral-400 p-8 text-center">
+                                <LayoutGrid className="w-16 h-16 mb-4 opacity-20" />
+                                <h3 className="text-lg font-semibold mb-2">Watchlist is empty</h3>
+                                <p className="text-sm max-w-xs mx-auto mb-6">
+                                    Add stocks to track their performance and get AI-powered insights.
+                                </p>
+                                <Button
+                                    onClick={() => setIsSearchOpen(true)}
+                                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                                >
+                                    <Plus className="w-4 h-4 mr-2" />
+                                    Add Stocks
+                                </Button>
+                            </div>
+                        )}
                     </div>
                 </div>
 
-                {/* Background ambient light effects */}
-                <div className="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 bg-blue-500/10 rounded-full blur-[100px] pointer-events-none z-0" />
-                <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 bg-purple-500/10 rounded-full blur-[100px] pointer-events-none z-0" />
-            </main>
+                <div className="hidden lg:block h-full overflow-hidden bg-white/5 border border-white/10 backdrop-blur-sm rounded-2xl shadow-xl">
+                    <RelatedNews
+                        ticker={selectedTicker}
+                        onClose={() => setSelectedTicker(null)}
+                    />
+                </div>
+            </div>
+
+            {/* Background ambient light effects */}
+            <div className="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 bg-blue-500/10 rounded-full blur-[100px] pointer-events-none z-0" />
+            <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 bg-purple-500/10 rounded-full blur-[100px] pointer-events-none z-0" />
 
             <StockSearchModal
                 isOpen={isSearchOpen}
