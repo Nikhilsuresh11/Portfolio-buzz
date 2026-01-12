@@ -73,3 +73,8 @@ def get_news_collection():
     """Get company news collection (pre-fetched by cron scraper)"""
     return Database.get_collection(config.NEWS_COLLECTION)
 
+
+def get_positions_collection():
+    """Get portfolio positions collection"""
+    return Database.get_collection(config.POSITIONS_COLLECTION)
+

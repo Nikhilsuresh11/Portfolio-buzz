@@ -203,6 +203,20 @@ function getSidebarContent(activeSection: string, router: any, props: any): Side
                 },
             ],
         },
+        portfolio: {
+            title: "Portfolios",
+            sections: [
+                {
+                    title: "Management",
+                    items: [
+                        { icon: <Folder size={16} className="text-neutral-50" />, label: "Overview", isActive: isActive('/portfolio'), onClick: () => router.push('/portfolio') },
+                        { icon: <ChartBar size={16} className="text-neutral-50" />, label: "Summary", isActive: isActive('/portfolio/summary'), onClick: () => router.push('/portfolio/summary') },
+                        { icon: <AddLarge size={16} className="text-neutral-50" />, label: "My Positions", isActive: isActive('/positions'), onClick: () => router.push('/positions') },
+                        { icon: <Share size={16} className="text-neutral-50" />, label: "Switch Portfolio", isActive: isActive('/select-portfolio'), onClick: () => router.push('/select-portfolio') },
+                    ]
+                }
+            ]
+        },
         analytics: {
             title: "Analytics",
             sections: [
@@ -256,6 +270,7 @@ function IconNavigation({
 }) {
     const navItems = [
         { id: "dashboard", icon: <Dashboard size={16} />, label: "Dashboard" },
+        { id: "portfolio", icon: <Folder size={16} />, label: "Portfolios" },
         { id: "settings", icon: <SettingsIcon size={16} />, label: "Settings", isBottom: true },
     ];
 

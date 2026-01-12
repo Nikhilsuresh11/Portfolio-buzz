@@ -5,6 +5,8 @@ import type { AppProps } from 'next/app'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { MessageLoading } from '@/components/ui/message-loading'
+import { AuthProvider } from '../lib/auth-context'
+import { PortfolioProvider } from '../lib/portfolio-context'
 
 export default function App({ Component, pageProps }: AppProps) {
   const router = useRouter()
@@ -27,13 +29,17 @@ export default function App({ Component, pageProps }: AppProps) {
 
   return (
     <>
-      {loading && (
-        <div className="fixed inset-0 left-[72px] z-[9999] flex items-center justify-center bg-black">
-          <MessageLoading />
-        </div>
-      )}
-      <Component {...pageProps} />
-      <ToastContainer position="top-right" theme="dark" />
+      <AuthProvider>
+        <PortfolioProvider>
+          {loading && (
+            <div className="fixed inset-0 left-[72px] z-[9999] flex items-center justify-center bg-black">
+              <MessageLoading />
+            </div>
+          )}
+          <Component {...pageProps} />
+          <ToastContainer position="top-right" theme="dark" />
+        </PortfolioProvider>
+      </AuthProvider>
     </>
   )
 }
