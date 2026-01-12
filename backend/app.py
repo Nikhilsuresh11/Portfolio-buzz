@@ -65,6 +65,9 @@ def create_app(config_name='development'):
     from routes.portfolio_routes import portfolio_bp
     app.register_blueprint(portfolio_bp)
     
+    from routes.portfolio_management_routes import portfolio_management_bp
+    app.register_blueprint(portfolio_management_bp)
+    
     # Request timing and memory logging for Render free tier monitoring
     import time
     import gc

@@ -1,10 +1,13 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useAuth } from './auth-context';
-import { positionsApi } from './api';
+import { config } from '../config';
+import { getToken } from './auth';
 
 interface Portfolio {
     portfolio_id: string;
     portfolio_name: string;
+    description?: string;
+    is_default: boolean;
     position_count?: number;
 }
 
@@ -14,6 +17,9 @@ interface PortfolioContextType {
     isLoading: boolean;
     setCurrentPortfolio: (portfolio: Portfolio) => void;
     refreshPortfolios: () => Promise<void>;
+    createPortfolio: (name: string, description: string, isDefault: boolean) => Promise<void>;
+    updatePortfolio: (portfolioId: string, data: any) => Promise<void>;
+    deletePortfolio: (portfolioId: string) => Promise<void>;
 }
 
 const PortfolioContext = createContext<PortfolioContextType | undefined>(undefined);
@@ -51,17 +57,126 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
 
         setIsLoading(true);
         try {
-            // Simply use a default portfolio for now as requested
-            const defaultPortfolio = { portfolio_id: 'default', portfolio_name: 'Main Portfolio', position_count: 0 };
-            setPortfolios([defaultPortfolio]);
+            const response = await fetch(`${config.API_BASE_URL}/api/portfolio-management/portfolios`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
 
-            if (!currentPortfolio) {
-                setCurrentPortfolio(defaultPortfolio);
+            const data = await response.json();
+
+            if (data.success && data.portfolios) {
+                const fetchedPortfolios = data.portfolios;
+                setPortfolios(fetchedPortfolios);
+
+                // If no current portfolio or current portfolio not in list, select default or first
+                if (!currentPortfolio || !fetchedPortfolios.find((p: Portfolio) => p.portfolio_id === currentPortfolio.portfolio_id)) {
+                    const defaultPortfolio = fetchedPortfolios.find((p: Portfolio) => p.is_default);
+                    setCurrentPortfolio(defaultPortfolio || fetchedPortfolios[0]);
+                }
+            } else {
+                // If no portfolios exist, create a default one
+                await createDefaultPortfolio();
             }
         } catch (error) {
-            console.error("Error setting up portfolio", error);
+            console.error("Error fetching portfolios", error);
+            // Create default portfolio on error
+            await createDefaultPortfolio();
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const createDefaultPortfolio = async () => {
+        try {
+            await createPortfolio('Main Portfolio', 'My primary investment portfolio', true);
+        } catch (error) {
+            console.error("Error creating default portfolio", error);
+            // Fallback to local default
+            const defaultPortfolio = {
+                portfolio_id: 'default',
+                portfolio_name: 'Main Portfolio',
+                is_default: true,
+                position_count: 0
+            };
+            setPortfolios([defaultPortfolio]);
+            setCurrentPortfolio(defaultPortfolio);
+        }
+    };
+
+    const createPortfolio = async (name: string, description: string, isDefault: boolean) => {
+        if (!token) return;
+
+        try {
+            const response = await fetch(`${config.API_BASE_URL}/api/portfolio-management/portfolios`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    portfolio_name: name,
+                    description: description,
+                    is_default: isDefault
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                await refreshPortfolios();
+            }
+        } catch (error) {
+            console.error("Error creating portfolio", error);
+            throw error;
+        }
+    };
+
+    const updatePortfolio = async (portfolioId: string, updateData: any) => {
+        if (!token) return;
+
+        try {
+            const response = await fetch(`${config.API_BASE_URL}/api/portfolio-management/portfolios/${portfolioId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(updateData)
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                await refreshPortfolios();
+            }
+        } catch (error) {
+            console.error("Error updating portfolio", error);
+            throw error;
+        }
+    };
+
+    const deletePortfolio = async (portfolioId: string) => {
+        if (!token) return;
+
+        try {
+            const response = await fetch(`${config.API_BASE_URL}/api/portfolio-management/portfolios/${portfolioId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                await refreshPortfolios();
+            } else {
+                throw new Error(data.message || 'Failed to delete portfolio');
+            }
+        } catch (error) {
+            console.error("Error deleting portfolio", error);
+            throw error;
         }
     };
 
@@ -78,7 +193,10 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
             currentPortfolio,
             isLoading,
             setCurrentPortfolio,
-            refreshPortfolios
+            refreshPortfolios,
+            createPortfolio,
+            updatePortfolio,
+            deletePortfolio
         }}>
             {children}
         </PortfolioContext.Provider>

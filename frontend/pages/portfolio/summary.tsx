@@ -26,7 +26,7 @@ export default function PortfolioSummaryPage() {
         try {
             setLoading(true);
             setError(null);
-            const response = await positionsApi.getPortfolioSummary('default');
+            const response = await positionsApi.getPortfolioSummary(currentPortfolio.portfolio_id);
             setData(response);
         } catch (err: any) {
             console.error('Error fetching summary:', err);

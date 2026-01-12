@@ -48,8 +48,10 @@ export default function MyPositionsPage() {
     const fetchPositions = async () => {
         try {
             setLoading(true);
-            const response = await positionsApi.listPositions('default');
-            setPositions(response.positions || []);
+            if (currentPortfolio) {
+                const response = await positionsApi.listPositions(currentPortfolio.portfolio_id);
+                setPositions(response.positions || []);
+            }
         } catch (error) {
             console.error('Error fetching positions:', error);
         } finally {
@@ -71,7 +73,9 @@ export default function MyPositionsPage() {
                 portfolio_name: currentPortfolio?.portfolio_name || 'Main Portfolio',
             };
 
-            await positionsApi.createPosition('default', data);
+            if (currentPortfolio) {
+                await positionsApi.createPosition(currentPortfolio.portfolio_id, data);
+            }
 
             // Reset form and close modal
             setFormData({

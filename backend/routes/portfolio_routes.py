@@ -26,8 +26,8 @@ def create_position(current_user_email):
             raise BadRequest("Request body is required")
             
         data['user_email'] = current_user_email
-        # Default portfolio ID
-        data['portfolio_id'] = 'default'
+        if 'portfolio_id' not in data:
+            data['portfolio_id'] = 'default'
         
         result = PortfolioService.create_position(data)
         return jsonify({"message": "Position created", "item": result}), 201
@@ -39,8 +39,7 @@ def create_position(current_user_email):
 def list_positions(current_user_email):
     try:
         symbol = request.args.get('symbol')
-        # Default portfolio
-        portfolio_id = 'default'
+        portfolio_id = request.args.get('portfolio_id', 'default')
         positions = Position.get_positions(current_user_email, portfolio_id, symbol)
         return jsonify({
             "user_email": current_user_email,
@@ -89,8 +88,7 @@ def delete_position(current_user_email, position_id):
 @token_required
 def portfolio_summary(current_user_email):
     try:
-        # Default portfolio
-        portfolio_id = 'default'
+        portfolio_id = request.args.get('portfolio_id', 'default')
         summary = PortfolioService.get_portfolio_summary(current_user_email, portfolio_id)
         return jsonify(summary)
     except Exception as e:
@@ -100,8 +98,7 @@ def portfolio_summary(current_user_email):
 @token_required
 def overall_transactions(current_user_email):
     try:
-        # Default portfolio
-        portfolio_id = 'default'
+        portfolio_id = request.args.get('portfolio_id', 'default')
         result = PortfolioService.get_overall_transactions(current_user_email, portfolio_id)
         return jsonify(result)
     except Exception as e:

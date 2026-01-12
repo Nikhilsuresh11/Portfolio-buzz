@@ -93,11 +93,12 @@ export const positionsApi = {
     createPosition: (portfolioId: string, data: any) =>
         fetchWithAuth(`/api/portfolio/positions`, {
             method: 'POST',
-            body: JSON.stringify(data),
+            body: JSON.stringify({ ...data, portfolio_id: portfolioId }),
         }),
 
     listPositions: (portfolioId: string, symbol?: string) => {
-        const query = symbol ? `?symbol=${symbol}` : '';
+        let query = `?portfolio_id=${portfolioId || 'default'}`;
+        if (symbol) query += `&symbol=${symbol}`;
         return fetchWithAuth(`/api/portfolio/positions${query}`);
     },
 
@@ -116,10 +117,10 @@ export const positionsApi = {
         }),
 
     getPortfolioSummary: (portfolioId: string): Promise<PortfolioSummaryResponse> =>
-        fetchWithAuth(`/api/portfolio/summary`),
+        fetchWithAuth(`/api/portfolio/summary?portfolio_id=${portfolioId || 'default'}`),
 
     getOverallTransactions: (portfolioId: string): Promise<OverallTransactionsResponse> =>
-        fetchWithAuth(`/api/portfolio/overall-transactions`),
+        fetchWithAuth(`/api/portfolio/overall-transactions?portfolio_id=${portfolioId || 'default'}`),
 
     getWatchlist: () => fetchWithAuth('/api/watchlist'),
 

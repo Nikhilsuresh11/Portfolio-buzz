@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
     Search as SearchIcon,
     Dashboard,
@@ -192,7 +192,7 @@ function getSidebarContent(activeSection: string, router: any, props: any): Side
                     items: [
                         { icon: <Dashboard size={16} className="text-neutral-50" />, label: "Watchlist", isActive: isActive('/watchlist'), onClick: () => router.push('/watchlist') },
                         { icon: <Report size={16} className="text-neutral-50" />, label: "Deep Research", isActive: isActive('/research'), onClick: () => router.push('/research') },
-                        { icon: <ChartBar size={16} className="text-neutral-50" />, label: "Market Metrics", isActive: isActive('/analytics'), onClick: () => router.push('/analytics') },
+                        { icon: <ChartBar size={16} className="text-neutral-50" />, label: "Portfolio Metrics", isActive: isActive('/analytics'), onClick: () => router.push('/analytics') },
                     ],
                 },
                 {
@@ -212,18 +212,7 @@ function getSidebarContent(activeSection: string, router: any, props: any): Side
                         { icon: <Folder size={16} className="text-neutral-50" />, label: "Overview", isActive: isActive('/portfolio'), onClick: () => router.push('/portfolio') },
                         { icon: <ChartBar size={16} className="text-neutral-50" />, label: "Summary", isActive: isActive('/portfolio/summary'), onClick: () => router.push('/portfolio/summary') },
                         { icon: <AddLarge size={16} className="text-neutral-50" />, label: "My Positions", isActive: isActive('/positions'), onClick: () => router.push('/positions') },
-                        { icon: <Share size={16} className="text-neutral-50" />, label: "Switch Portfolio", isActive: isActive('/select-portfolio'), onClick: () => router.push('/select-portfolio') },
-                    ]
-                }
-            ]
-        },
-        analytics: {
-            title: "Analytics",
-            sections: [
-                {
-                    title: "Deep Dive",
-                    items: [
-                        { icon: <Analytics size={16} className="text-neutral-50" />, label: "Stock Analysis", isActive: isActive('/research'), onClick: () => router.push('/research') },
+                        { icon: <SettingsIcon size={16} className="text-neutral-50" />, label: "Portfolio Settings", isActive: isActive('/settings'), onClick: () => router.push('/settings') },
                     ]
                 }
             ]
@@ -584,8 +573,24 @@ interface SidebarProps {
 }
 
 function TwoLevelSidebar(props: SidebarProps) {
-    const [activeSection, setActiveSection] = useState("dashboard");
     const router = useRouter();
+    const [activeSection, setActiveSection] = useState("dashboard");
+
+    // Sync activeSection with current route
+    useEffect(() => {
+        const path = router.pathname;
+        if (path.startsWith('/portfolio') || path.startsWith('/positions') || path.startsWith('/select-portfolio')) {
+            setActiveSection('portfolio');
+        } else if (path.startsWith('/settings')) {
+            setActiveSection('portfolio');
+        } else if (path.startsWith('/research') || path.startsWith('/analytics')) {
+            setActiveSection('dashboard');
+        } else if (path.startsWith('/watchlist')) {
+            setActiveSection('dashboard');
+        } else {
+            setActiveSection('dashboard');
+        }
+    }, [router.pathname]);
 
     return (
         <div className="flex flex-row h-full sticky left-0 top-0 bottom-0 z-50">

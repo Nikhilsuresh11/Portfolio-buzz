@@ -9,8 +9,11 @@ import {
 } from 'recharts'
 import {
     Activity, TrendingUp, TrendingDown, Shield, AlertTriangle,
-    PieChart as PieIcon, BarChart3, Info, Zap, Layers
+    PieChart as PieIcon, BarChart3, Info, Zap, Layers, RefreshCw
 } from 'lucide-react'
+import { usePortfolio } from '../lib/portfolio-context'
+import Header from '../components/Header'
+import { useAuth } from '../lib/auth-context'
 
 // Interfaces
 interface AnalysisData {
@@ -112,20 +115,28 @@ function MetricCard({
 }
 
 export default function Analytics() {
+    const { currentPortfolio } = usePortfolio()
+    const { userEmail } = useAuth()
     const [data, setData] = useState<AnalysisData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
     useEffect(() => {
-        fetchAnalytics();
-    }, []);
+        if (currentPortfolio) {
+            fetchAnalytics();
+        }
+    }, [currentPortfolio]);
 
     const fetchAnalytics = async () => {
+        setLoading(true);
+        setError('');
         try {
             const token = getToken();
-            if (!token) return;
+            if (!token || !currentPortfolio) return;
 
-            const res = await fetch(`${config.API_BASE_URL}/api/analysis/portfolio`, {
+            let url = `${config.API_BASE_URL}/api/analysis/portfolio?portfolio_id=${currentPortfolio.portfolio_id}`;
+
+            const res = await fetch(url, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -155,30 +166,32 @@ export default function Analytics() {
     return (
         <div className="flex h-screen bg-black text-gray-100 font-sans overflow-hidden">
             <Head>
-                <title>Market Metrics | Portfolio Buzz</title>
+                <title>Portfolio Metrics | Portfolio Buzz</title>
             </Head>
 
             <Sidebar />
 
-            <main className="flex-1 flex flex-col overflow-hidden">
-                {/* Header */}
-                <header className="h-16 border-b border-white/10 flex items-center px-8 bg-black/50 backdrop-blur-sm z-10">
-                    <h1 className="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
-                        Watchlist Metrics
-                    </h1>
-                    <div className="ml-auto flex items-center gap-4 text-xs text-gray-400">
-                        <span className="flex items-center gap-1.5 px-3 py-1 bg-white/5 rounded-full border border-white/5">
-                            <span className="relative flex h-2 w-2">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                            </span>
-                            Live Market Data
-                        </span>
-                        <span>Benchmark: NIFTY 50</span>
-                    </div>
-                </header>
+            <main className="flex-1 flex flex-col overflow-hidden px-6 pb-6">
+                <Header user={userEmail} />
 
-                <div className="flex-1 overflow-y-auto p-8 space-y-8 custom-scrollbar">
+                {/* Header Section */}
+                <div className="flex items-center justify-between mb-4">
+                    <div>
+                        <h2 className="text-2xl font-bold text-white">Portfolio Risk Analysis</h2>
+                        <p className="text-sm text-gray-400">Based on your current positions in <span className="text-blue-400">{currentPortfolio?.portfolio_name}</span></p>
+                    </div>
+
+                    <button
+                        onClick={fetchAnalytics}
+                        className="p-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-full transition-colors flex items-center gap-2"
+                        title="Refresh analysis"
+                    >
+                        <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
+                        <span className="text-sm">Refresh Data</span>
+                    </button>
+                </div>
+
+                <div className="flex-1 overflow-y-auto space-y-8 custom-scrollbar pr-2">
                     {loading ? (
                         <div className="flex h-full items-center justify-center">
                             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
@@ -450,8 +463,8 @@ export default function Analytics() {
                         </>
                     ) : null}
                 </div>
-            </main>
-        </div>
+            </main >
+        </div >
     )
 }
 

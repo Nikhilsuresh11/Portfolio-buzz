@@ -35,7 +35,7 @@ export default function OverallPortfolioPage() {
         try {
             setLoading(true);
             setError(null);
-            const response = await positionsApi.getOverallTransactions('default');
+            const response = await positionsApi.getOverallTransactions(currentPortfolio.portfolio_id);
             setData(response);
         } catch (err: any) {
             console.error('Error fetching overall transactions:', err);
