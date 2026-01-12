@@ -118,9 +118,18 @@ export default function OverallPortfolioPage() {
                 <div className="p-6 max-w-[1600px] mx-auto">
                     {/* Header */}
                     <div className="mb-6 flex items-start justify-between">
-                        <div>
-                            <h1 className="text-3xl font-bold mb-2">Overall Portfolio</h1>
-                            <p className="text-neutral-400">Comprehensive view of all your transactions and performance metrics</p>
+                        <div className="flex justify-between items-center w-full">
+                            <div>
+                                <h1 className="text-3xl font-bold mb-2">Overall Portfolio</h1>
+                                <p className="text-neutral-400">Comprehensive view of all your transactions and performance metrics</p>
+                            </div>
+                            <button
+                                onClick={() => router.push('/portfolio/metrics')}
+                                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium text-sm"
+                            >
+                                <BarChart3 className="w-4 h-4" />
+                                View Risk Analysis
+                            </button>
                         </div>
                     </div>
 

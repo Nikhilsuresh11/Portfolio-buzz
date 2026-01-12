@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import Head from 'next/head'
-import Sidebar from '../components/Sidebar'
-import { config } from '../config'
-import { getToken } from '../lib/auth'
+import Sidebar from '../../components/Sidebar'
+import { config } from '../../config'
+import { getToken } from '../../lib/auth'
 import {
     PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend,
     LineChart, Line, CartesianGrid, ReferenceLine
@@ -11,9 +11,9 @@ import {
     Activity, TrendingUp, TrendingDown, Shield, AlertTriangle,
     PieChart as PieIcon, BarChart3, Info, Zap, Layers, RefreshCw
 } from 'lucide-react'
-import { usePortfolio } from '../lib/portfolio-context'
-import Header from '../components/Header'
-import { useAuth } from '../lib/auth-context'
+import { usePortfolio } from '../../lib/portfolio-context'
+import Header from '../../components/Header'
+import { useAuth } from '../../lib/auth-context'
 
 // Interfaces
 interface AnalysisData {

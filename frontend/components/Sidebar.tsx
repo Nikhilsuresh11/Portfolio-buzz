@@ -192,7 +192,6 @@ function getSidebarContent(activeSection: string, router: any, props: any): Side
                     items: [
                         { icon: <Dashboard size={16} className="text-neutral-50" />, label: "Watchlist", isActive: isActive('/watchlist'), onClick: () => router.push('/watchlist') },
                         { icon: <Report size={16} className="text-neutral-50" />, label: "Deep Research", isActive: isActive('/research'), onClick: () => router.push('/research') },
-                        { icon: <ChartBar size={16} className="text-neutral-50" />, label: "Portfolio Metrics", isActive: isActive('/analytics'), onClick: () => router.push('/analytics') },
                     ],
                 },
                 {
@@ -211,6 +210,7 @@ function getSidebarContent(activeSection: string, router: any, props: any): Side
                     items: [
                         { icon: <Folder size={16} className="text-neutral-50" />, label: "Overview", isActive: isActive('/portfolio'), onClick: () => router.push('/portfolio') },
                         { icon: <ChartBar size={16} className="text-neutral-50" />, label: "Summary", isActive: isActive('/portfolio/summary'), onClick: () => router.push('/portfolio/summary') },
+                        { icon: <Analytics size={16} className="text-neutral-50" />, label: "Portfolio Metrics", isActive: isActive('/portfolio/metrics'), onClick: () => router.push('/portfolio/metrics') },
                         { icon: <AddLarge size={16} className="text-neutral-50" />, label: "My Positions", isActive: isActive('/positions'), onClick: () => router.push('/positions') },
                         { icon: <SettingsIcon size={16} className="text-neutral-50" />, label: "Portfolio Settings", isActive: isActive('/settings'), onClick: () => router.push('/settings') },
                     ]
@@ -583,7 +583,7 @@ function TwoLevelSidebar(props: SidebarProps) {
             setActiveSection('portfolio');
         } else if (path.startsWith('/settings')) {
             setActiveSection('portfolio');
-        } else if (path.startsWith('/research') || path.startsWith('/analytics')) {
+        } else if (path.startsWith('/research')) {
             setActiveSection('dashboard');
         } else if (path.startsWith('/watchlist')) {
             setActiveSection('dashboard');
