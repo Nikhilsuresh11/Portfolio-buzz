@@ -381,12 +381,29 @@ export default function Watchlist() {
     }
 
     return (
-        <div className="flex-1 flex flex-col h-full relative overflow-hidden">
-            <Header user={user?.email} />
+        <div className="flex-1 flex flex-col min-h-screen relative overflow-hidden">
+            <div className="flex-1 overflow-y-auto p-6 md:p-12 custom-scrollbar z-10 max-w-[1600px] mx-auto w-full">
+                {/* Unified Header */}
+                <div className="mb-10 flex items-start justify-between">
+                    <div className="flex justify-between items-center w-full">
+                        <div>
+                            <h1 className="text-3xl font-bold mb-2">My Watchlist</h1>
+                            <p className="text-neutral-400">Track and monitor your favorite assets with real-time insights</p>
+                        </div>
+                        <div className="flex gap-3">
+                            <Button
+                                onClick={() => setIsSearchOpen(true)}
+                                className="bg-blue-600 hover:bg-blue-700 text-white gap-2 font-medium text-sm h-10 px-4"
+                            >
+                                <Plus size={16} />
+                                Add Stock
+                            </Button>
+                        </div>
+                    </div>
+                </div>
 
-            <div className='p-6 pb-0 z-10'>
                 {/* Watchlist Tabs */}
-                <div className="mt-6 flex items-center gap-2 overflow-x-auto pb-2 custom-scrollbar no-scrollbar">
+                <div className="mb-8 flex items-center gap-2 overflow-x-auto pb-2 custom-scrollbar no-scrollbar">
                     {watchlists.map(w => (
                         <div
                             key={w.watchlist_id}
@@ -427,11 +444,9 @@ export default function Watchlist() {
                         <span className="text-sm font-medium">New List</span>
                     </button>
                 </div>
-            </div>
 
-            <div className="flex-1 grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-6 p-6 pt-4 overflow-hidden">
-                <div className="overflow-y-auto pr-2 custom-scrollbar">
-                    <div className="bg-white/5 border border-white/10 backdrop-blur-sm rounded-2xl p-1 h-full shadow-xl">
+                <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-6">
+                    <div className="bg-white/5 border border-white/10 backdrop-blur-sm rounded-2xl p-1 shadow-xl min-h-[500px]">
                         {stocks.length > 0 ? (
                             <StockTable
                                 rows={stocks}
@@ -441,7 +456,7 @@ export default function Watchlist() {
                                 selectedTicker={selectedTicker}
                             />
                         ) : (
-                            <div className="flex flex-col items-center justify-center h-full text-neutral-400 p-8 text-center">
+                            <div className="flex flex-col items-center justify-center h-[500px] text-neutral-400 p-8 text-center">
                                 <LayoutGrid className="w-16 h-16 mb-4 opacity-20" />
                                 <h3 className="text-lg font-semibold mb-2">Watchlist is empty</h3>
                                 <p className="text-sm max-w-xs mx-auto mb-6">
@@ -457,13 +472,14 @@ export default function Watchlist() {
                             </div>
                         )}
                     </div>
-                </div>
 
-                <div className="hidden lg:block h-full overflow-hidden bg-white/5 border border-white/10 backdrop-blur-sm rounded-2xl shadow-xl">
-                    <RelatedNews
-                        ticker={selectedTicker}
-                        onClose={() => setSelectedTicker(null)}
-                    />
+                    <div className="hidden lg:block h-fit bg-white/5 border border-white/10 backdrop-blur-sm rounded-2xl shadow-xl overflow-hidden">
+                        <RelatedNews
+                            ticker={selectedTicker}
+                            watchlistId={currentWatchlistId}
+                            onClose={() => setSelectedTicker(null)}
+                        />
+                    </div>
                 </div>
             </div>
 
@@ -499,7 +515,7 @@ export default function Watchlist() {
 
             {/* Create Watchlist Modal */}
             {isCreateModalOpen && (
-                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
                     <div className="bg-[#111] border border-white/10 rounded-xl p-6 max-w-md w-full shadow-2xl">
                         <h2 className="text-xl font-bold text-white mb-4">Create New Watchlist</h2>
                         <div className="space-y-4">

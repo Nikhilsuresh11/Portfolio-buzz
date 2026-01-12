@@ -205,11 +205,16 @@ export default function ResearchPage() {
 
     return (
         <div className="flex-1 flex flex-col min-h-screen relative overflow-hidden">
-            <div className="p-6 pb-0 z-10">
-                <Header user={user?.name || 'User'} />
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-6 md:p-12 custom-scrollbar z-10">
+            <div className="flex-1 overflow-y-auto p-6 custom-scrollbar z-10 max-w-[1600px] mx-auto w-full">
+                {/* Unified Header */}
+                <div className="mb-10 flex items-start justify-between">
+                    <div className="flex justify-between items-center w-full">
+                        <div>
+                            <h1 className="text-3xl font-bold mb-2">Deep Research</h1>
+                            <p className="text-neutral-400">Comprehensive AI-powered fundamental analysis and financial deep dives</p>
+                        </div>
+                    </div>
+                </div>
                 {!selectedStock ? (
                     // Search View
                     <div className="flex flex-col gap-10 max-w-3xl mx-auto mt-20 animate-in fade-in slide-in-from-bottom-5 duration-700">

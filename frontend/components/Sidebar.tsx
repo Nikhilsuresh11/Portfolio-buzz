@@ -11,12 +11,14 @@ import {
     Report,
     Analytics,
     Search as SearchIcon,
-    Notification,
+    Notification as NotificationIcon,
     Portfolio as PortfolioIcon,
     Filter,
+    Logout,
 } from "@carbon/icons-react";
 import Link from 'next/link';
 import { useRouter } from 'next/router';
+import { logout } from '@/lib/auth';
 
 const softSpringEasing = "cubic-bezier(0.25, 1.1, 0.4, 1)";
 
@@ -97,6 +99,15 @@ export default function Sidebar({ onSearchClick }: { onSearchClick?: () => void 
             { id: 'metrics', icon: Analytics, label: 'Risk Metrics', href: '/portfolio/metrics' },
             { id: 'positions', icon: PortfolioIcon, label: 'My Positions', href: '/positions' },
         ],
+        bottom: [
+            { id: 'notifications', icon: NotificationIcon, label: 'Notifications', href: '#', disabled: true },
+            { id: 'settings', icon: SettingsIcon, label: 'Settings', href: '/settings' },
+        ]
+    };
+
+    const handleLogout = () => {
+        logout();
+        router.push('/auth/login');
     };
 
     const handleNavigate = (path: string) => {
@@ -139,11 +150,11 @@ export default function Sidebar({ onSearchClick }: { onSearchClick?: () => void 
             </div>
 
             {/* Navigation Sections */}
-            <div className="flex-1 overflow-y-auto px-3 space-y-8 custom-scrollbar">
+            <div className="flex-1 overflow-hidden px-3 space-y-4 scrollbar-hide">
                 {/* Main Overview */}
                 <div>
                     {!isCollapsed && (
-                        <div className="px-3 mb-3 text-[10px] font-bold text-neutral-600 uppercase tracking-[0.2em]">
+                        <div className="px-3 mb-3 text-[11px] font-bold text-neutral-600 uppercase tracking-[0.2em]">
                             Market Overview
                         </div>
                     )}
@@ -164,7 +175,7 @@ export default function Sidebar({ onSearchClick }: { onSearchClick?: () => void 
                 {/* Portfolio Management */}
                 <div>
                     {!isCollapsed && (
-                        <div className="px-3 mb-3 text-[10px] font-bold text-neutral-600 uppercase tracking-[0.2em]">
+                        <div className="px-3 mb-3 text-[11px] font-bold text-neutral-600 uppercase tracking-[0.2em]">
                             Portfolios
                         </div>
                     )}
@@ -184,23 +195,59 @@ export default function Sidebar({ onSearchClick }: { onSearchClick?: () => void 
             </div>
 
             {/* Bottom Section */}
-            <div className="p-4 space-y-2 border-t border-white/5 bg-black/20">
-                <NavItem
-                    icon={SettingsIcon}
-                    label="Settings"
-                    isActive={currentPath === '/settings'}
-                    onClick={() => handleNavigate('/settings')}
-                    isCollapsed={isCollapsed}
-                />
+            <div className="p-3 space-y-1.5 border-t border-white/5 bg-black/20">
+                <div className="space-y-1">
+                    {menuItems.bottom.map((item) => (
+                        <button
+                            key={item.id}
+                            disabled={item.disabled}
+                            onClick={() => !item.disabled && handleNavigate(item.href)}
+                            className={`
+                                group relative flex items-center gap-2.5 w-full h-9 px-2.5 rounded-lg transition-all duration-300
+                                ${currentPath === item.href
+                                    ? "bg-white/10 text-white"
+                                    : item.disabled
+                                        ? "text-neutral-700 cursor-not-allowed opacity-50"
+                                        : "text-neutral-500 hover:text-neutral-200 hover:bg-white/5"}
+                            `}
+                        >
+                            <div className="p-0.5">
+                                <item.icon size={18} />
+                            </div>
+                            {!isCollapsed && (
+                                <span className="text-xs font-medium tracking-wide truncate">
+                                    {item.label}
+                                </span>
+                            )}
+                            {currentPath === item.href && (
+                                <div className="absolute left-0 w-0.5 h-4 bg-blue-500 rounded-r-full" />
+                            )}
+                        </button>
+                    ))}
 
-                <div className={`flex items-center gap-3 p-2 rounded-xl bg-white/[0.02] ${isCollapsed ? "justify-center" : "px-3"}`}>
-                    <div className="size-8 rounded-lg bg-neutral-800 flex items-center justify-center shrink-0 border border-white/5">
-                        <UserIcon size={16} className="text-neutral-400" />
+                    <button
+                        onClick={handleLogout}
+                        className="group relative flex items-center gap-2.5 w-full h-9 px-2.5 rounded-lg transition-all duration-300 text-red-500/60 hover:text-red-400 hover:bg-red-500/10"
+                    >
+                        <div className="p-0.5">
+                            <Logout size={18} />
+                        </div>
+                        {!isCollapsed && (
+                            <span className="text-xs font-medium tracking-wide truncate">
+                                Log Out
+                            </span>
+                        )}
+                    </button>
+                </div>
+
+                <div className={`flex items-center gap-2 p-1.5 rounded-lg bg-white/[0.02] ${isCollapsed ? "justify-center" : "px-2"}`}>
+                    <div className="size-6 rounded bg-neutral-800 flex items-center justify-center shrink-0 border border-white/5">
+                        <UserIcon size={14} className="text-neutral-400" />
                     </div>
                     {!isCollapsed && (
                         <div className="flex flex-col min-w-0">
-                            <span className="text-xs font-bold text-white truncate">Premium User</span>
-                            <span className="text-[10px] text-neutral-500 uppercase font-black">Pro Plan</span>
+                            <span className="text-[11px] font-bold text-white truncate leading-tight">Premium User</span>
+                            <span className="text-[9px] text-neutral-500 uppercase font-black leading-tight">Pro Plan</span>
                         </div>
                     )}
                 </div>

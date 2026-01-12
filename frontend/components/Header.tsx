@@ -100,41 +100,6 @@ export default function Header({ user }: { user?: string | null }) {
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
-
-        <Button variant="ghost" size="icon" className="text-white/70 hover:text-white hover:bg-white/10">
-          <Bell className="h-5 w-5" />
-          <span className="sr-only">Toggle notifications</span>
-        </Button>
-
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="relative h-9 w-9 rounded-full ring-2 ring-white/10 hover:ring-white/20 p-0 overflow-hidden shadow-inner">
-              <div className="h-full w-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm">
-                {user ? user[0].toUpperCase() : 'U'}
-              </div>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56 bg-[#0A0A0A] border-white/10 text-white p-1">
-            <div className="px-3 py-3 mb-1">
-              <p className="text-xs font-semibold text-white/40 uppercase tracking-widest mb-1">User Account</p>
-              <p className="text-sm font-medium text-white/90 truncate">{user || 'Guest User'}</p>
-            </div>
-            <DropdownMenuSeparator className="bg-white/5" />
-            <DropdownMenuItem className="flex items-center gap-3 focus:bg-white/10 focus:text-white cursor-pointer px-3 py-2.5 rounded-md" onClick={() => router.push('/settings')}>
-              <Settings size={16} className="text-white/40" />
-              <span>Settings</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem className="flex items-center gap-3 focus:bg-white/10 focus:text-white cursor-pointer px-3 py-2.5 rounded-md" onClick={() => { }}>
-              <HeartHandshake size={16} className="text-white/40" />
-              <span>Support</span>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator className="bg-white/5" />
-            <DropdownMenuItem className="flex items-center gap-3 focus:bg-red-500/20 focus:text-red-400 text-red-400 cursor-pointer px-3 py-2.5 rounded-md" onClick={handleLogout}>
-              <LogOut size={16} />
-              <span>Log out</span>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
       </div>
     </header>
   )
