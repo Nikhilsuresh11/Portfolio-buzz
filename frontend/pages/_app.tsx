@@ -27,6 +27,14 @@ function Layout({ children }: { children: React.ReactNode }) {
   )
 }
 
+function PageLoadingOverlay() {
+  return (
+    <div className="absolute inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-300">
+      <MessageLoading />
+    </div>
+  )
+}
+
 export default function App({ Component, pageProps }: AppProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
@@ -51,12 +59,10 @@ export default function App({ Component, pageProps }: AppProps) {
       <AuthProvider>
         <PortfolioProvider>
           <Layout>
-            {loading && (
-              <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm">
-                <MessageLoading />
-              </div>
-            )}
-            <Component {...pageProps} />
+            <div className="relative h-full w-full">
+              {loading && <PageLoadingOverlay />}
+              <Component {...pageProps} />
+            </div>
           </Layout>
           <ToastContainer position="top-right" theme="dark" />
         </PortfolioProvider>
