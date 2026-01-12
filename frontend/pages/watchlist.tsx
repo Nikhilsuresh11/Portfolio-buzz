@@ -319,7 +319,7 @@ export default function Watchlist() {
     const addStock = async (ticker: string) => {
         try {
             const token = getToken()
-            if (!token || !currentWatchlistId) return
+            if (!token || !currentWatchlistId) throw new Error("Please log in and select a watchlist first.")
 
             const res = await fetch(`${config.API_BASE_URL}/api/watchlist`, {
                 method: 'POST',
@@ -335,11 +335,16 @@ export default function Watchlist() {
 
             const data = await res.json()
             if (data.success) {
-                fetchWatchlistStocks(currentWatchlistId)
+                // Return the promise from fetchWatchlistStocks to ensure we wait for it
+                await fetchWatchlistStocks(currentWatchlistId)
                 setSelectedTicker(ticker)
+                return true
+            } else {
+                throw new Error(data.message || "Failed to add stock")
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error adding stock:', error)
+            throw error
         }
     }
 
