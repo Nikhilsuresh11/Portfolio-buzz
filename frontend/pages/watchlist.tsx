@@ -418,23 +418,23 @@ export default function Watchlist() {
                         </div>
                     </div>
                 </div>
-                {/* Watchlist Tabs - Above the box */}
-                <div className="flex items-center justify-between gap-4 px-6 md:px-8">
-                    <div className="flex-1 overflow-x-auto scrollbar-hide">
+                {/* Watchlist Tabs with inline + button */}
+                <div className="flex items-center gap-2 px-6 md:px-8">
+                    <div className="flex-1 flex items-center gap-2 overflow-x-auto scrollbar-hide">
                         <Tabs
                             tabs={watchlists.map(w => ({ id: w.watchlist_id, label: w.watchlist_name }))}
                             activeTab={currentWatchlistId || undefined}
                             onTabChange={(tabId) => setCurrentWatchlistId(tabId)}
                             className="[&>div>div>div]:h-[42px] [&>div>div>div]:px-5 [&>div>div>div]:text-[15px]"
                         />
+                        <button
+                            onClick={() => setIsCreateModalOpen(true)}
+                            className="flex-none flex items-center justify-center text-zinc-400 hover:text-white transition-colors"
+                            title="New Watchlist"
+                        >
+                            <Plus size={24} />
+                        </button>
                     </div>
-                    <button
-                        onClick={() => setIsCreateModalOpen(true)}
-                        className="flex-none flex items-center justify-center w-10 h-10 rounded-lg bg-zinc-800/50 border border-zinc-700 text-zinc-400 hover:bg-zinc-700/50 hover:text-white hover:border-zinc-600 transition-all"
-                        title="New Watchlist"
-                    >
-                        <Plus size={20} />
-                    </button>
                 </div>
             </div>
 
@@ -473,14 +473,16 @@ export default function Watchlist() {
                         )}
                     </div>
 
-                    {/* News Panel - Scrollable with sticky header */}
-                    <div className="hidden lg:block bg-zinc-900/30 border border-zinc-800/50 backdrop-blur-xl rounded-2xl shadow-2xl shadow-black/20 overflow-hidden">
-                        <RelatedNews
-                            ticker={selectedTicker}
-                            watchlistId={currentWatchlistId}
-                            onClose={() => setSelectedTicker(null)}
-                        />
-                    </div>
+                    {/* News Panel - Scrollable with sticky header - Hidden when analysis modal is open */}
+                    {!isAnalysisOpen && (
+                        <div className="hidden lg:block bg-zinc-900/30 border border-zinc-800/50 backdrop-blur-xl rounded-2xl shadow-2xl shadow-black/20 overflow-hidden">
+                            <RelatedNews
+                                ticker={selectedTicker}
+                                watchlistId={currentWatchlistId}
+                                onClose={() => setSelectedTicker(null)}
+                            />
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -515,45 +517,47 @@ export default function Watchlist() {
             />
 
             {/* Create Watchlist Modal */}
-            {isCreateModalOpen && (
-                <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-[110] flex items-center justify-center p-4">
-                    <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-8 max-w-md w-full shadow-2xl">
-                        <h2 className="text-2xl font-bold text-white mb-6">Create New Watchlist</h2>
-                        <div className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-neutral-400 mb-2">
-                                    Watchlist Name
-                                </label>
-                                <Input
-                                    value={newWatchlistName}
-                                    onChange={(e) => setNewWatchlistName(e.target.value)}
-                                    placeholder="e.g. High Growth, Dividend Stocks"
-                                    className="bg-zinc-950/50 border-zinc-800 text-white placeholder:text-zinc-500 focus:border-blue-500/50"
-                                    autoFocus
-                                />
-                            </div>
-                            <div className="flex justify-end gap-3 pt-2">
-                                <Button
-                                    variant="ghost"
-                                    onClick={() => setIsCreateModalOpen(false)}
-                                    className="text-neutral-400 hover:text-white"
-                                >
-                                    Cancel
-                                </Button>
-                                <div className="bg-gradient-to-r from-blue-500 to-emerald-500 rounded-xl p-0.5">
+            {
+                isCreateModalOpen && (
+                    <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-[110] flex items-center justify-center p-4">
+                        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-8 max-w-md w-full shadow-2xl">
+                            <h2 className="text-2xl font-bold text-white mb-6">Create New Watchlist</h2>
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-neutral-400 mb-2">
+                                        Watchlist Name
+                                    </label>
+                                    <Input
+                                        value={newWatchlistName}
+                                        onChange={(e) => setNewWatchlistName(e.target.value)}
+                                        placeholder="e.g. High Growth, Dividend Stocks"
+                                        className="bg-zinc-950/50 border-zinc-800 text-white placeholder:text-zinc-500 focus:border-blue-500/50"
+                                        autoFocus
+                                    />
+                                </div>
+                                <div className="flex justify-end gap-3 pt-2">
                                     <Button
-                                        onClick={handleCreateWatchlist}
-                                        disabled={!newWatchlistName.trim()}
-                                        className="bg-black hover:bg-zinc-900 text-white rounded-[11px] disabled:opacity-50"
+                                        variant="ghost"
+                                        onClick={() => setIsCreateModalOpen(false)}
+                                        className="text-neutral-400 hover:text-white"
                                     >
-                                        Create
+                                        Cancel
                                     </Button>
+                                    <div className="bg-gradient-to-r from-blue-500 to-emerald-500 rounded-xl p-0.5">
+                                        <Button
+                                            onClick={handleCreateWatchlist}
+                                            disabled={!newWatchlistName.trim()}
+                                            className="bg-black hover:bg-zinc-900 text-white rounded-[11px] disabled:opacity-50"
+                                        >
+                                            Create
+                                        </Button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            )}
-        </div>
+                )
+            }
+        </div >
     )
 }
