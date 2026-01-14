@@ -306,7 +306,10 @@ export default function Watchlist() {
     }
 
     const handleDeleteWatchlist = async (id: string) => {
-        if (!confirm('Are you sure you want to delete this watchlist?')) return
+        const watchlistToDelete = watchlists.find(w => w.watchlist_id === id)
+        if (!watchlistToDelete) return
+
+        if (!confirm(`Are you sure you want to delete the watchlist "${watchlistToDelete.watchlist_name}"?`)) return
 
         try {
             const token = getToken()
@@ -502,21 +505,41 @@ export default function Watchlist() {
                                 onClick={() => currentPortfolio && setIsCreateModalOpen(true)}
                                 disabled={!currentPortfolio}
                                 className={`w-8 h-8 flex items-center justify-center rounded-lg transition-all ${!currentPortfolio
-                                        ? 'text-zinc-600 cursor-not-allowed opacity-50'
-                                        : 'text-zinc-400 hover:text-white hover:bg-white/5'
+                                    ? 'text-zinc-600 cursor-not-allowed opacity-50'
+                                    : 'text-zinc-400 hover:text-white hover:bg-white/5'
                                     }`}
                                 title={currentPortfolio ? "New Watchlist" : "Please create a portfolio first"}
                             >
                                 <Plus size={18} />
                             </button>
-                            {currentWatchlistId && watchlists.length > 0 && (
-                                <button
-                                    onClick={() => handleDeleteWatchlist(currentWatchlistId)}
-                                    className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-red-500/10 text-zinc-400 hover:text-red-400 transition-all"
-                                    title="Delete Watchlist"
-                                >
-                                    <Trash2 size={16} />
-                                </button>
+                            {watchlists.length > 0 && (
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <button
+                                            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-red-500/10 text-zinc-400 hover:text-red-400 transition-all outline-none"
+                                            title="Delete Watchlist"
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" className="w-60 bg-[#09090b] border-zinc-800 text-white p-1 shadow-2xl z-[120]">
+                                        <div className="px-3 py-2 text-[10px] font-bold text-zinc-500 uppercase tracking-widest border-b border-white/5 mb-1">
+                                            Select Watchlist to Delete
+                                        </div>
+                                        <div className="max-h-[300px] overflow-y-auto scrollbar-hide">
+                                            {watchlists.map(w => (
+                                                <DropdownMenuItem
+                                                    key={w.watchlist_id}
+                                                    className="flex items-center justify-between focus:bg-red-500/10 focus:text-red-400 cursor-pointer rounded-md px-3 py-2.5 transition-colors group"
+                                                    onClick={() => handleDeleteWatchlist(w.watchlist_id)}
+                                                >
+                                                    <span className="text-sm font-medium truncate pr-4">{w.watchlist_name}</span>
+                                                    <Trash2 size={12} className="text-zinc-600 group-hover:text-red-500/60 transition-colors" />
+                                                </DropdownMenuItem>
+                                            ))}
+                                        </div>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
                             )}
                         </div>
                     </div>

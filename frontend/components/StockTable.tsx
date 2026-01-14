@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState, useMemo } from 'react'
 import { Wand2, Trash2, ArrowUp, ArrowDown, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
@@ -16,6 +16,11 @@ interface Props {
     low?: number;
     open?: number;
     prev_close?: number;
+    historical_returns?: {
+      '1y'?: { change_percent: number; price: number };
+      '3y'?: { change_percent: number; price: number };
+      '5y'?: { change_percent: number; price: number };
+    }
   }>
   onSelect: (ticker: string) => void
   onAnalyze: (ticker: string) => void
@@ -31,14 +36,6 @@ const getCurrencySymbol = (currency?: string) => {
   return '$'
 }
 
-const formatVolume = (num?: number) => {
-  if (!num) return '-'
-  if (num >= 1.0e+9) return (num / 1.0e+9).toFixed(1) + "B"
-  if (num >= 1.0e+6) return (num / 1.0e+6).toFixed(1) + "M"
-  if (num >= 1.0e+3) return (num / 1.0e+3).toFixed(1) + "K"
-  return num.toString()
-}
-
 const getRandomColor = (ticker: string) => {
   const colors = [
     'bg-gradient-to-br from-blue-500 to-blue-600',
@@ -51,7 +48,46 @@ const getRandomColor = (ticker: string) => {
   return colors[index % colors.length]
 }
 
+type SortKey = 'change' | '1y' | '3y' | '5y' | 'none';
+
 export default function StockTable({ rows, onSelect, onAnalyze, onRemove, selectedTicker, deletingTicker }: Props) {
+  const [sortKey, setSortKey] = useState<SortKey>('none');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc');
+    } else {
+      setSortKey(key);
+      setSortOrder('desc');
+    }
+  };
+
+  const sortedRows = useMemo(() => {
+    if (sortKey === 'none') return rows;
+
+    return [...rows].sort((a, b) => {
+      let valA = 0;
+      let valB = 0;
+
+      if (sortKey === 'change') {
+        valA = a.changePercent || 0;
+        valB = b.changePercent || 0;
+      } else if (sortKey === '1y') {
+        valA = a.historical_returns?.['1y']?.change_percent || 0;
+        valB = b.historical_returns?.['1y']?.change_percent || 0;
+      } else if (sortKey === '3y') {
+        valA = a.historical_returns?.['3y']?.change_percent || 0;
+        valB = b.historical_returns?.['3y']?.change_percent || 0;
+      } else if (sortKey === '5y') {
+        valA = a.historical_returns?.['5y']?.change_percent || 0;
+        valB = b.historical_returns?.['5y']?.change_percent || 0;
+      }
+
+      return sortOrder === 'asc' ? valA - valB : valB - valA;
+    });
+  }, [rows, sortKey, sortOrder]);
+
   return (
     <div className="w-full h-full flex flex-col overflow-hidden">
       <div className="flex-1 overflow-hidden flex flex-col">
@@ -61,10 +97,30 @@ export default function StockTable({ rows, onSelect, onAnalyze, onRemove, select
             <tr className="border-b border-white/10 text-xs font-semibold text-gray-400 uppercase tracking-wider">
               <th className="px-3 py-3 bg-transparent text-left pl-4 w-[240px]">Company</th>
               <th className="px-3 py-3 bg-transparent text-right w-[100px]">Price</th>
-              <th className="px-3 py-3 bg-transparent text-right w-[100px]">Change</th>
-              <th className="px-3 py-3 bg-transparent text-right w-[90px]">1Y</th>
-              <th className="px-3 py-3 bg-transparent text-right w-[90px]">3Y</th>
-              <th className="px-3 py-3 bg-transparent text-right w-[90px]">5Y</th>
+              <th
+                className="px-3 py-3 bg-transparent text-right w-[100px] cursor-pointer hover:text-white transition-colors"
+                onClick={() => handleSort('change')}
+              >
+                Change
+              </th>
+              <th
+                className="px-3 py-3 bg-transparent text-right w-[90px] cursor-pointer hover:text-white transition-colors"
+                onClick={() => handleSort('1y')}
+              >
+                1Y
+              </th>
+              <th
+                className="px-3 py-3 bg-transparent text-right w-[90px] cursor-pointer hover:text-white transition-colors"
+                onClick={() => handleSort('3y')}
+              >
+                3Y
+              </th>
+              <th
+                className="px-3 py-3 bg-transparent text-right w-[90px] cursor-pointer hover:text-white transition-colors"
+                onClick={() => handleSort('5y')}
+              >
+                5Y
+              </th>
               <th className="px-3 py-3 bg-transparent text-right w-[90px]">Range</th>
               <th className="px-3 py-3 bg-transparent text-right pr-4 w-[100px]">Actions</th>
             </tr>
@@ -75,7 +131,7 @@ export default function StockTable({ rows, onSelect, onAnalyze, onRemove, select
         <div className="flex-1 overflow-y-auto scrollbar-hide">
           <table className="w-full border-collapse text-left table-fixed">
             <tbody className="divide-y divide-white/5">
-              {rows.map((r) => {
+              {sortedRows.map((r) => {
                 const dayChange = r.change || 0
                 const dayPct = r.changePercent || 0
                 const isSelected = selectedTicker === r.ticker
@@ -83,9 +139,9 @@ export default function StockTable({ rows, onSelect, onAnalyze, onRemove, select
                 const tickerPrefix = r.ticker.substring(0, 2).toUpperCase()
 
                 // Extract historical returns
-                const returns1y = (r as any).historical_returns?.['1y']
-                const returns3y = (r as any).historical_returns?.['3y']
-                const returns5y = (r as any).historical_returns?.['5y']
+                const returns1y = r.historical_returns?.['1y']
+                const returns3y = r.historical_returns?.['3y']
+                const returns5y = r.historical_returns?.['5y']
 
                 return (
                   <tr
