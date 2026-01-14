@@ -85,6 +85,7 @@ export default function Sidebar({ onSearchClick }: { onSearchClick?: () => void 
         if (currentPath.startsWith('/research')) return 'research';
         if (currentPath.startsWith('/watchlist')) return 'watchlist';
         if (currentPath.startsWith('/settings')) return 'settings';
+        if (currentPath.startsWith('/notifications')) return 'notifications';
         return 'dashboard';
     }, [currentPath]);
 
@@ -100,7 +101,7 @@ export default function Sidebar({ onSearchClick }: { onSearchClick?: () => void 
             { id: 'positions', icon: PortfolioIcon, label: 'My Positions', href: '/positions' },
         ],
         bottom: [
-            { id: 'notifications', icon: NotificationIcon, label: 'Notifications', href: '#', disabled: true },
+            { id: 'notifications', icon: NotificationIcon, label: 'Notifications', href: '/notifications', disabled: false },
             { id: 'settings', icon: SettingsIcon, label: 'Settings', href: '/settings' },
         ]
     };

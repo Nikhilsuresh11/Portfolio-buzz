@@ -29,6 +29,7 @@ export default function Header({ user }: { user?: string | null }) {
     if (path === '/watchlist') return 'Watchlist'
     if (path === '/research') return 'Stock Research'
     if (path === '/settings') return 'Settings'
+    if (path === '/notifications') return 'Notifications'
     return 'Dashboard'
   }
 
@@ -53,6 +54,16 @@ export default function Header({ user }: { user?: string | null }) {
       </div>
 
       <div className="flex items-center gap-4">
+        {/* Notifications Quick Link */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="text-white/70 hover:text-white hover:bg-white/10 border border-white/5"
+          onClick={() => router.push('/notifications')}
+        >
+          <Bell className="h-5 w-5 text-blue-400" />
+          <span className="sr-only">Notifications</span>
+        </Button>
         {/* Portfolio Switcher Quick Access (Visible on Desktop) */}
         <div className="hidden md:block">
           <DropdownMenu>

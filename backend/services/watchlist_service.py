@@ -13,14 +13,18 @@ class WatchlistService:
     def get_watchlist(email, watchlist_id='default'):
         """
         Get user's watchlist with stock details
-        
-        Args:
-            email: User's email address
-        
-        Returns:
-            tuple: (success: bool, message: str, data: list or None)
         """
         try:
+            from models.user_portfolio import UserWatchlist
+            
+            # If 'default', try to find the actual default watchlist ID for the user
+            if watchlist_id == 'default':
+                user_watchlists = UserWatchlist.get_user_watchlists(email)
+                if user_watchlists:
+                    # Find default one or just use the first one
+                    default_w = next((w for w in user_watchlists if w.get('is_default')), user_watchlists[0])
+                    watchlist_id = default_w['watchlist_id']
+            
             tickers = Watchlist.get_user_watchlist(email, watchlist_id)
             
             # Get stock details for each ticker
@@ -51,6 +55,47 @@ class WatchlistService:
             return False, f"Error retrieving watchlist: {str(e)}", None
     
     @staticmethod
+    def get_all_stocks_for_user(email):
+        """
+        Get all stock tickers for a user across all their watchlists with details
+        
+        Args:
+            email: User's email address
+        
+        Returns:
+            tuple: (success: bool, message: str, data: list or None)
+        """
+        try:
+            tickers = Watchlist.get_all_user_tickers(email)
+            
+            # Get stock details for each ticker
+            stocks_with_details = []
+            for ticker in tickers:
+                stock_info = Stock.get_stock_info(ticker)
+                if stock_info:
+                    stocks_with_details.append({
+                        'ticker': ticker,
+                        'name': stock_info.get('official_name') or stock_info.get('company_name'),
+                        'exchange': stock_info.get('exchange', ''),
+                        'sector': stock_info.get('sector', ''),
+                        'industry': stock_info.get('industry', '')
+                    })
+                else:
+                    # Stock not found in mappings, return basic info
+                    stocks_with_details.append({
+                        'ticker': ticker,
+                        'name': ticker,
+                        'exchange': '',
+                        'sector': '',
+                        'industry': ''
+                    })
+            
+            return True, "All user stocks retrieved successfully", stocks_with_details
+        
+        except Exception as e:
+            return False, f"Error retrieving all user stocks: {str(e)}", None
+
+    @staticmethod
     def add_to_watchlist(email, ticker, watchlist_id='default'):
         """
         Add stock to user's watchlist
@@ -68,6 +113,15 @@ class WatchlistService:
             # Validate ticker exists
             if not Stock.validate_ticker(ticker):
                 return False, f"Stock ticker '{ticker}' not found", None
+            
+            from models.user_portfolio import UserWatchlist
+            
+            # If 'default', resolve to actual default ID
+            if watchlist_id == 'default':
+                user_watchlists = UserWatchlist.get_user_watchlists(email)
+                if user_watchlists:
+                    default_w = next((w for w in user_watchlists if w.get('is_default')), user_watchlists[0])
+                    watchlist_id = default_w['watchlist_id']
             
             # Add to watchlist
             added = Watchlist.add_stock(email, ticker, watchlist_id)
@@ -97,6 +151,15 @@ class WatchlistService:
         """
         try:
             ticker = ticker.upper().strip()
+            
+            from models.user_portfolio import UserWatchlist
+            
+            # If 'default', resolve to actual default ID
+            if watchlist_id == 'default':
+                user_watchlists = UserWatchlist.get_user_watchlists(email)
+                if user_watchlists:
+                    default_w = next((w for w in user_watchlists if w.get('is_default')), user_watchlists[0])
+                    watchlist_id = default_w['watchlist_id']
             
             # Remove from watchlist
             removed = Watchlist.remove_stock(email, ticker, watchlist_id)

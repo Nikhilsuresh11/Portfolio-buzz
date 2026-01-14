@@ -3,6 +3,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime
 from config import get_config
+from utils.db import get_notifications_collection
 
 config = get_config()
 
@@ -30,6 +31,27 @@ class EmailAlertService:
             bool: True if email sent successfully, False otherwise
         """
         try:
+            # Save to MongoDB first (or after, but let's do it regardless of actual email delivery for tracking)
+            try:
+                notifications_col = get_notifications_collection()
+                notification_doc = {
+                    'user_email': user_email,
+                    'ticker': stock_data['ticker'],
+                    'name': stock_data.get('name', 'N/A'),
+                    'change_percent': stock_data['change_percent'],
+                    'price': stock_data['price'],
+                    'prev_close': stock_data['prev_close'],
+                    'type': 'price_drop',
+                    'status': 'sent',
+                    'timestamp': datetime.utcnow(),
+                    'title': f"Alert: {stock_data['ticker']} dropped {abs(stock_data['change_percent']):.2f}%",
+                    'message': f"{stock_data.get('name', stock_data['ticker'])} price is ₹{stock_data['price']:.2f}, dropping {stock_data['change_percent']:.2f}% from previous close."
+                }
+                notifications_col.insert_one(notification_doc)
+                print(f"✅ Notification saved to MongoDB for {user_email}")
+            except Exception as db_err:
+                print(f"❌ Error saving notification to MongoDB: {db_err}")
+
             # Get email configuration
             smtp_server = config.SMTP_SERVER
             smtp_port = config.SMTP_PORT

@@ -18,6 +18,7 @@ class Config:
     STOCK_MAPPINGS_COLLECTION = 'stock_mappings'
     NEWS_COLLECTION = 'company_news'  # Pre-fetched news from cron scraper
     POSITIONS_COLLECTION = 'portfolio_positions'
+    NOTIFICATIONS_COLLECTION = 'notifications'
     
     # JWT
     JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY', 'dev-secret-key-change-in-production')
@@ -43,6 +44,8 @@ class Config:
         'http://localhost:3000',
         'http://localhost:5173',
         'http://localhost:8501',
+        'http://127.0.0.1:3000',
+        'http://127.0.0.1:5173',
         r"^https://portfolio-buzz.*\.vercel\.app$"  # Allow Vercel preview deployments
     ]
     
