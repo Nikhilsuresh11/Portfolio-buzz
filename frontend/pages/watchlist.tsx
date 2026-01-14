@@ -325,6 +325,64 @@ export default function Watchlist() {
         }
     }
 
+
+    // Refresh watchlist data without showing the full page loader
+    const refreshWatchlistData = async (watchlistId: string) => {
+        try {
+            const token = getToken()
+            if (!token) return
+
+            const headers = { 'Authorization': `Bearer ${token}` }
+
+            // Fetch watchlist stocks, prices, and news in background
+            const [watchlistRes, pricesRes, newsRes] = await Promise.all([
+                fetch(`${config.API_BASE_URL}/api/watchlist?watchlist_id=${watchlistId}`, { headers }),
+                fetch(`${config.API_BASE_URL}/api/watchlist/price?watchlist_id=${watchlistId}`, { headers }),
+                fetch(`${config.API_BASE_URL}/api/watchlist/news?time_filter=week&watchlist_id=${watchlistId}`, { headers })
+            ])
+
+            const [watchlistData, pricesData, newsDataResponse] = await Promise.all([
+                watchlistRes.json(),
+                pricesRes.json(),
+                newsRes.json()
+            ])
+
+            if (watchlistData.success) {
+                let fetchedStocks = watchlistData.data as Stock[]
+
+                if (pricesData.success && pricesData.data) {
+                    fetchedStocks = fetchedStocks.map(stock => {
+                        const priceInfo = pricesData.data[stock.ticker] || pricesData.data[stock.ticker.toUpperCase()]
+                        if (priceInfo) {
+                            return {
+                                ...stock,
+                                price: priceInfo.price,
+                                change: priceInfo.change,
+                                changePercent: priceInfo.change_percent,
+                                currency: priceInfo.currency,
+                                volume: priceInfo.volume,
+                                high: priceInfo.high,
+                                low: priceInfo.low,
+                                open: priceInfo.open,
+                                prev_close: priceInfo.prev_close,
+                                historical_returns: priceInfo.historical_returns
+                            }
+                        }
+                        return stock
+                    })
+                }
+
+                if (newsDataResponse.success && newsDataResponse.data) {
+                    setNewsData(newsDataResponse.data)
+                }
+
+                setStocks(fetchedStocks)
+            }
+        } catch (error) {
+            console.error('Error refreshing watchlist data:', error)
+        }
+    }
+
     const addStock = async (ticker: string) => {
         try {
             const token = getToken()
@@ -344,9 +402,10 @@ export default function Watchlist() {
 
             const data = await res.json()
             if (data.success) {
-                // Return the promise from fetchWatchlistStocks to ensure we wait for it
-                await fetchWatchlistStocks(currentWatchlistId)
+                // Refresh data in background without loader
+                await refreshWatchlistData(currentWatchlistId)
                 setSelectedTicker(ticker)
+                setIsSearchOpen(false)  // Close search modal
                 return true
             } else {
                 throw new Error(data.message || "Failed to add stock")
