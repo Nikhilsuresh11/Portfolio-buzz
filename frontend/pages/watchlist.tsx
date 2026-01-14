@@ -389,35 +389,39 @@ export default function Watchlist() {
         <div className="flex-1 flex flex-col min-h-screen relative overflow-hidden">
             <div className="flex-1 overflow-y-auto p-6 md:p-12 custom-scrollbar z-10 max-w-[1600px] mx-auto w-full">
                 {/* Unified Header */}
-                <div className="mb-10 flex items-start justify-between">
+                <div className="mb-12 flex items-start justify-between">
                     <div className="flex justify-between items-center w-full">
                         <div>
-                            <h1 className="text-3xl font-bold mb-2">My Watchlist</h1>
-                            <p className="text-neutral-400">Track and monitor your favorite assets with real-time insights</p>
+                            <h1 className="text-4xl md:text-5xl font-bold mb-3 bg-gradient-to-r from-white via-blue-100 to-emerald-100 bg-clip-text text-transparent">
+                                My Watchlist
+                            </h1>
+                            <p className="text-zinc-400 text-lg">Track and monitor your favorite assets with real-time insights</p>
                         </div>
                         <div className="flex gap-3">
-                            <Button
-                                onClick={() => setIsSearchOpen(true)}
-                                className="bg-blue-600 hover:bg-blue-700 text-white gap-2 font-medium text-sm h-10 px-4"
-                            >
-                                <Plus size={16} />
-                                Add Stock
-                            </Button>
+                            <div className="bg-gradient-to-r from-blue-500 to-emerald-500 rounded-xl p-0.5">
+                                <Button
+                                    onClick={() => setIsSearchOpen(true)}
+                                    className="bg-black hover:bg-zinc-900 text-white gap-2 font-semibold text-sm h-10 px-6 rounded-[11px]"
+                                >
+                                    <Plus size={18} />
+                                    Add Stock
+                                </Button>
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 {/* Watchlist Tabs */}
-                <div className="mb-8 flex items-center gap-2 overflow-x-auto pb-2 custom-scrollbar no-scrollbar">
+                <div className="mb-10 flex items-center gap-3 overflow-x-auto pb-2 custom-scrollbar no-scrollbar">
                     {watchlists.map(w => (
                         <div
                             key={w.watchlist_id}
                             onClick={() => setCurrentWatchlistId(w.watchlist_id)}
                             className={`
-                                group flex items-center gap-2 px-4 py-2 rounded-lg cursor-pointer whitespace-nowrap transition-all border
+                                group flex items-center gap-2 px-5 py-2.5 rounded-xl cursor-pointer whitespace-nowrap transition-all border backdrop-blur-sm
                                 ${currentWatchlistId === w.watchlist_id
-                                    ? 'bg-blue-600 border-blue-500 text-white'
-                                    : 'bg-white/5 border-white/10 text-neutral-400 hover:bg-white/10 hover:text-neutral-200'
+                                    ? 'bg-gradient-to-r from-blue-500 to-emerald-500 border-transparent text-white shadow-lg shadow-blue-500/20'
+                                    : 'bg-zinc-900/50 border-zinc-800 text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200 hover:border-zinc-700'
                                 }
                             `}
                         >
@@ -443,15 +447,15 @@ export default function Watchlist() {
 
                     <button
                         onClick={() => setIsCreateModalOpen(true)}
-                        className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-neutral-400 hover:bg-white/10 hover:text-white transition-all whitespace-nowrap"
+                        className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-zinc-900/50 border border-zinc-800 text-zinc-400 hover:bg-zinc-800/50 hover:text-white hover:border-zinc-700 transition-all whitespace-nowrap backdrop-blur-sm"
                     >
-                        <Plus size={16} />
-                        <span className="text-sm font-medium">New List</span>
+                        <Plus size={18} />
+                        <span className="text-sm font-semibold">New List</span>
                     </button>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-6">
-                    <div className="bg-white/5 border border-white/10 backdrop-blur-sm rounded-2xl p-1 shadow-xl min-h-[500px]">
+                <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-8">
+                    <div className="bg-zinc-900/30 border border-zinc-800/50 backdrop-blur-xl rounded-2xl p-1 shadow-2xl shadow-black/20 min-h-[500px]">
                         {stocks.length > 0 ? (
                             <StockTable
                                 rows={stocks}
@@ -467,18 +471,20 @@ export default function Watchlist() {
                                 <p className="text-sm max-w-xs mx-auto mb-6">
                                     Add stocks to track their performance and get AI-powered insights.
                                 </p>
-                                <Button
-                                    onClick={() => setIsSearchOpen(true)}
-                                    className="bg-blue-600 hover:bg-blue-700 text-white"
-                                >
-                                    <Plus className="w-4 h-4 mr-2" />
-                                    Add Stocks
-                                </Button>
+                                <div className="bg-gradient-to-r from-blue-500 to-emerald-500 rounded-xl p-0.5">
+                                    <Button
+                                        onClick={() => setIsSearchOpen(true)}
+                                        className="bg-black hover:bg-zinc-900 text-white rounded-[11px]"
+                                    >
+                                        <Plus className="w-4 h-4 mr-2" />
+                                        Add Stocks
+                                    </Button>
+                                </div>
                             </div>
                         )}
                     </div>
 
-                    <div className="hidden lg:block h-fit bg-white/5 border border-white/10 backdrop-blur-sm rounded-2xl shadow-xl overflow-hidden">
+                    <div className="hidden lg:block h-fit bg-zinc-900/30 border border-zinc-800/50 backdrop-blur-xl rounded-2xl shadow-2xl shadow-black/20 overflow-hidden">
                         <RelatedNews
                             ticker={selectedTicker}
                             watchlistId={currentWatchlistId}
@@ -489,8 +495,8 @@ export default function Watchlist() {
             </div>
 
             {/* Background ambient light effects */}
-            <div className="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 bg-blue-500/10 rounded-full blur-[100px] pointer-events-none z-0" />
-            <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 bg-purple-500/10 rounded-full blur-[100px] pointer-events-none z-0" />
+            <div className="absolute top-0 right-0 -mr-20 -mt-20 w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[120px] pointer-events-none z-0" />
+            <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-[400px] h-[400px] bg-emerald-500/10 rounded-full blur-[120px] pointer-events-none z-0" />
 
             <StockSearchModal
                 isOpen={isSearchOpen}
@@ -520,9 +526,9 @@ export default function Watchlist() {
 
             {/* Create Watchlist Modal */}
             {isCreateModalOpen && (
-                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
-                    <div className="bg-[#111] border border-white/10 rounded-xl p-6 max-w-md w-full shadow-2xl">
-                        <h2 className="text-xl font-bold text-white mb-4">Create New Watchlist</h2>
+                <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-[110] flex items-center justify-center p-4">
+                    <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-8 max-w-md w-full shadow-2xl">
+                        <h2 className="text-2xl font-bold text-white mb-6">Create New Watchlist</h2>
                         <div className="space-y-4">
                             <div>
                                 <label className="block text-sm font-medium text-neutral-400 mb-2">
@@ -532,7 +538,7 @@ export default function Watchlist() {
                                     value={newWatchlistName}
                                     onChange={(e) => setNewWatchlistName(e.target.value)}
                                     placeholder="e.g. High Growth, Dividend Stocks"
-                                    className="bg-white/5 border-white/10 text-white"
+                                    className="bg-zinc-950/50 border-zinc-800 text-white placeholder:text-zinc-500 focus:border-blue-500/50"
                                     autoFocus
                                 />
                             </div>
@@ -544,13 +550,15 @@ export default function Watchlist() {
                                 >
                                     Cancel
                                 </Button>
-                                <Button
-                                    onClick={handleCreateWatchlist}
-                                    disabled={!newWatchlistName.trim()}
-                                    className="bg-blue-600 hover:bg-blue-700 text-white"
-                                >
-                                    Create
-                                </Button>
+                                <div className="bg-gradient-to-r from-blue-500 to-emerald-500 rounded-xl p-0.5">
+                                    <Button
+                                        onClick={handleCreateWatchlist}
+                                        disabled={!newWatchlistName.trim()}
+                                        className="bg-black hover:bg-zinc-900 text-white rounded-[11px] disabled:opacity-50"
+                                    >
+                                        Create
+                                    </Button>
+                                </div>
                             </div>
                         </div>
                     </div>
