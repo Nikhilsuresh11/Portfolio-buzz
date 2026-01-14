@@ -223,3 +223,109 @@ class PriceService:
                 prices[ticker] = price_data
         
         return prices
+    
+    @staticmethod
+    def get_historical_returns(ticker):
+        """
+        Get historical returns for 1Y, 3Y, and 5Y periods
+        
+        Args:
+            ticker: Stock ticker symbol
+        
+        Returns:
+            dict: Historical returns data with price and percent change
+        """
+        try:
+            from datetime import datetime, timedelta
+            
+            ticker = ticker.upper().strip()
+            current_price = None
+            
+            print(f"\n[HISTORICAL_RETURNS] Starting for {ticker}")
+            
+            # Get current price first
+            current_data = PriceService.get_stock_price(ticker)
+            if current_data:
+                current_price = current_data.get('price')
+                print(f"[HISTORICAL_RETURNS] Current price for {ticker}: {current_price}")
+            
+            if not current_price:
+                print(f"[HISTORICAL_RETURNS] ✗ No current price available for {ticker}")
+                return None
+            
+            returns = {}
+            periods = {
+                '1y': 365,
+                '3y': 365 * 3,
+                '5y': 365 * 5
+            }
+            
+            for period_name, days in periods.items():
+                try:
+                    # Calculate date range
+                    end_date = datetime.now()
+                    start_date = end_date - timedelta(days=days + 7)  # Add buffer for weekends
+                    
+                    print(f"[HISTORICAL_RETURNS] Fetching {period_name} data for {ticker} (from {start_date.date()} to {end_date.date()})")
+                    
+                    # Fetch historical data from Yahoo Finance
+                    url = f"https://query1.finance.yahoo.com/v8/finance/chart/{ticker}"
+                    params = {
+                        "interval": "1d",
+                        "period1": int(start_date.timestamp()),
+                        "period2": int(end_date.timestamp())
+                    }
+                    
+                    headers = {
+                        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+                    }
+                    
+                    response = requests.get(url, params=params, headers=headers, timeout=10)
+                    data = response.json()
+                    
+                    if "chart" in data and "result" in data["chart"] and data["chart"]["result"]:
+                        result = data["chart"]["result"][0]
+                        indicators = result.get("indicators", {})
+                        quote = indicators.get("quote", [{}])[0]
+                        close_prices = quote.get("close", [])
+                        
+                        print(f"[HISTORICAL_RETURNS] Got {len(close_prices)} data points for {ticker} {period_name}")
+                        
+                        # Get the first valid close price (historical price)
+                        historical_price = None
+                        for price in close_prices:
+                            if price is not None:
+                                historical_price = price
+                                break
+                        
+                        if historical_price:
+                            # Calculate return
+                            price_change = current_price - historical_price
+                            percent_change = (price_change / historical_price) * 100
+                            
+                            returns[period_name] = {
+                                "price": round(historical_price, 2),
+                                "current_price": round(current_price, 2),
+                                "change": round(price_change, 2),
+                                "change_percent": round(percent_change, 2)
+                            }
+                            print(f"[HISTORICAL_RETURNS] ✓ {ticker} {period_name}: {percent_change:.2f}% (from {historical_price:.2f} to {current_price:.2f})")
+                        else:
+                            returns[period_name] = None
+                            print(f"[HISTORICAL_RETURNS] ✗ No valid historical price found for {ticker} {period_name}")
+                    else:
+                        returns[period_name] = None
+                        print(f"[HISTORICAL_RETURNS] ✗ Invalid response for {ticker} {period_name}")
+                        
+                except Exception as e:
+                    print(f"[HISTORICAL_RETURNS] ✗ Error fetching {period_name} data for {ticker}: {e}")
+                    returns[period_name] = None
+            
+            print(f"[HISTORICAL_RETURNS] Final returns for {ticker}: {returns}")
+            return returns
+            
+        except Exception as e:
+            print(f"[HISTORICAL_RETURNS] ❌ Error in get_historical_returns for {ticker}: {e}")
+            import traceback
+            traceback.print_exc()
+            return None

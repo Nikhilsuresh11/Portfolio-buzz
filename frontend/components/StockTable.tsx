@@ -1,5 +1,5 @@
 import React from 'react'
-import { Wand2, Trash2, ArrowUp, ArrowDown } from 'lucide-react'
+import { Wand2, Trash2, ArrowUp, ArrowDown, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 interface Props {
@@ -21,6 +21,7 @@ interface Props {
   onAnalyze: (ticker: string) => void
   onRemove: (ticker: string) => void
   selectedTicker?: string | null
+  deletingTicker?: string | null  // Add this for loading state
 }
 
 const getCurrencySymbol = (currency?: string) => {
@@ -50,19 +51,21 @@ const getRandomColor = (ticker: string) => {
   return colors[index % colors.length]
 }
 
-export default function StockTable({ rows, onSelect, onAnalyze, onRemove, selectedTicker }: Props) {
+export default function StockTable({ rows, onSelect, onAnalyze, onRemove, selectedTicker, deletingTicker }: Props) {
   return (
     <div className="w-full h-full flex flex-col overflow-hidden">
       <div className="flex-1 overflow-hidden flex flex-col">
-        <table className="w-full border-collapse text-left">
+        <table className="w-full border-collapse text-left table-fixed">
           {/* Sticky Header */}
           <thead className="sticky top-0 z-10 bg-zinc-900/95 backdrop-blur-sm">
             <tr className="border-b border-white/10 text-xs font-semibold text-gray-400 uppercase tracking-wider">
-              <th className="px-3 py-3 bg-transparent text-left pl-4">Company</th>
-              <th className="px-3 py-3 bg-transparent text-right">Price</th>
-              <th className="px-3 py-3 bg-transparent text-right">Change</th>
-              <th className="px-3 py-3 bg-transparent text-right">Volume</th>
-              <th className="px-3 py-3 bg-transparent text-right">Day Range</th>
+              <th className="px-3 py-3 bg-transparent text-left pl-4 w-[240px]">Company</th>
+              <th className="px-3 py-3 bg-transparent text-right w-[100px]">Price</th>
+              <th className="px-3 py-3 bg-transparent text-right w-[100px]">Change</th>
+              <th className="px-3 py-3 bg-transparent text-right w-[90px]">1Y</th>
+              <th className="px-3 py-3 bg-transparent text-right w-[90px]">3Y</th>
+              <th className="px-3 py-3 bg-transparent text-right w-[90px]">5Y</th>
+              <th className="px-3 py-3 bg-transparent text-right w-[90px]">Range</th>
               <th className="px-3 py-3 bg-transparent text-right pr-4 w-[100px]">Actions</th>
             </tr>
           </thead>
@@ -70,7 +73,7 @@ export default function StockTable({ rows, onSelect, onAnalyze, onRemove, select
 
         {/* Scrollable Body */}
         <div className="flex-1 overflow-y-auto scrollbar-hide">
-          <table className="w-full border-collapse text-left">
+          <table className="w-full border-collapse text-left table-fixed">
             <tbody className="divide-y divide-white/5">
               {rows.map((r) => {
                 const dayChange = r.change || 0
@@ -78,6 +81,11 @@ export default function StockTable({ rows, onSelect, onAnalyze, onRemove, select
                 const isSelected = selectedTicker === r.ticker
                 const isPositive = dayChange >= 0
                 const tickerPrefix = r.ticker.substring(0, 2).toUpperCase()
+
+                // Extract historical returns
+                const returns1y = (r as any).historical_returns?.['1y']
+                const returns3y = (r as any).historical_returns?.['3y']
+                const returns5y = (r as any).historical_returns?.['5y']
 
                 return (
                   <tr
@@ -89,7 +97,7 @@ export default function StockTable({ rows, onSelect, onAnalyze, onRemove, select
                     `}
                   >
                     {/* Company Column */}
-                    <td className="px-3 py-4 pl-4">
+                    <td className="px-3 py-4 pl-4 w-[240px]">
                       <div className="flex items-center gap-3">
                         <div className={`
                           w-10 h-10 rounded-lg flex items-center justify-center 
@@ -98,20 +106,20 @@ export default function StockTable({ rows, onSelect, onAnalyze, onRemove, select
                         `}>
                           {tickerPrefix}
                         </div>
-                        <div>
+                        <div className="min-w-0 flex-1">
                           <div className="font-bold text-gray-100 text-sm">{r.ticker}</div>
-                          <div className="text-gray-400 text-xs">{r.name}</div>
+                          <div className="text-gray-400 text-xs truncate">{r.name}</div>
                         </div>
                       </div>
                     </td>
 
                     {/* Price */}
-                    <td className="px-3 py-4 text-right font-bold text-[15px] text-gray-200 tabular-nums">
+                    <td className="px-3 py-4 text-right font-bold text-[15px] text-gray-200 tabular-nums w-[100px]">
                       {getCurrencySymbol(r.currency)}{(r.price || 0).toFixed(2)}
                     </td>
 
                     {/* Change */}
-                    <td className="px-3 py-4 text-right">
+                    <td className="px-3 py-4 text-right w-[100px]">
                       <div className={`
                         inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[13px] font-semibold
                         ${isPositive ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}
@@ -121,23 +129,55 @@ export default function StockTable({ rows, onSelect, onAnalyze, onRemove, select
                       </div>
                     </td>
 
-                    {/* Volume */}
-                    <td className="px-3 py-4 text-right text-sm text-gray-300 font-medium tabular-nums">
-                      {formatVolume(r.volume)}
+
+                    {/* 1Y Return */}
+                    <td className="px-3 py-4 text-right text-sm w-[90px]">
+                      {returns1y ? (
+                        <div className="flex flex-col items-end">
+                          <span className={`text-xs font-semibold ${returns1y.change_percent >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                            {returns1y.change_percent >= 0 ? '+' : ''}{returns1y.change_percent}%
+                          </span>
+                          <span className="text-xs text-gray-500">{getCurrencySymbol(r.currency)}{returns1y.price}</span>
+                        </div>
+                      ) : <span className="text-gray-600 text-xs">-</span>}
+                    </td>
+
+                    {/* 3Y Return */}
+                    <td className="px-3 py-4 text-right text-sm w-[90px]">
+                      {returns3y ? (
+                        <div className="flex flex-col items-end">
+                          <span className={`text-xs font-semibold ${returns3y.change_percent >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                            {returns3y.change_percent >= 0 ? '+' : ''}{returns3y.change_percent}%
+                          </span>
+                          <span className="text-xs text-gray-500">{getCurrencySymbol(r.currency)}{returns3y.price}</span>
+                        </div>
+                      ) : <span className="text-gray-600 text-xs">-</span>}
+                    </td>
+
+                    {/* 5Y Return */}
+                    <td className="px-3 py-4 text-right text-sm w-[90px]">
+                      {returns5y ? (
+                        <div className="flex flex-col items-end">
+                          <span className={`text-xs font-semibold ${returns5y.change_percent >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                            {returns5y.change_percent >= 0 ? '+' : ''}{returns5y.change_percent}%
+                          </span>
+                          <span className="text-xs text-gray-500">{getCurrencySymbol(r.currency)}{returns5y.price}</span>
+                        </div>
+                      ) : <span className="text-gray-600 text-xs">-</span>}
                     </td>
 
                     {/* Day Range */}
-                    <td className="px-3 py-4 text-right text-sm text-gray-400 tabular-nums">
+                    <td className="px-3 py-4 text-right text-sm w-[90px]">
                       {r.low && r.high ? (
-                        <div className="flex flex-col items-end gap-0.5">
+                        <div className="flex flex-col items-end">
                           <span className="text-xs text-gray-500">{r.low.toFixed(1)}</span>
                           <span className="text-xs text-gray-300">{r.high.toFixed(1)}</span>
                         </div>
-                      ) : '-'}
+                      ) : <span className="text-gray-600 text-xs">-</span>}
                     </td>
 
                     {/* Actions */}
-                    <td className="px-3 py-4 text-right pr-4">
+                    <td className="px-3 py-4 text-right pr-4 w-[100px]">
                       <div className="flex gap-2 justify-end">
                         <Button
                           size="icon"
@@ -160,8 +200,13 @@ export default function StockTable({ rows, onSelect, onAnalyze, onRemove, select
                             onRemove(r.ticker)
                           }}
                           title="Remove"
+                          disabled={deletingTicker === r.ticker}
                         >
-                          <Trash2 size={16} strokeWidth={2} />
+                          {deletingTicker === r.ticker ? (
+                            <Loader2 size={16} className="animate-spin" />
+                          ) : (
+                            <Trash2 size={16} strokeWidth={2} />
+                          )}
                         </Button>
                       </div>
                     </td>
@@ -170,7 +215,7 @@ export default function StockTable({ rows, onSelect, onAnalyze, onRemove, select
               })}
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                  <td colSpan={8} className="px-6 py-12 text-center text-gray-500">
                     Your watchlist is empty. Click the search icon to add stocks.
                   </td>
                 </tr>

@@ -119,7 +119,7 @@ export default function Sidebar({ onSearchClick }: { onSearchClick?: () => void 
         <aside
             className={`
                 h-screen flex flex-col bg-[#09090B] border-r border-white/5 transition-all duration-500 z-[100]
-                ${isCollapsed ? "w-20" : "w-64"}
+                ${isCollapsed ? "w-20" : "w-[220px]"}
             `}
             style={{ transitionTimingFunction: softSpringEasing }}
         >

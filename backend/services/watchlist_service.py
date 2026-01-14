@@ -245,16 +245,33 @@ class WatchlistService:
             if not tickers:
                 return True, "Watchlist is empty", {}
             
-            # Fetch prices for all tickers
+            print(f"\n[WATCHLIST_PRICES] Fetching prices for {len(tickers)} tickers: {tickers}")
+            
+            # Fetch prices and historical returns for all tickers
             price_data = {}
             for ticker in tickers:
+                print(f"[WATCHLIST_PRICES] Processing {ticker}...")
                 price_info = PriceService.get_stock_price(ticker)
                 if price_info:
+                    print(f"[WATCHLIST_PRICES] ✓ Got current price for {ticker}: {price_info.get('price')}")
+                    # Add historical returns
+                    historical_returns = PriceService.get_historical_returns(ticker)
+                    if historical_returns:
+                        print(f"[WATCHLIST_PRICES] ✓ Got historical returns for {ticker}: {historical_returns}")
+                        price_info['historical_returns'] = historical_returns
+                    else:
+                        print(f"[WATCHLIST_PRICES] ✗ No historical returns for {ticker}")
                     price_data[ticker] = price_info
+                else:
+                    print(f"[WATCHLIST_PRICES] ✗ Failed to get price for {ticker}")
             
+            print(f"[WATCHLIST_PRICES] Returning data for {len(price_data)} stocks")
             return True, "Prices retrieved successfully", price_data
         
         except Exception as e:
+            print(f"[WATCHLIST_PRICES] ❌ Error: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return False, f"Error fetching prices: {str(e)}", None
     
     @staticmethod

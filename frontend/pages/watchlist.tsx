@@ -73,6 +73,7 @@ export default function Watchlist() {
 
     // Data
     const [newsData, setNewsData] = useState<Record<string, any[]>>({})
+    const [deletingTicker, setDeletingTicker] = useState<string | null>(null)
 
     useEffect(() => {
         const token = getToken()
@@ -234,7 +235,8 @@ export default function Watchlist() {
                                 high: priceInfo.high,
                                 low: priceInfo.low,
                                 open: priceInfo.open,
-                                prev_close: priceInfo.prev_close
+                                prev_close: priceInfo.prev_close,
+                                historical_returns: priceInfo.historical_returns  // Add historical returns
                             }
                         }
                         return stock
@@ -357,6 +359,7 @@ export default function Watchlist() {
 
     const removeStock = async (ticker: string) => {
         try {
+            setDeletingTicker(ticker)  // Start loading
             const token = getToken()
             if (!token || !currentWatchlistId) return
 
@@ -376,6 +379,8 @@ export default function Watchlist() {
             }
         } catch (error) {
             console.error('Error removing stock:', error)
+        } finally {
+            setDeletingTicker(null)  // Stop loading
         }
     }
 
@@ -440,7 +445,7 @@ export default function Watchlist() {
 
             {/* Content Area - No gap, directly attached to tabs */}
             <div className="flex-1 px-6 md:px-8 pb-6 md:pb-8 overflow-hidden max-w-[1600px] mx-auto w-full" style={{ paddingTop: '0px' }}>
-                <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-8 h-full">
+                <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-8 h-full">
                     {/* Stock Table - Scrollable with sticky header */}
                     <div className="bg-zinc-900/30 border border-zinc-800/50 backdrop-blur-xl rounded-2xl shadow-2xl shadow-black/20 overflow-hidden flex flex-col">
                         {stocks.length > 0 ? (
@@ -451,6 +456,7 @@ export default function Watchlist() {
                                     onAnalyze={handleAnalyze}
                                     onRemove={removeStock}
                                     selectedTicker={selectedTicker}
+                                    deletingTicker={deletingTicker}
                                 />
                             </div>
                         ) : (
