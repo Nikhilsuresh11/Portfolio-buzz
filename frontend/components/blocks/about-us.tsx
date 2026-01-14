@@ -22,7 +22,7 @@ export function AboutUs() {
                     <div className="relative">
                         <div className="flex flex-col items-center lg:items-end">
                             <div className="relative group">
-                                <div className="w-[300px] h-[400px] md:w-[450px] md:h-[600px] relative overflow-hidden bg-zinc-900">
+                                <div className="w-[250px] h-[350px] md:w-[380px] md:h-[520px] relative overflow-hidden bg-zinc-900">
                                     <Image
                                         src="/images/sankar.png"
                                         alt="Sankar"
@@ -40,9 +40,9 @@ export function AboutUs() {
                     </div>
                 </div>
 
-                <div className="mt-24 lg:-mt-32 flex justify-center lg:justify-start lg:ml-24">
+                <div className="mt-32 lg:-mt-24 flex justify-center lg:justify-start lg:ml-24">
                     <div className="relative group">
-                        <div className="w-[300px] h-[400px] md:w-[450px] md:h-[600px] relative overflow-hidden bg-zinc-900">
+                        <div className="w-[250px] h-[350px] md:w-[380px] md:h-[520px] relative overflow-hidden bg-zinc-900">
                             <Image
                                 src="/images/nikhil.png"
                                 alt="Nikhil"
