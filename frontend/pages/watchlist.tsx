@@ -9,7 +9,7 @@ import WelcomeModal from '../components/WelcomeModal'
 import AnalysisModal from '../components/AnalysisModal'
 import { getToken, getUser } from '../lib/auth'
 import { config } from '../config'
-import { MessageLoading } from '@/components/ui/message-loading'
+import { WatchlistLoader } from '@/components/ui/watchlist-loader'
 import { Plus, Trash2, Edit2, MoreVertical, LayoutGrid } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -20,6 +20,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { usePortfolio } from '@/lib/portfolio-context'
+import { Tabs } from '@/components/ui/vercel-tabs'
 
 type Stock = {
     ticker: string;
@@ -51,6 +52,7 @@ export default function Watchlist() {
     // Auth & User State
     const [user, setUser] = useState<any>(null)
     const [loading, setLoading] = useState(true)
+    const [dataLoaded, setDataLoaded] = useState(false)
 
     // Watchlist Management State
     const [watchlists, setWatchlists] = useState<UserWatchlist[]>([])
@@ -195,22 +197,25 @@ export default function Watchlist() {
     const fetchWatchlistStocks = async (watchlistId: string) => {
         try {
             setLoading(true)
+            setDataLoaded(false)
             const token = getToken()
             if (!token) return
 
             const headers = { 'Authorization': `Bearer ${token}` }
 
-            // Fetch watchlist stocks, prices, and news
-            // Note: Update Fetch URL to use watchlist_id query param
+            // Fetch watchlist stocks, prices, and news - wait for ALL to complete
             const [watchlistRes, pricesRes, newsRes] = await Promise.all([
                 fetch(`${config.API_BASE_URL}/api/watchlist?watchlist_id=${watchlistId}`, { headers }),
                 fetch(`${config.API_BASE_URL}/api/watchlist/price?watchlist_id=${watchlistId}`, { headers }),
                 fetch(`${config.API_BASE_URL}/api/watchlist/news?time_filter=week&watchlist_id=${watchlistId}`, { headers })
             ])
 
-            const watchlistData = await watchlistRes.json()
-            const pricesData = await pricesRes.json()
-            const newsDataResponse = await newsRes.json()
+            // Wait for ALL JSON parsing to complete
+            const [watchlistData, pricesData, newsDataResponse] = await Promise.all([
+                watchlistRes.json(),
+                pricesRes.json(),
+                newsRes.json()
+            ])
 
             if (watchlistData.success) {
                 let fetchedStocks = watchlistData.data as Stock[]
@@ -241,6 +246,7 @@ export default function Watchlist() {
                 }
 
                 setStocks(fetchedStocks)
+                setDataLoaded(true) // Mark data as loaded only after everything is ready
 
                 if (fetchedStocks.length === 0) {
                     const hasShown = sessionStorage.getItem('welcome_shown')
@@ -252,6 +258,7 @@ export default function Watchlist() {
             }
         } catch (error) {
             console.error('Error fetching watchlist data:', error)
+            setDataLoaded(true) // Still mark as loaded to show error state
         } finally {
             setLoading(false)
         }
@@ -377,19 +384,20 @@ export default function Watchlist() {
         setIsAnalysisOpen(true)
     }
 
-    if (loading && !currentWatchlistId && watchlists.length === 0) {
+    // Show loading until data is fully loaded
+    if (loading || !dataLoaded) {
         return (
-            <div className="flex-1 flex items-center justify-center h-full">
-                <MessageLoading />
+            <div className="flex-1 flex items-center justify-center min-h-screen bg-black">
+                <WatchlistLoader />
             </div>
         )
     }
 
     return (
-        <div className="flex-1 flex flex-col min-h-screen relative overflow-hidden">
-            <div className="flex-1 overflow-y-auto p-6 md:p-12 custom-scrollbar z-10 max-w-[1600px] mx-auto w-full">
+        <div className="flex flex-col h-screen relative overflow-hidden bg-black">
+            <div className="flex-none p-6 md:p-12 z-10 max-w-[1600px] mx-auto w-full">
                 {/* Unified Header */}
-                <div className="mb-12 flex items-start justify-between">
+                <div className="mb-8 flex items-start justify-between">
                     <div className="flex justify-between items-center w-full">
                         <div>
                             <h1 className="text-4xl md:text-5xl font-bold mb-3 bg-gradient-to-r from-white via-blue-100 to-emerald-100 bg-clip-text text-transparent">
@@ -411,61 +419,40 @@ export default function Watchlist() {
                     </div>
                 </div>
 
-                {/* Watchlist Tabs */}
-                <div className="mb-10 flex items-center gap-3 overflow-x-auto pb-2 custom-scrollbar no-scrollbar">
-                    {watchlists.map(w => (
-                        <div
-                            key={w.watchlist_id}
-                            onClick={() => setCurrentWatchlistId(w.watchlist_id)}
-                            className={`
-                                group flex items-center gap-2 px-5 py-2.5 rounded-xl cursor-pointer whitespace-nowrap transition-all border backdrop-blur-sm
-                                ${currentWatchlistId === w.watchlist_id
-                                    ? 'bg-gradient-to-r from-blue-500 to-emerald-500 border-transparent text-white shadow-lg shadow-blue-500/20'
-                                    : 'bg-zinc-900/50 border-zinc-800 text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200 hover:border-zinc-700'
-                                }
-                            `}
-                        >
-                            <span className="text-sm font-medium">{w.watchlist_name}</span>
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <button className={`opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-black/20 ${currentWatchlistId === w.watchlist_id ? 'opacity-100' : ''}`}>
-                                        <MoreVertical size={14} />
-                                    </button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent className="bg-[#1A1A1A] border-white/10 text-white">
-                                    <DropdownMenuItem
-                                        onClick={(e) => { e.stopPropagation(); handleDeleteWatchlist(w.watchlist_id) }}
-                                        className="text-red-400 focus:text-red-400 focus:bg-red-400/10 cursor-pointer"
-                                    >
-                                        <Trash2 className="w-4 h-4 mr-2" />
-                                        Delete Watchlist
-                                    </DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                        </div>
-                    ))}
-
+                {/* Watchlist Tabs - Vercel Style */}
+                <div className="mb-8">
+                    <Tabs
+                        tabs={watchlists.map(w => ({ id: w.watchlist_id, label: w.watchlist_name }))}
+                        activeTab={currentWatchlistId || undefined}
+                        onTabChange={(tabId) => setCurrentWatchlistId(tabId)}
+                    />
                     <button
                         onClick={() => setIsCreateModalOpen(true)}
-                        className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-zinc-900/50 border border-zinc-800 text-zinc-400 hover:bg-zinc-800/50 hover:text-white hover:border-zinc-700 transition-all whitespace-nowrap backdrop-blur-sm"
+                        className="inline-flex items-center gap-2 px-4 py-2 mt-4 rounded-xl bg-zinc-900/50 border border-zinc-800 text-zinc-400 hover:bg-zinc-800/50 hover:text-white hover:border-zinc-700 transition-all backdrop-blur-sm"
                     >
-                        <Plus size={18} />
-                        <span className="text-sm font-semibold">New List</span>
+                        <Plus size={16} />
+                        <span className="text-sm font-medium">New Watchlist</span>
                     </button>
                 </div>
+            </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-8">
-                    <div className="bg-zinc-900/30 border border-zinc-800/50 backdrop-blur-xl rounded-2xl p-1 shadow-2xl shadow-black/20 min-h-[500px]">
+            {/* Scrollable Content Area */}
+            <div className="flex-1 px-6 md:px-12 pb-6 md:pb-12 overflow-hidden max-w-[1600px] mx-auto w-full">
+                <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-8 h-full">
+                    {/* Stock Table - Scrollable */}
+                    <div className="bg-zinc-900/30 border border-zinc-800/50 backdrop-blur-xl rounded-2xl shadow-2xl shadow-black/20 overflow-hidden flex flex-col">
                         {stocks.length > 0 ? (
-                            <StockTable
-                                rows={stocks}
-                                onSelect={setSelectedTicker}
-                                onAnalyze={handleAnalyze}
-                                onRemove={removeStock}
-                                selectedTicker={selectedTicker}
-                            />
+                            <div className="overflow-y-auto scrollbar-hide" style={{ maxHeight: 'calc(100vh - 320px)' }}>
+                                <StockTable
+                                    rows={stocks}
+                                    onSelect={setSelectedTicker}
+                                    onAnalyze={handleAnalyze}
+                                    onRemove={removeStock}
+                                    selectedTicker={selectedTicker}
+                                />
+                            </div>
                         ) : (
-                            <div className="flex flex-col items-center justify-center h-[500px] text-neutral-400 p-8 text-center">
+                            <div className="flex flex-col items-center justify-center h-full text-neutral-400 p-8 text-center">
                                 <LayoutGrid className="w-16 h-16 mb-4 opacity-20" />
                                 <h3 className="text-lg font-semibold mb-2">Watchlist is empty</h3>
                                 <p className="text-sm max-w-xs mx-auto mb-6">
@@ -484,12 +471,15 @@ export default function Watchlist() {
                         )}
                     </div>
 
-                    <div className="hidden lg:block h-fit bg-zinc-900/30 border border-zinc-800/50 backdrop-blur-xl rounded-2xl shadow-2xl shadow-black/20 overflow-hidden">
-                        <RelatedNews
-                            ticker={selectedTicker}
-                            watchlistId={currentWatchlistId}
-                            onClose={() => setSelectedTicker(null)}
-                        />
+                    {/* News Panel - Scrollable */}
+                    <div className="hidden lg:block bg-zinc-900/30 border border-zinc-800/50 backdrop-blur-xl rounded-2xl shadow-2xl shadow-black/20 overflow-hidden">
+                        <div className="overflow-y-auto scrollbar-hide" style={{ maxHeight: 'calc(100vh - 320px)' }}>
+                            <RelatedNews
+                                ticker={selectedTicker}
+                                watchlistId={currentWatchlistId}
+                                onClose={() => setSelectedTicker(null)}
+                            />
+                        </div>
                     </div>
                 </div>
             </div>
