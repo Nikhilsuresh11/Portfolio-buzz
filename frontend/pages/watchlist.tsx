@@ -395,56 +395,56 @@ export default function Watchlist() {
 
     return (
         <div className="flex flex-col h-screen relative overflow-hidden bg-black">
-            <div className="flex-none p-6 md:p-12 pb-0 z-10 max-w-[1600px] mx-auto w-full">
-                {/* Unified Header */}
-                <div className="mb-6 flex items-start justify-between">
+            <div className="flex-none p-6 md:p-8 pb-0 z-10 max-w-[1600px] mx-auto w-full">
+                {/* Unified Header - Smaller */}
+                <div className="mb-4 flex items-start justify-between">
                     <div className="flex justify-between items-center w-full">
                         <div>
-                            <h1 className="text-4xl md:text-5xl font-bold mb-3 bg-gradient-to-r from-white via-blue-100 to-emerald-100 bg-clip-text text-transparent">
+                            <h1 className="text-2xl md:text-3xl font-bold mb-1.5 bg-gradient-to-r from-white via-blue-100 to-emerald-100 bg-clip-text text-transparent">
                                 My Watchlist
                             </h1>
-                            <p className="text-zinc-400 text-lg">Track and monitor your favorite assets with real-time insights</p>
+                            <p className="text-zinc-400 text-sm">Track and monitor your favorite assets with real-time insights</p>
                         </div>
                         <div className="flex gap-3">
                             <div className="bg-gradient-to-r from-blue-500 to-emerald-500 rounded-xl p-0.5">
                                 <Button
                                     onClick={() => setIsSearchOpen(true)}
-                                    className="bg-black hover:bg-zinc-900 text-white gap-2 font-semibold text-sm h-10 px-6 rounded-[11px]"
+                                    className="bg-black hover:bg-zinc-900 text-white gap-2 font-semibold text-sm h-9 px-5 rounded-[11px]"
                                 >
-                                    <Plus size={18} />
+                                    <Plus size={16} />
                                     Add Stock
                                 </Button>
                             </div>
                         </div>
                     </div>
                 </div>
-
-                {/* Watchlist Tabs - Vercel Style with inline + button */}
-                <div className="flex items-center justify-between gap-4 mb-0">
+                {/* Watchlist Tabs - Above the box */}
+                <div className="flex items-center justify-between gap-4 px-6 md:px-8">
                     <div className="flex-1 overflow-x-auto scrollbar-hide">
                         <Tabs
                             tabs={watchlists.map(w => ({ id: w.watchlist_id, label: w.watchlist_name }))}
                             activeTab={currentWatchlistId || undefined}
                             onTabChange={(tabId) => setCurrentWatchlistId(tabId)}
+                            className="[&>div>div>div]:h-[42px] [&>div>div>div]:px-5 [&>div>div>div]:text-[15px]"
                         />
                     </div>
                     <button
                         onClick={() => setIsCreateModalOpen(true)}
-                        className="flex-none flex items-center justify-center w-8 h-8 rounded-lg bg-zinc-900/50 border border-zinc-800 text-zinc-400 hover:bg-zinc-800/50 hover:text-white hover:border-zinc-700 transition-all"
+                        className="flex-none flex items-center justify-center w-10 h-10 rounded-lg bg-zinc-800/50 border border-zinc-700 text-zinc-400 hover:bg-zinc-700/50 hover:text-white hover:border-zinc-600 transition-all"
                         title="New Watchlist"
                     >
-                        <Plus size={18} />
+                        <Plus size={20} />
                     </button>
                 </div>
             </div>
 
-            {/* Scrollable Content Area - Directly attached to tabs */}
-            <div className="flex-1 px-6 md:px-12 pb-6 md:pb-12 pt-0 overflow-hidden max-w-[1600px] mx-auto w-full">
+            {/* Content Area - No gap, directly attached to tabs */}
+            <div className="flex-1 px-6 md:px-8 pb-6 md:pb-8 overflow-hidden max-w-[1600px] mx-auto w-full" style={{ paddingTop: '0px' }}>
                 <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-8 h-full">
-                    {/* Stock Table - Scrollable */}
+                    {/* Stock Table - Scrollable with sticky header */}
                     <div className="bg-zinc-900/30 border border-zinc-800/50 backdrop-blur-xl rounded-2xl shadow-2xl shadow-black/20 overflow-hidden flex flex-col">
                         {stocks.length > 0 ? (
-                            <div className="overflow-y-auto scrollbar-hide" style={{ maxHeight: 'calc(100vh - 280px)' }}>
+                            <div className="flex flex-col h-full overflow-hidden">
                                 <StockTable
                                     rows={stocks}
                                     onSelect={setSelectedTicker}
@@ -473,15 +473,13 @@ export default function Watchlist() {
                         )}
                     </div>
 
-                    {/* News Panel - Scrollable */}
+                    {/* News Panel - Scrollable with sticky header */}
                     <div className="hidden lg:block bg-zinc-900/30 border border-zinc-800/50 backdrop-blur-xl rounded-2xl shadow-2xl shadow-black/20 overflow-hidden">
-                        <div className="overflow-y-auto scrollbar-hide" style={{ maxHeight: 'calc(100vh - 280px)' }}>
-                            <RelatedNews
-                                ticker={selectedTicker}
-                                watchlistId={currentWatchlistId}
-                                onClose={() => setSelectedTicker(null)}
-                            />
-                        </div>
+                        <RelatedNews
+                            ticker={selectedTicker}
+                            watchlistId={currentWatchlistId}
+                            onClose={() => setSelectedTicker(null)}
+                        />
                     </div>
                 </div>
             </div>

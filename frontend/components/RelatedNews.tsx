@@ -94,7 +94,7 @@ export default function RelatedNews({ ticker, watchlistId, onClose }: Props) {
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto custom-scrollbar p-0 bg-transparent">
+      <div className="flex-1 overflow-y-auto scrollbar-hide p-0 bg-transparent">
         {loading ? (
           <div className="p-10 text-center text-gray-500 text-sm animate-pulse">Loading market insights...</div>
         ) : news.length > 0 ? (

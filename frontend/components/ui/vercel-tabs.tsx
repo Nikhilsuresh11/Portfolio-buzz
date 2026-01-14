@@ -79,7 +79,7 @@ const Tabs = React.forwardRef<HTMLDivElement, TabsProps>(
                 <div className="relative">
                     {/* Hover Highlight */}
                     <div
-                        className="absolute h-[30px] transition-all duration-300 ease-out bg-zinc-800/50 dark:bg-zinc-800/50 rounded-[6px] flex items-center"
+                        className="absolute h-[42px] transition-all duration-300 ease-out bg-zinc-800/30 dark:bg-zinc-800/30 rounded-lg flex items-center"
                         style={{
                             ...hoverStyle,
                             opacity: hoveredIndex !== null ? 1 : 0,
@@ -88,7 +88,7 @@ const Tabs = React.forwardRef<HTMLDivElement, TabsProps>(
 
                     {/* Active Indicator */}
                     <div
-                        className="absolute bottom-[-6px] h-[2px] bg-gradient-to-r from-blue-500 to-emerald-500 transition-all duration-300 ease-out"
+                        className="absolute bottom-0 h-[2px] bg-gradient-to-r from-blue-500 to-emerald-500 transition-all duration-300 ease-out"
                         style={activeStyle}
                     />
 
