@@ -126,6 +126,19 @@ body {
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
+/* Hide scrollbar but keep functionality */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  /* IE and Edge */
+  scrollbar-width: none;
+  /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+  /* Chrome, Safari and Opera */
+}
+
 .container {
   max-width: 1100px;
   margin: 0 auto;

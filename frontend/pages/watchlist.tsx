@@ -9,8 +9,8 @@ import WelcomeModal from '../components/WelcomeModal'
 import AnalysisModal from '../components/AnalysisModal'
 import { getToken, getUser } from '../lib/auth'
 import { config } from '../config'
-import { MessageLoading } from '@/components/ui/message-loading'
-import { Plus, Trash2, Edit2, MoreVertical, LayoutGrid } from 'lucide-react'
+import { WatchlistLoader } from '@/components/ui/watchlist-loader'
+import { Plus, Trash2, Edit2, MoreVertical, LayoutGrid, Folder } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -20,6 +20,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { usePortfolio } from '@/lib/portfolio-context'
+import { Tabs } from '@/components/ui/vercel-tabs'
 
 type Stock = {
     ticker: string;
@@ -51,6 +52,7 @@ export default function Watchlist() {
     // Auth & User State
     const [user, setUser] = useState<any>(null)
     const [loading, setLoading] = useState(true)
+    const [dataLoaded, setDataLoaded] = useState(false)
 
     // Watchlist Management State
     const [watchlists, setWatchlists] = useState<UserWatchlist[]>([])
@@ -71,6 +73,7 @@ export default function Watchlist() {
 
     // Data
     const [newsData, setNewsData] = useState<Record<string, any[]>>({})
+    const [deletingTicker, setDeletingTicker] = useState<string | null>(null)
 
     useEffect(() => {
         const token = getToken()
@@ -139,6 +142,7 @@ export default function Watchlist() {
                 setWatchlists([])
                 setStocks([])
                 setLoading(false)
+                setDataLoaded(true)
             }
         } catch (error) {
             console.error('Error fetching user watchlists:', error)
@@ -164,27 +168,32 @@ export default function Watchlist() {
             const data = await res.json()
 
             if (data.success) {
-                setWatchlists(data.watchlists)
-
-                // Determine which watchlist to select
                 if (data.watchlists.length > 0) {
-                    // Try to preserve current selection if valid
+                    setWatchlists(data.watchlists)
+
+                    // Determine which watchlist to select
                     const currentStillExists = data.watchlists.find((w: UserWatchlist) => w.watchlist_id === currentWatchlistId)
 
                     if (currentStillExists) {
-                        // Do nothing, useEffect will trigger if needed, or we just keep showing current
                         if (!currentWatchlistId) setCurrentWatchlistId(currentStillExists.watchlist_id)
+                        // If it didn't change, we still need to clear loading if useEffect won't run
+                        if (currentWatchlistId === currentStillExists.watchlist_id) {
+                            setLoading(false)
+                            setDataLoaded(true)
+                        }
                     } else {
-                        // Default
                         const defaultW = data.watchlists.find((w: UserWatchlist) => w.is_default)
                         setCurrentWatchlistId(defaultW ? defaultW.watchlist_id : data.watchlists[0].watchlist_id)
                     }
                 } else {
-                    // No watchlists found, user might need to create one or we create a default
                     setWatchlists([])
                     setStocks([])
                     setLoading(false)
+                    setDataLoaded(true)
                 }
+            } else {
+                setLoading(false)
+                setDataLoaded(true)
             }
         } catch (error) {
             console.error('Error fetching watchlists:', error)
@@ -195,22 +204,25 @@ export default function Watchlist() {
     const fetchWatchlistStocks = async (watchlistId: string) => {
         try {
             setLoading(true)
+            setDataLoaded(false)
             const token = getToken()
             if (!token) return
 
             const headers = { 'Authorization': `Bearer ${token}` }
 
-            // Fetch watchlist stocks, prices, and news
-            // Note: Update Fetch URL to use watchlist_id query param
+            // Fetch watchlist stocks, prices, and news - wait for ALL to complete
             const [watchlistRes, pricesRes, newsRes] = await Promise.all([
                 fetch(`${config.API_BASE_URL}/api/watchlist?watchlist_id=${watchlistId}`, { headers }),
                 fetch(`${config.API_BASE_URL}/api/watchlist/price?watchlist_id=${watchlistId}`, { headers }),
                 fetch(`${config.API_BASE_URL}/api/watchlist/news?time_filter=week&watchlist_id=${watchlistId}`, { headers })
             ])
 
-            const watchlistData = await watchlistRes.json()
-            const pricesData = await pricesRes.json()
-            const newsDataResponse = await newsRes.json()
+            // Wait for ALL JSON parsing to complete
+            const [watchlistData, pricesData, newsDataResponse] = await Promise.all([
+                watchlistRes.json(),
+                pricesRes.json(),
+                newsRes.json()
+            ])
 
             if (watchlistData.success) {
                 let fetchedStocks = watchlistData.data as Stock[]
@@ -229,7 +241,8 @@ export default function Watchlist() {
                                 high: priceInfo.high,
                                 low: priceInfo.low,
                                 open: priceInfo.open,
-                                prev_close: priceInfo.prev_close
+                                prev_close: priceInfo.prev_close,
+                                historical_returns: priceInfo.historical_returns  // Add historical returns
                             }
                         }
                         return stock
@@ -241,6 +254,7 @@ export default function Watchlist() {
                 }
 
                 setStocks(fetchedStocks)
+                setDataLoaded(true) // Mark data as loaded only after everything is ready
 
                 if (fetchedStocks.length === 0) {
                     const hasShown = sessionStorage.getItem('welcome_shown')
@@ -252,6 +266,7 @@ export default function Watchlist() {
             }
         } catch (error) {
             console.error('Error fetching watchlist data:', error)
+            setDataLoaded(true) // Still mark as loaded to show error state
         } finally {
             setLoading(false)
         }
@@ -291,7 +306,10 @@ export default function Watchlist() {
     }
 
     const handleDeleteWatchlist = async (id: string) => {
-        if (!confirm('Are you sure you want to delete this watchlist?')) return
+        const watchlistToDelete = watchlists.find(w => w.watchlist_id === id)
+        if (!watchlistToDelete) return
+
+        if (!confirm(`Are you sure you want to delete the watchlist "${watchlistToDelete.watchlist_name}"?`)) return
 
         try {
             const token = getToken()
@@ -316,6 +334,64 @@ export default function Watchlist() {
         }
     }
 
+
+    // Refresh watchlist data without showing the full page loader
+    const refreshWatchlistData = async (watchlistId: string) => {
+        try {
+            const token = getToken()
+            if (!token) return
+
+            const headers = { 'Authorization': `Bearer ${token}` }
+
+            // Fetch watchlist stocks, prices, and news in background
+            const [watchlistRes, pricesRes, newsRes] = await Promise.all([
+                fetch(`${config.API_BASE_URL}/api/watchlist?watchlist_id=${watchlistId}`, { headers }),
+                fetch(`${config.API_BASE_URL}/api/watchlist/price?watchlist_id=${watchlistId}`, { headers }),
+                fetch(`${config.API_BASE_URL}/api/watchlist/news?time_filter=week&watchlist_id=${watchlistId}`, { headers })
+            ])
+
+            const [watchlistData, pricesData, newsDataResponse] = await Promise.all([
+                watchlistRes.json(),
+                pricesRes.json(),
+                newsRes.json()
+            ])
+
+            if (watchlistData.success) {
+                let fetchedStocks = watchlistData.data as Stock[]
+
+                if (pricesData.success && pricesData.data) {
+                    fetchedStocks = fetchedStocks.map(stock => {
+                        const priceInfo = pricesData.data[stock.ticker] || pricesData.data[stock.ticker.toUpperCase()]
+                        if (priceInfo) {
+                            return {
+                                ...stock,
+                                price: priceInfo.price,
+                                change: priceInfo.change,
+                                changePercent: priceInfo.change_percent,
+                                currency: priceInfo.currency,
+                                volume: priceInfo.volume,
+                                high: priceInfo.high,
+                                low: priceInfo.low,
+                                open: priceInfo.open,
+                                prev_close: priceInfo.prev_close,
+                                historical_returns: priceInfo.historical_returns
+                            }
+                        }
+                        return stock
+                    })
+                }
+
+                if (newsDataResponse.success && newsDataResponse.data) {
+                    setNewsData(newsDataResponse.data)
+                }
+
+                setStocks(fetchedStocks)
+            }
+        } catch (error) {
+            console.error('Error refreshing watchlist data:', error)
+        }
+    }
+
     const addStock = async (ticker: string) => {
         try {
             const token = getToken()
@@ -335,9 +411,10 @@ export default function Watchlist() {
 
             const data = await res.json()
             if (data.success) {
-                // Return the promise from fetchWatchlistStocks to ensure we wait for it
-                await fetchWatchlistStocks(currentWatchlistId)
+                // Refresh data in background without loader
+                await refreshWatchlistData(currentWatchlistId)
                 setSelectedTicker(ticker)
+                setIsSearchOpen(false)  // Close search modal
                 return true
             } else {
                 throw new Error(data.message || "Failed to add stock")
@@ -350,6 +427,7 @@ export default function Watchlist() {
 
     const removeStock = async (ticker: string) => {
         try {
+            setDeletingTicker(ticker)  // Start loading
             const token = getToken()
             if (!token || !currentWatchlistId) return
 
@@ -369,6 +447,8 @@ export default function Watchlist() {
             }
         } catch (error) {
             console.error('Error removing stock:', error)
+        } finally {
+            setDeletingTicker(null)  // Stop loading
         }
     }
 
@@ -377,120 +457,191 @@ export default function Watchlist() {
         setIsAnalysisOpen(true)
     }
 
-    if (loading && !currentWatchlistId && watchlists.length === 0) {
+    // Show loading until data is fully loaded
+    if (loading && !dataLoaded) {
         return (
-            <div className="flex-1 flex items-center justify-center h-full">
-                <MessageLoading />
+            <div className="flex-1 flex items-center justify-center min-h-screen bg-black">
+                <WatchlistLoader />
             </div>
         )
     }
 
     return (
-        <div className="flex-1 flex flex-col min-h-screen relative overflow-hidden">
-            <div className="flex-1 overflow-y-auto p-6 md:p-12 custom-scrollbar z-10 max-w-[1600px] mx-auto w-full">
-                {/* Unified Header */}
-                <div className="mb-10 flex items-start justify-between">
+        <div className="flex flex-col h-screen relative overflow-hidden bg-black">
+            <div className="flex-none p-6 md:p-8 pb-0 z-10 max-w-[1600px] mx-auto w-full">
+                {/* Unified Header - Smaller */}
+                <div className="mb-4 flex items-start justify-between">
                     <div className="flex justify-between items-center w-full">
                         <div>
-                            <h1 className="text-3xl font-bold mb-2">My Watchlist</h1>
-                            <p className="text-neutral-400">Track and monitor your favorite assets with real-time insights</p>
+                            <h1 className="text-2xl md:text-3xl font-bold mb-1.5 bg-gradient-to-r from-white via-blue-100 to-emerald-100 bg-clip-text text-transparent">
+                                My Watchlist
+                            </h1>
+                            <p className="text-zinc-400 text-sm">Track and monitor your favorite assets with real-time insights</p>
                         </div>
                         <div className="flex gap-3">
-                            <Button
-                                onClick={() => setIsSearchOpen(true)}
-                                className="bg-blue-600 hover:bg-blue-700 text-white gap-2 font-medium text-sm h-10 px-4"
-                            >
-                                <Plus size={16} />
-                                Add Stock
-                            </Button>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Watchlist Tabs */}
-                <div className="mb-8 flex items-center gap-2 overflow-x-auto pb-2 custom-scrollbar no-scrollbar">
-                    {watchlists.map(w => (
-                        <div
-                            key={w.watchlist_id}
-                            onClick={() => setCurrentWatchlistId(w.watchlist_id)}
-                            className={`
-                                group flex items-center gap-2 px-4 py-2 rounded-lg cursor-pointer whitespace-nowrap transition-all border
-                                ${currentWatchlistId === w.watchlist_id
-                                    ? 'bg-blue-600 border-blue-500 text-white'
-                                    : 'bg-white/5 border-white/10 text-neutral-400 hover:bg-white/10 hover:text-neutral-200'
-                                }
-                            `}
-                        >
-                            <span className="text-sm font-medium">{w.watchlist_name}</span>
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <button className={`opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-black/20 ${currentWatchlistId === w.watchlist_id ? 'opacity-100' : ''}`}>
-                                        <MoreVertical size={14} />
-                                    </button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent className="bg-[#1A1A1A] border-white/10 text-white">
-                                    <DropdownMenuItem
-                                        onClick={(e) => { e.stopPropagation(); handleDeleteWatchlist(w.watchlist_id) }}
-                                        className="text-red-400 focus:text-red-400 focus:bg-red-400/10 cursor-pointer"
-                                    >
-                                        <Trash2 className="w-4 h-4 mr-2" />
-                                        Delete Watchlist
-                                    </DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                        </div>
-                    ))}
-
-                    <button
-                        onClick={() => setIsCreateModalOpen(true)}
-                        className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-neutral-400 hover:bg-white/10 hover:text-white transition-all whitespace-nowrap"
-                    >
-                        <Plus size={16} />
-                        <span className="text-sm font-medium">New List</span>
-                    </button>
-                </div>
-
-                <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-6">
-                    <div className="bg-white/5 border border-white/10 backdrop-blur-sm rounded-2xl p-1 shadow-xl min-h-[500px]">
-                        {stocks.length > 0 ? (
-                            <StockTable
-                                rows={stocks}
-                                onSelect={setSelectedTicker}
-                                onAnalyze={handleAnalyze}
-                                onRemove={removeStock}
-                                selectedTicker={selectedTicker}
-                            />
-                        ) : (
-                            <div className="flex flex-col items-center justify-center h-[500px] text-neutral-400 p-8 text-center">
-                                <LayoutGrid className="w-16 h-16 mb-4 opacity-20" />
-                                <h3 className="text-lg font-semibold mb-2">Watchlist is empty</h3>
-                                <p className="text-sm max-w-xs mx-auto mb-6">
-                                    Add stocks to track their performance and get AI-powered insights.
-                                </p>
+                            <div className="bg-gradient-to-r from-blue-500 to-emerald-500 rounded-xl p-0.5">
                                 <Button
                                     onClick={() => setIsSearchOpen(true)}
-                                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                                    className="bg-black hover:bg-zinc-900 text-white gap-2 font-semibold text-sm h-9 px-5 rounded-[11px]"
                                 >
-                                    <Plus className="w-4 h-4 mr-2" />
-                                    Add Stocks
+                                    <Plus size={16} />
+                                    Add Stock
                                 </Button>
                             </div>
-                        )}
+                        </div>
                     </div>
-
-                    <div className="hidden lg:block h-fit bg-white/5 border border-white/10 backdrop-blur-sm rounded-2xl shadow-xl overflow-hidden">
-                        <RelatedNews
-                            ticker={selectedTicker}
-                            watchlistId={currentWatchlistId}
-                            onClose={() => setSelectedTicker(null)}
+                </div>
+                {/* Watchlist Tabs with inline + button */}
+                <div className="flex items-center gap-2 px-6 md:px-8">
+                    <div className="flex-1 flex items-center gap-2 overflow-x-auto scrollbar-hide">
+                        <Tabs
+                            tabs={watchlists.map(w => ({ id: w.watchlist_id, label: w.watchlist_name }))}
+                            activeTab={currentWatchlistId || undefined}
+                            onTabChange={(tabId) => setCurrentWatchlistId(tabId)}
+                            className="[&>div>div>div]:h-[42px] [&>div>div>div]:px-5 [&>div>div>div]:text-[15px]"
                         />
+                        <div className="flex items-center gap-1 border-l border-white/10 pl-2 ml-2">
+                            <button
+                                onClick={() => currentPortfolio && setIsCreateModalOpen(true)}
+                                disabled={!currentPortfolio}
+                                className={`w-8 h-8 flex items-center justify-center rounded-lg transition-all ${!currentPortfolio
+                                    ? 'text-zinc-600 cursor-not-allowed opacity-50'
+                                    : 'text-zinc-400 hover:text-white hover:bg-white/5'
+                                    }`}
+                                title={currentPortfolio ? "New Watchlist" : "Please create a portfolio first"}
+                            >
+                                <Plus size={18} />
+                            </button>
+                            {watchlists.length > 0 && (
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <button
+                                            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-red-500/10 text-zinc-400 hover:text-red-400 transition-all outline-none"
+                                            title="Delete Watchlist"
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" className="w-60 bg-[#09090b] border-zinc-800 text-white p-1 shadow-2xl z-[120]">
+                                        <div className="px-3 py-2 text-[10px] font-bold text-zinc-500 uppercase tracking-widest border-b border-white/5 mb-1">
+                                            Select Watchlist to Delete
+                                        </div>
+                                        <div className="max-h-[300px] overflow-y-auto scrollbar-hide">
+                                            {watchlists.map(w => (
+                                                <DropdownMenuItem
+                                                    key={w.watchlist_id}
+                                                    className="flex items-center justify-between focus:bg-red-500/10 focus:text-red-400 cursor-pointer rounded-md px-3 py-2.5 transition-colors group"
+                                                    onClick={() => handleDeleteWatchlist(w.watchlist_id)}
+                                                >
+                                                    <span className="text-sm font-medium truncate pr-4">{w.watchlist_name}</span>
+                                                    <Trash2 size={12} className="text-zinc-600 group-hover:text-red-500/60 transition-colors" />
+                                                </DropdownMenuItem>
+                                            ))}
+                                        </div>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
 
+            {/* Content Area - No gap, directly attached to tabs */}
+            <div className="flex-1 px-6 md:px-8 pb-6 md:pb-8 overflow-hidden max-w-[1600px] mx-auto w-full" style={{ paddingTop: '0px' }}>
+                <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-8 h-full">
+                    {/* Stock Table - Scrollable with sticky header */}
+                    <div className="bg-zinc-900/30 border border-zinc-800/50 backdrop-blur-xl rounded-2xl shadow-2xl shadow-black/20 overflow-hidden flex flex-col">
+                        {stocks.length > 0 ? (
+                            <div className="flex flex-col h-full overflow-hidden">
+                                <StockTable
+                                    rows={stocks}
+                                    onSelect={setSelectedTicker}
+                                    onAnalyze={handleAnalyze}
+                                    onRemove={removeStock}
+                                    selectedTicker={selectedTicker}
+                                    deletingTicker={deletingTicker}
+                                />
+                            </div>
+                        ) : (
+                            <div className="flex flex-col items-center justify-center h-full text-neutral-400 p-8 text-center bg-black/60 backdrop-blur-md">
+                                {watchlists.length === 0 ? (
+                                    <>
+                                        <div className="w-16 h-16 mb-4 rounded-xl bg-gradient-to-br from-blue-500/10 to-purple-500/10 flex items-center justify-center border border-white/5 shadow-2xl shadow-blue-500/20">
+                                            {currentPortfolio ? (
+                                                <LayoutGrid className="w-8 h-8 text-blue-400" />
+                                            ) : (
+                                                <Folder className="w-8 h-8 text-purple-400" />
+                                            )}
+                                        </div>
+                                        <h3 className="text-xl font-bold text-white mb-2">
+                                            {currentPortfolio ? "Create your first Watchlist" : "Welcome to Portfolio Buzz"}
+                                        </h3>
+                                        <p className="text-sm text-neutral-400 max-w-xs mx-auto mb-8 leading-relaxed">
+                                            {currentPortfolio
+                                                ? "Create a watchlist to start tracking stocks, analyzing trends, and getting AI insights."
+                                                : "To get started, please go to the Settings to create your first Portfolio."}
+                                        </p>
+
+                                        {currentPortfolio ? (
+                                            <div className="bg-gradient-to-r from-blue-500 to-emerald-500 rounded-xl p-0.5">
+                                                <Button
+                                                    onClick={() => setIsCreateModalOpen(true)}
+                                                    className="bg-black hover:bg-zinc-900 text-white rounded-[11px] h-10 px-6 font-semibold"
+                                                >
+                                                    <Plus className="w-4 h-4 mr-2" />
+                                                    Create Watchlist
+                                                </Button>
+                                            </div>
+                                        ) : (
+                                            <div className="bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl p-0.5">
+                                                <Button
+                                                    onClick={() => router.push('/settings')}
+                                                    className="bg-black hover:bg-zinc-900 text-white rounded-[11px] h-10 px-6 font-semibold"
+                                                >
+                                                    <Folder className="w-4 h-4 mr-2" />
+                                                    Create Portfolio
+                                                </Button>
+                                            </div>
+                                        )}
+                                    </>
+                                ) : (
+                                    <>
+                                        <LayoutGrid className="w-16 h-16 mb-4 opacity-20" />
+                                        <h3 className="text-lg font-semibold mb-2">Watchlist is empty</h3>
+                                        <p className="text-sm max-w-xs mx-auto mb-6">
+                                            Add stocks to track their performance and get AI-powered insights.
+                                        </p>
+                                        <div className="bg-gradient-to-r from-blue-500 to-emerald-500 rounded-xl p-0.5">
+                                            <Button
+                                                onClick={() => setIsSearchOpen(true)}
+                                                className="bg-black hover:bg-zinc-900 text-white rounded-[11px]"
+                                            >
+                                                <Plus className="w-4 h-4 mr-2" />
+                                                Add Stocks
+                                            </Button>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* News Panel - Scrollable with sticky header - Hidden when analysis modal is open */}
+                    {!isAnalysisOpen && (
+                        <div className="hidden lg:block bg-zinc-900/30 border border-zinc-800/50 backdrop-blur-xl rounded-2xl shadow-2xl shadow-black/20 overflow-hidden">
+                            <RelatedNews
+                                ticker={selectedTicker}
+                                watchlistId={currentWatchlistId}
+                                onClose={() => setSelectedTicker(null)}
+                            />
+                        </div>
+                    )}
+                </div>
+            </div>
+
             {/* Background ambient light effects */}
-            <div className="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 bg-blue-500/10 rounded-full blur-[100px] pointer-events-none z-0" />
-            <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 bg-purple-500/10 rounded-full blur-[100px] pointer-events-none z-0" />
+            <div className="absolute top-0 right-0 -mr-20 -mt-20 w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[120px] pointer-events-none z-0" />
+            <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-[400px] h-[400px] bg-emerald-500/10 rounded-full blur-[120px] pointer-events-none z-0" />
 
             <StockSearchModal
                 isOpen={isSearchOpen}
@@ -519,43 +670,47 @@ export default function Watchlist() {
             />
 
             {/* Create Watchlist Modal */}
-            {isCreateModalOpen && (
-                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
-                    <div className="bg-[#111] border border-white/10 rounded-xl p-6 max-w-md w-full shadow-2xl">
-                        <h2 className="text-xl font-bold text-white mb-4">Create New Watchlist</h2>
-                        <div className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-neutral-400 mb-2">
-                                    Watchlist Name
-                                </label>
-                                <Input
-                                    value={newWatchlistName}
-                                    onChange={(e) => setNewWatchlistName(e.target.value)}
-                                    placeholder="e.g. High Growth, Dividend Stocks"
-                                    className="bg-white/5 border-white/10 text-white"
-                                    autoFocus
-                                />
-                            </div>
-                            <div className="flex justify-end gap-3 pt-2">
-                                <Button
-                                    variant="ghost"
-                                    onClick={() => setIsCreateModalOpen(false)}
-                                    className="text-neutral-400 hover:text-white"
-                                >
-                                    Cancel
-                                </Button>
-                                <Button
-                                    onClick={handleCreateWatchlist}
-                                    disabled={!newWatchlistName.trim()}
-                                    className="bg-blue-600 hover:bg-blue-700 text-white"
-                                >
-                                    Create
-                                </Button>
+            {
+                isCreateModalOpen && (
+                    <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-[110] flex items-center justify-center p-4">
+                        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-8 max-w-md w-full shadow-2xl">
+                            <h2 className="text-2xl font-bold text-white mb-6">Create New Watchlist</h2>
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-neutral-400 mb-2">
+                                        Watchlist Name
+                                    </label>
+                                    <Input
+                                        value={newWatchlistName}
+                                        onChange={(e) => setNewWatchlistName(e.target.value)}
+                                        placeholder="e.g. High Growth, Dividend Stocks"
+                                        className="bg-zinc-950/50 border-zinc-800 text-white placeholder:text-zinc-500 focus:border-blue-500/50"
+                                        autoFocus
+                                    />
+                                </div>
+                                <div className="flex justify-end gap-3 pt-2">
+                                    <Button
+                                        variant="ghost"
+                                        onClick={() => setIsCreateModalOpen(false)}
+                                        className="text-neutral-400 hover:text-white"
+                                    >
+                                        Cancel
+                                    </Button>
+                                    <div className="bg-gradient-to-r from-blue-500 to-emerald-500 rounded-xl p-0.5">
+                                        <Button
+                                            onClick={handleCreateWatchlist}
+                                            disabled={!newWatchlistName.trim()}
+                                            className="bg-black hover:bg-zinc-900 text-white rounded-[11px] disabled:opacity-50"
+                                        >
+                                            Create
+                                        </Button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            )}
-        </div>
+                )
+            }
+        </div >
     )
 }
