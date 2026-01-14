@@ -44,6 +44,7 @@ class Watchlist:
             if user_watchlist:
                 return user_watchlist.get('watchlist', [])
         
+        return tickers
     @staticmethod
     def get_all_user_tickers(email):
         """
