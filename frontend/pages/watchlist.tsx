@@ -395,9 +395,9 @@ export default function Watchlist() {
 
     return (
         <div className="flex flex-col h-screen relative overflow-hidden bg-black">
-            <div className="flex-none p-6 md:p-12 z-10 max-w-[1600px] mx-auto w-full">
+            <div className="flex-none p-6 md:p-12 pb-0 z-10 max-w-[1600px] mx-auto w-full">
                 {/* Unified Header */}
-                <div className="mb-8 flex items-start justify-between">
+                <div className="mb-6 flex items-start justify-between">
                     <div className="flex justify-between items-center w-full">
                         <div>
                             <h1 className="text-4xl md:text-5xl font-bold mb-3 bg-gradient-to-r from-white via-blue-100 to-emerald-100 bg-clip-text text-transparent">
@@ -419,30 +419,32 @@ export default function Watchlist() {
                     </div>
                 </div>
 
-                {/* Watchlist Tabs - Vercel Style */}
-                <div className="mb-8">
-                    <Tabs
-                        tabs={watchlists.map(w => ({ id: w.watchlist_id, label: w.watchlist_name }))}
-                        activeTab={currentWatchlistId || undefined}
-                        onTabChange={(tabId) => setCurrentWatchlistId(tabId)}
-                    />
+                {/* Watchlist Tabs - Vercel Style with inline + button */}
+                <div className="flex items-center justify-between gap-4 mb-0">
+                    <div className="flex-1 overflow-x-auto scrollbar-hide">
+                        <Tabs
+                            tabs={watchlists.map(w => ({ id: w.watchlist_id, label: w.watchlist_name }))}
+                            activeTab={currentWatchlistId || undefined}
+                            onTabChange={(tabId) => setCurrentWatchlistId(tabId)}
+                        />
+                    </div>
                     <button
                         onClick={() => setIsCreateModalOpen(true)}
-                        className="inline-flex items-center gap-2 px-4 py-2 mt-4 rounded-xl bg-zinc-900/50 border border-zinc-800 text-zinc-400 hover:bg-zinc-800/50 hover:text-white hover:border-zinc-700 transition-all backdrop-blur-sm"
+                        className="flex-none flex items-center justify-center w-8 h-8 rounded-lg bg-zinc-900/50 border border-zinc-800 text-zinc-400 hover:bg-zinc-800/50 hover:text-white hover:border-zinc-700 transition-all"
+                        title="New Watchlist"
                     >
-                        <Plus size={16} />
-                        <span className="text-sm font-medium">New Watchlist</span>
+                        <Plus size={18} />
                     </button>
                 </div>
             </div>
 
-            {/* Scrollable Content Area */}
-            <div className="flex-1 px-6 md:px-12 pb-6 md:pb-12 overflow-hidden max-w-[1600px] mx-auto w-full">
+            {/* Scrollable Content Area - Directly attached to tabs */}
+            <div className="flex-1 px-6 md:px-12 pb-6 md:pb-12 pt-0 overflow-hidden max-w-[1600px] mx-auto w-full">
                 <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-8 h-full">
                     {/* Stock Table - Scrollable */}
                     <div className="bg-zinc-900/30 border border-zinc-800/50 backdrop-blur-xl rounded-2xl shadow-2xl shadow-black/20 overflow-hidden flex flex-col">
                         {stocks.length > 0 ? (
-                            <div className="overflow-y-auto scrollbar-hide" style={{ maxHeight: 'calc(100vh - 320px)' }}>
+                            <div className="overflow-y-auto scrollbar-hide" style={{ maxHeight: 'calc(100vh - 280px)' }}>
                                 <StockTable
                                     rows={stocks}
                                     onSelect={setSelectedTicker}
@@ -473,7 +475,7 @@ export default function Watchlist() {
 
                     {/* News Panel - Scrollable */}
                     <div className="hidden lg:block bg-zinc-900/30 border border-zinc-800/50 backdrop-blur-xl rounded-2xl shadow-2xl shadow-black/20 overflow-hidden">
-                        <div className="overflow-y-auto scrollbar-hide" style={{ maxHeight: 'calc(100vh - 320px)' }}>
+                        <div className="overflow-y-auto scrollbar-hide" style={{ maxHeight: 'calc(100vh - 280px)' }}>
                             <RelatedNews
                                 ticker={selectedTicker}
                                 watchlistId={currentWatchlistId}
