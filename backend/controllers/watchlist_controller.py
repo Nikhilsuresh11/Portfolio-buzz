@@ -33,7 +33,10 @@ class WatchlistController:
         }
         """
         try:
-            success, message, watchlist = WatchlistService.get_watchlist(current_user_email)
+            # Get watchlist_id from query parameter (optional)
+            watchlist_id = request.args.get('watchlist_id', 'default')
+            
+            success, message, watchlist = WatchlistService.get_watchlist(current_user_email, watchlist_id)
             
             if success:
                 return success_response(watchlist, message, 200)
@@ -72,11 +75,12 @@ class WatchlistController:
                 return error_response("Ticker is required", 400)
             
             ticker = data.get('ticker', '').strip()
+            watchlist_id = data.get('watchlist_id', 'default')
             
             if not ticker:
                 return error_response("Ticker cannot be empty", 400)
             
-            success, message, watchlist = WatchlistService.add_to_watchlist(current_user_email, ticker)
+            success, message, watchlist = WatchlistService.add_to_watchlist(current_user_email, ticker, watchlist_id)
             
             if success:
                 return success_response(watchlist, message, 200)
@@ -104,7 +108,10 @@ class WatchlistController:
         }
         """
         try:
-            success, message, watchlist = WatchlistService.remove_from_watchlist(current_user_email, ticker)
+            # Get watchlist_id from query parameter (optional)
+            watchlist_id = request.args.get('watchlist_id', 'default')
+            
+            success, message, watchlist = WatchlistService.remove_from_watchlist(current_user_email, ticker, watchlist_id)
             
             if success:
                 return success_response(watchlist, message, 200)
@@ -144,11 +151,12 @@ class WatchlistController:
         
         try:
             # Get query parameters
+            watchlist_id = request.args.get('watchlist_id', 'default')
             time_filter = request.args.get('time_filter', 'week')
             sort_by = request.args.get('sort_by', 'date')
             max_articles = request.args.get('max_articles', 10, type=int)
             
-            print(f"\n[WATCHLIST_NEWS] 📋 Request from {current_user_email}")
+            print(f"\n[WATCHLIST_NEWS] 📋 Request from {current_user_email} for watchlist {watchlist_id}")
             print(f"[WATCHLIST_NEWS] ⚙️  Parameters: time_filter={time_filter}, sort_by={sort_by}, max_articles={max_articles}")
             
             # Validate parameters
@@ -162,6 +170,7 @@ class WatchlistController:
             
             success, message, news_data = WatchlistService.get_watchlist_news(
                 current_user_email,
+                watchlist_id=watchlist_id,
                 time_filter=time_filter,
                 sort_by=sort_by,
                 max_articles=max_articles
@@ -209,7 +218,8 @@ class WatchlistController:
         }
         """
         try:
-            success, message, price_data = WatchlistService.get_watchlist_prices(current_user_email)
+            watchlist_id = request.args.get('watchlist_id', 'default')
+            success, message, price_data = WatchlistService.get_watchlist_prices(current_user_email, watchlist_id)
             
             if success:
                 return success_response(price_data, message, 200)

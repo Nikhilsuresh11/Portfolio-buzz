@@ -19,7 +19,7 @@ interface Stock {
 interface StockSearchModalProps {
     isOpen: boolean
     onClose: () => void
-    onAddStock: (ticker: string) => void
+    onAddStock: (ticker: string) => Promise<any>
     watchlist: Stock[]
 }
 
@@ -28,6 +28,8 @@ export default function StockSearchModal({ isOpen, onClose, onAddStock, watchlis
     const [results, setResults] = useState<Stock[]>([])
     const [loading, setLoading] = useState(false)
     const [selectedIndex, setSelectedIndex] = useState(-1)
+    const [addingTicker, setAddingTicker] = useState<string | null>(null)
+    const [error, setError] = useState<string | null>(null)
     const inputRef = useRef<HTMLInputElement>(null)
     const modalRef = useRef<HTMLDivElement>(null)
 
@@ -39,6 +41,8 @@ export default function StockSearchModal({ isOpen, onClose, onAddStock, watchlis
             document.body.style.overflow = 'unset'
             setQuery('')
             setResults([])
+            setError(null)
+            setAddingTicker(null)
         }
 
         const handleGlobalKeyDown = (e: KeyboardEvent) => {
@@ -103,9 +107,19 @@ export default function StockSearchModal({ isOpen, onClose, onAddStock, watchlis
         }
     }
 
-    const handleAdd = (ticker: string) => {
-        onAddStock(ticker)
-        // Don't close immediately to allow adding multiple
+    const handleAdd = async (ticker: string) => {
+        if (addingTicker || isStockInWatchlist(ticker)) return
+
+        setAddingTicker(ticker)
+        setError(null)
+        try {
+            await onAddStock(ticker)
+            // Added check will be handled by the watchlist prop updating
+        } catch (err: any) {
+            setError(err.message || 'Failed to add stock. Please try again.')
+        } finally {
+            setAddingTicker(null)
+        }
     }
 
     const isStockInWatchlist = (ticker: string) => {
@@ -164,13 +178,19 @@ export default function StockSearchModal({ isOpen, onClose, onAddStock, watchlis
                                                 {stock.exchange || 'NSE'}
                                             </Badge>
                                             {inWatchlist ? (
-                                                <span className="flex items-center text-sm text-emerald-500 font-medium">
+                                                <span className="flex items-center text-sm text-emerald-500 font-medium animate-in fade-in zoom-in duration-300">
                                                     <Check size={14} className="mr-1" /> Added
                                                 </span>
+                                            ) : addingTicker === stock.ticker ? (
+                                                <div className="h-8 w-8 flex items-center justify-center">
+                                                    <Loader2 size={16} className="animate-spin text-blue-500" />
+                                                </div>
                                             ) : (
-                                                <Button size="icon" variant="ghost" className="h-8 w-8 text-blue-400 bg-blue-500/10 hover:bg-blue-500 hover:text-white rounded-md">
+                                                <div
+                                                    className="h-8 w-8 flex items-center justify-center text-blue-400 bg-blue-500/10 hover:bg-blue-500 hover:text-white rounded-md transition-all active:scale-95"
+                                                >
                                                     <Plus size={16} />
-                                                </Button>
+                                                </div>
                                             )}
                                         </div>
                                     </li>
@@ -187,6 +207,13 @@ export default function StockSearchModal({ isOpen, onClose, onAddStock, watchlis
                         </div>
                     )}
                 </div>
+
+                {error && (
+                    <div className="px-4 py-2 bg-red-500/10 border-t border-red-500/20 text-red-400 text-xs flex items-center gap-2 animate-in slide-in-from-bottom-2 duration-300">
+                        <div className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
+                        {error}
+                    </div>
+                )}
             </div>
         </div>
     )

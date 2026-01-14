@@ -5,6 +5,35 @@ import type { AppProps } from 'next/app'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { MessageLoading } from '@/components/ui/message-loading'
+import { AuthProvider } from '../lib/auth-context'
+import { PortfolioProvider } from '../lib/portfolio-context'
+
+import Sidebar from '../components/Sidebar'
+
+function Layout({ children }: { children: React.ReactNode }) {
+  const router = useRouter()
+  const isStandalonePage = router.pathname === '/' || router.pathname.startsWith('/auth')
+  const [isSearchOpen, setIsSearchOpen] = useState(false)
+
+  if (isStandalonePage) return <>{children}</>
+
+  return (
+    <div className="flex h-screen bg-black text-white overflow-hidden">
+      <Sidebar onSearchClick={() => setIsSearchOpen(true)} />
+      <main className="flex-1 overflow-auto relative">
+        {children}
+      </main>
+    </div>
+  )
+}
+
+function PageLoadingOverlay() {
+  return (
+    <div className="absolute inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-300">
+      <MessageLoading />
+    </div>
+  )
+}
 
 export default function App({ Component, pageProps }: AppProps) {
   const router = useRouter()
@@ -27,13 +56,17 @@ export default function App({ Component, pageProps }: AppProps) {
 
   return (
     <>
-      {loading && (
-        <div className="fixed inset-0 left-[72px] z-[9999] flex items-center justify-center bg-black">
-          <MessageLoading />
-        </div>
-      )}
-      <Component {...pageProps} />
-      <ToastContainer position="top-right" theme="dark" />
+      <AuthProvider>
+        <PortfolioProvider>
+          <Layout>
+            <div className="relative h-full w-full">
+              {loading && <PageLoadingOverlay />}
+              <Component {...pageProps} />
+            </div>
+          </Layout>
+          <ToastContainer position="top-right" theme="dark" />
+        </PortfolioProvider>
+      </AuthProvider>
     </>
   )
 }

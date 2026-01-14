@@ -17,6 +17,7 @@ class Config:
     WATCHLIST_COLLECTION = 'watchlists'
     STOCK_MAPPINGS_COLLECTION = 'stock_mappings'
     NEWS_COLLECTION = 'company_news'  # Pre-fetched news from cron scraper
+    POSITIONS_COLLECTION = 'portfolio_positions'
     
     # JWT
     JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY', 'dev-secret-key-change-in-production')

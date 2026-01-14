@@ -10,7 +10,7 @@ class WatchlistService:
     """Watchlist service for managing user stock watchlists"""
     
     @staticmethod
-    def get_watchlist(email):
+    def get_watchlist(email, watchlist_id='default'):
         """
         Get user's watchlist with stock details
         
@@ -21,7 +21,7 @@ class WatchlistService:
             tuple: (success: bool, message: str, data: list or None)
         """
         try:
-            tickers = Watchlist.get_user_watchlist(email)
+            tickers = Watchlist.get_user_watchlist(email, watchlist_id)
             
             # Get stock details for each ticker
             watchlist_with_details = []
@@ -51,7 +51,7 @@ class WatchlistService:
             return False, f"Error retrieving watchlist: {str(e)}", None
     
     @staticmethod
-    def add_to_watchlist(email, ticker):
+    def add_to_watchlist(email, ticker, watchlist_id='default'):
         """
         Add stock to user's watchlist
         
@@ -70,13 +70,13 @@ class WatchlistService:
                 return False, f"Stock ticker '{ticker}' not found", None
             
             # Add to watchlist
-            added = Watchlist.add_stock(email, ticker)
+            added = Watchlist.add_stock(email, ticker, watchlist_id)
             
             if not added:
                 return False, f"Stock '{ticker}' is already in your watchlist", None
             
             # Get updated watchlist
-            success, message, watchlist = WatchlistService.get_watchlist(email)
+            success, message, watchlist = WatchlistService.get_watchlist(email, watchlist_id)
             
             return True, f"Stock '{ticker}' added to watchlist", watchlist
         
@@ -84,7 +84,7 @@ class WatchlistService:
             return False, f"Error adding to watchlist: {str(e)}", None
     
     @staticmethod
-    def remove_from_watchlist(email, ticker):
+    def remove_from_watchlist(email, ticker, watchlist_id='default'):
         """
         Remove stock from user's watchlist
         
@@ -99,13 +99,13 @@ class WatchlistService:
             ticker = ticker.upper().strip()
             
             # Remove from watchlist
-            removed = Watchlist.remove_stock(email, ticker)
+            removed = Watchlist.remove_stock(email, ticker, watchlist_id)
             
             if not removed:
                 return False, f"Stock '{ticker}' not found in watchlist", None
             
             # Get updated watchlist
-            success, message, watchlist = WatchlistService.get_watchlist(email)
+            success, message, watchlist = WatchlistService.get_watchlist(email, watchlist_id)
             
             return True, f"Stock '{ticker}' removed from watchlist", watchlist
         
@@ -113,7 +113,7 @@ class WatchlistService:
             return False, f"Error removing from watchlist: {str(e)}", None
     
     @staticmethod
-    def get_watchlist_news(email, time_filter='week', sort_by='date', max_articles=10):
+    def get_watchlist_news(email, watchlist_id='default', time_filter='week', sort_by='date', max_articles=10):
         """
         Get news for all stocks in user's watchlist using MongoDB cache
         OPTIMIZED: Uses pre-fetched news from MongoDB for sub-second response times
@@ -134,7 +134,7 @@ class WatchlistService:
             from services.news_db_service import NewsDBService
             from utils.date_utils import map_time_filter_to_days
             
-            tickers = Watchlist.get_user_watchlist(email)
+            tickers = Watchlist.get_user_watchlist(email, watchlist_id)
             
             if not tickers:
                 return True, "Watchlist is empty", {}
@@ -164,7 +164,7 @@ class WatchlistService:
             return False, f"Error fetching news: {str(e)}", None
     
     @staticmethod
-    def get_watchlist_prices(email):
+    def get_watchlist_prices(email, watchlist_id='default'):
         """
         Get current prices for all stocks in user's watchlist
         
@@ -177,7 +177,7 @@ class WatchlistService:
         try:
             from services.price_service import PriceService
             
-            tickers = Watchlist.get_user_watchlist(email)
+            tickers = Watchlist.get_user_watchlist(email, watchlist_id)
             
             if not tickers:
                 return True, "Watchlist is empty", {}

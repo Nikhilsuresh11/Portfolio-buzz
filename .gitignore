@@ -61,3 +61,5 @@ Thumbs.db
 package-lock.json
 .next/
 node_modules/
+
+samples/

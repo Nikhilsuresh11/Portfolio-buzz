@@ -21,33 +21,92 @@ class PortfolioAnalysisService:
         try:
             if not tickers:
                 return False, "No tickers provided", None
+            
+            # Clean and validate tickers
+            tickers = [str(t).strip().upper() for t in tickers if t and isinstance(t, (str, int))]
+            if not tickers:
+                return False, "No valid tickers found in portfolio", None
                 
             # Add benchmark (Nifty 50)
             benchmark_ticker = "^NSEI"
-            all_tickers = tickers + [benchmark_ticker]
+            all_tickers = list(set(tickers + [benchmark_ticker]))
             
             # Fetch data for last 1 year (extended slightly for SMA200)
             end_date = datetime.now()
             start_date = end_date - timedelta(days=400) # Need extra days for SMA200
             
-            print(f"[ANALYTICS] Fetching data for {len(tickers)} stocks + benchmark...")
+            print(f"[ANALYTICS] Fetching data for {len(all_tickers)} tickers: {all_tickers}")
             
-            # Download data
-            data = yf.download(all_tickers, start=start_date, end=end_date, progress=False)['Close']
-            
-            if data.empty:
-                return False, "Failed to fetch market data", None
+            # Download data - use auto_adjust for cleaner price data
+            try:
+                raw_data = yf.download(all_tickers, start=start_date, end=end_date, progress=False, group_by='column')
                 
-            # Check if we have enough data columns (sometimes yf returns empty df with index but no columns)
+                if raw_data.empty:
+                    print(f"[ANALYTICS] ⚠️ yfinance batch download failed for {all_tickers}. Trying individual downloads...")
+                    # Fallback: Try downloading each ticker individually
+                    individual_data = {}
+                    for t in all_tickers:
+                        try:
+                            t_data = yf.download(t, start=start_date, end=end_date, progress=False)
+                            if not t_data.empty:
+                                if 'Close' in t_data.columns:
+                                    individual_data[t] = t_data['Close']
+                                else:
+                                    individual_data[t] = t_data.iloc[:, 0] # Take first column if 'Close' not found
+                        except Exception as t_err:
+                            print(f"[ANALYTICS] ❌ Failed to fetch {t}: {t_err}")
+                    
+                    if not individual_data:
+                         return False, "Failed to fetch market data for all tickers", None
+                    
+                    # More robust way to merge multiple Series with different indices
+                    data = pd.concat(individual_data, axis=1)
+                else:
+                    # Extract Close prices robustly
+                    if 'Close' in raw_data.columns:
+                        data = raw_data['Close']
+                    elif isinstance(raw_data.columns, pd.MultiIndex):
+                        # In some yf versions, Price type is level 0, Ticker is level 1
+                        if 'Close' in raw_data.columns.levels[0]:
+                            data = raw_data.xs('Close', axis=1, level=0)
+                        else:
+                            # Fallback: find any level that looks like 'Close'
+                            close_cols = [c for c in raw_data.columns if 'Close' in str(c)]
+                            if close_cols:
+                                data = raw_data[close_cols]
+                            else:
+                                return False, "Failed to locate 'Close' prices in market data", None
+                    else:
+                        # Maybe it returned a single ticker result
+                        if len(all_tickers) == 1:
+                            data = raw_data
+                        else:
+                            return False, "Unexpected market data format", None
+
+            except Exception as download_err:
+                print(f"[ANALYTICS] ❌ yfinance download error: {str(download_err)}")
+                return False, f"Market data Error: {str(download_err)}", None
+            
+            # Check if we have data
+            if data is None or data.empty:
+                 return False, f"No valid market data found for tickers: {all_tickers}. Check if symbols are correct.", None
+
+            # Check if we have enough data columns
             if isinstance(data, pd.Series):
                  # Convert to DF if only one ticker returned as Series
-                 data = data.to_frame(name=tickers[0])
+                 data = data.to_frame()
                  
-            # Filter out columns with all NaNs
+            # Filter out columns with all NaNs or all zeros
             data = data.dropna(axis=1, how='all')
+            # Replace 0 with NaN and then drop if all NaN
+            data = data.replace(0, np.nan).dropna(axis=1, how='all')
             
             if data.empty:
-                 return False, "No data available for provided tickers", None
+                 return False, "No non-zero data available for provided tickers", None
+
+            # Check if we have enough data (at least a few points)
+            if len(data) < 5:
+                return False, "Insufficient historical data for analysis", None
 
             # Check if we have enough data (at least 1 year approx 252 days)
             if len(data) < 10:
@@ -79,6 +138,7 @@ class PortfolioAnalysisService:
                 portfolio_daily_ret = daily_returns[asset_cols].mean(axis=1)
                 portfolio_cum_ret = (1 + portfolio_daily_ret).cumprod() * 100
             else:
+                portfolio_daily_ret = pd.Series(dtype=float)
                 portfolio_cum_ret = pd.Series(100, index=daily_returns.index)
 
             if bench_col and bench_col in daily_returns.columns:
@@ -97,15 +157,15 @@ class PortfolioAnalysisService:
                     idx = portfolio_cum_ret.index[i]
                     performance_chart.append({
                         "date": idx.strftime('%b %d'),
-                        "Portfolio": round(portfolio_cum_ret.iloc[i], 1),
-                        "Nifty50": round(benchmark_cum_ret.loc[idx], 1) if idx in benchmark_cum_ret.index else 100.0
+                        "Portfolio": float(round(portfolio_cum_ret.iloc[i], 1)),
+                        "Nifty50": float(round(benchmark_cum_ret.loc[idx], 1)) if idx in benchmark_cum_ret.index else 100.0
                     })
                 # Add last point
                 last_idx = portfolio_cum_ret.index[-1]
                 performance_chart.append({
                     "date": last_idx.strftime('%b %d'),
-                    "Portfolio": round(portfolio_cum_ret.iloc[-1], 1),
-                    "Nifty50": round(benchmark_cum_ret.loc[last_idx], 1) if last_idx in benchmark_cum_ret.index else 100.0
+                    "Portfolio": float(round(portfolio_cum_ret.iloc[-1], 1)),
+                    "Nifty50": float(round(benchmark_cum_ret.loc[last_idx], 1)) if last_idx in benchmark_cum_ret.index else 100.0
                 })
 
             # ---------------------------------------------------------
@@ -126,7 +186,7 @@ class PortfolioAnalysisService:
                             aligned = pd.concat([recent_returns[ticker], bench_rets], axis=1).dropna()
                             if len(aligned) > 10 and bench_var > 0:
                                 cov = np.cov(aligned.iloc[:, 0], aligned.iloc[:, 1])[0][1]
-                                betas[ticker] = round(cov / bench_var, 2)
+                                betas[ticker] = float(round(cov / bench_var, 2))
                             else:
                                 betas[ticker] = 1.0
                         except:
@@ -143,7 +203,7 @@ class PortfolioAnalysisService:
                     std = r.std()
                     if std > 0:
                         sharpe = (r.mean() - risk_free_rate_daily) / std * np.sqrt(252)
-                        sharpe_ratios[ticker] = round(sharpe, 2)
+                        sharpe_ratios[ticker] = float(round(sharpe, 2))
                     else:
                         sharpe_ratios[ticker] = 0.0
                         
@@ -213,7 +273,7 @@ class PortfolioAnalysisService:
                                 "ticker": ticker,
                                 "signal": signal['msg'],
                                 "type": signal['type'],
-                                "value": round(curr_rsi, 1)
+                                "value": float(round(curr_rsi, 1))
                             })
                             
             # ---------------------------------------------------------
@@ -231,7 +291,7 @@ class PortfolioAnalysisService:
                         correlation_matrix.append({
                             "x": x.replace('.NS', ''), # Clean names
                             "y": y.replace('.NS', ''),
-                            "value": round(corr_df.loc[x, y], 2)
+                            "value": float(round(corr_df.loc[x, y], 2))
                         })
                 
                 # Calculate avg correlation
@@ -257,15 +317,15 @@ class PortfolioAnalysisService:
             # Compile result
             analysis_data = {
                 "portfolio_health": {
-                    "beta": round(avg_beta, 2),
-                    "sharpe_ratio": round(portfolio_sharpe, 2),
-                    "diversification_score": diversification_score,
+                    "beta": float(round(avg_beta, 2)),
+                    "sharpe_ratio": float(round(portfolio_sharpe, 2)),
+                    "diversification_score": int(diversification_score),
                     "var_95": var_text,
                     "max_drawdown": max_drawdown_text,
                     "volatility": volatility_text
                 },
                 "market_indicators": {
-                    "nifty_rsi": round(nifty_rsi, 1),
+                    "nifty_rsi": float(round(nifty_rsi, 1)),
                     "fear_greed_index": int(50 + (nifty_rsi - 50) + (avg_beta * 5)), 
                     "market_sentiment": "Neutral" if 40 < nifty_rsi < 60 else ("Bullish" if nifty_rsi >= 60 else "Bearish")
                 },
@@ -278,8 +338,8 @@ class PortfolioAnalysisService:
             for ticker in tickers:
                 analysis_data["assets"].append({
                     "ticker": ticker,
-                    "beta": betas.get(ticker, 1.0),
-                    "sharpe": sharpe_ratios.get(ticker, 0.0),
+                    "beta": float(betas.get(ticker, 1.0)),
+                    "sharpe": float(sharpe_ratios.get(ticker, 0.0)),
                 })
                 
             return True, "Analysis successful", analysis_data

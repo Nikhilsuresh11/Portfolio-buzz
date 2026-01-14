@@ -16,11 +16,12 @@ interface Article {
 
 interface Props {
   ticker?: string | null
+  watchlistId?: string | null
   onClose?: () => void
   isModal?: boolean
 }
 
-export default function RelatedNews({ ticker, onClose }: Props) {
+export default function RelatedNews({ ticker, watchlistId, onClose }: Props) {
   const [news, setNews] = useState<Article[]>([])
   const [loading, setLoading] = useState(false)
 
@@ -39,8 +40,8 @@ export default function RelatedNews({ ticker, onClose }: Props) {
           // Fetch news for specific ticker from /api/news endpoint (7 days default)
           url = `${config.API_BASE_URL}/api/news/7?stock_name=${ticker}&ticker=${ticker}`
         } else {
-          // Fetch all watchlist news
-          url = `${config.API_BASE_URL}/api/watchlist/news`
+          // Fetch specific watchlist news if ID is provided, otherwise default
+          url = `${config.API_BASE_URL}/api/watchlist/news${watchlistId ? `?watchlist_id=${watchlistId}` : ''}`
         }
 
         const res = await fetch(url, { headers })
@@ -75,7 +76,7 @@ export default function RelatedNews({ ticker, onClose }: Props) {
     }
 
     fetchNews()
-  }, [ticker])
+  }, [ticker, watchlistId])
 
   return (
     <div className="h-full flex flex-col bg-transparent">
