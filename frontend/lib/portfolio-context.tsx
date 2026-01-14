@@ -70,37 +70,27 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
                 setPortfolios(fetchedPortfolios);
 
                 // If no current portfolio or current portfolio not in list, select default or first
-                if (!currentPortfolio || !fetchedPortfolios.find((p: Portfolio) => p.portfolio_id === currentPortfolio.portfolio_id)) {
-                    const defaultPortfolio = fetchedPortfolios.find((p: Portfolio) => p.is_default);
-                    setCurrentPortfolio(defaultPortfolio || fetchedPortfolios[0]);
+                if (fetchedPortfolios.length > 0) {
+                    if (!currentPortfolio || !fetchedPortfolios.find((p: Portfolio) => p.portfolio_id === currentPortfolio.portfolio_id)) {
+                        const defaultPortfolio = fetchedPortfolios.find((p: Portfolio) => p.is_default);
+                        setCurrentPortfolio(defaultPortfolio || fetchedPortfolios[0]);
+                    }
+                } else {
+                    setPortfolios([]);
+                    setCurrentPortfolioState(null);
+                    if (typeof window !== 'undefined') {
+                        localStorage.removeItem('current_portfolio');
+                    }
                 }
             } else {
-                // If no portfolios exist, create a default one
-                await createDefaultPortfolio();
+                setPortfolios([]);
+                setCurrentPortfolioState(null);
             }
         } catch (error) {
             console.error("Error fetching portfolios", error);
-            // Create default portfolio on error
-            await createDefaultPortfolio();
+            setPortfolios([]);
         } finally {
             setIsLoading(false);
-        }
-    };
-
-    const createDefaultPortfolio = async () => {
-        try {
-            await createPortfolio('Main Portfolio', 'My primary investment portfolio', true);
-        } catch (error) {
-            console.error("Error creating default portfolio", error);
-            // Fallback to local default
-            const defaultPortfolio = {
-                portfolio_id: 'default',
-                portfolio_name: 'Main Portfolio',
-                is_default: true,
-                position_count: 0
-            };
-            setPortfolios([defaultPortfolio]);
-            setCurrentPortfolio(defaultPortfolio);
         }
     };
 

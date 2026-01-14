@@ -180,21 +180,7 @@ class UserWatchlist:
                 del doc["_id"]
             watchlists.append(doc)
             
-        # If no watchlists exist for this portfolio, create a default one
-        if not watchlists:
-            try:
-                default_watchlist = UserWatchlist.create_watchlist(
-                    user_email,
-                    portfolio_id,
-                    "Main Watchlist",
-                    "My primary stock watchlist",
-                    True
-                )
-                watchlists = [default_watchlist]
-            except Exception as e:
-                print(f"Error creating default watchlist: {e}")
-                pass
-        
+        # No watchlists exist for this portfolio, just return empty list
         return watchlists
     
     @staticmethod

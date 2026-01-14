@@ -10,7 +10,7 @@ import AnalysisModal from '../components/AnalysisModal'
 import { getToken, getUser } from '../lib/auth'
 import { config } from '../config'
 import { WatchlistLoader } from '@/components/ui/watchlist-loader'
-import { Plus, Trash2, Edit2, MoreVertical, LayoutGrid } from 'lucide-react'
+import { Plus, Trash2, Edit2, MoreVertical, LayoutGrid, Folder } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -142,6 +142,7 @@ export default function Watchlist() {
                 setWatchlists([])
                 setStocks([])
                 setLoading(false)
+                setDataLoaded(true)
             }
         } catch (error) {
             console.error('Error fetching user watchlists:', error)
@@ -167,27 +168,32 @@ export default function Watchlist() {
             const data = await res.json()
 
             if (data.success) {
-                setWatchlists(data.watchlists)
-
-                // Determine which watchlist to select
                 if (data.watchlists.length > 0) {
-                    // Try to preserve current selection if valid
+                    setWatchlists(data.watchlists)
+
+                    // Determine which watchlist to select
                     const currentStillExists = data.watchlists.find((w: UserWatchlist) => w.watchlist_id === currentWatchlistId)
 
                     if (currentStillExists) {
-                        // Do nothing, useEffect will trigger if needed, or we just keep showing current
                         if (!currentWatchlistId) setCurrentWatchlistId(currentStillExists.watchlist_id)
+                        // If it didn't change, we still need to clear loading if useEffect won't run
+                        if (currentWatchlistId === currentStillExists.watchlist_id) {
+                            setLoading(false)
+                            setDataLoaded(true)
+                        }
                     } else {
-                        // Default
                         const defaultW = data.watchlists.find((w: UserWatchlist) => w.is_default)
                         setCurrentWatchlistId(defaultW ? defaultW.watchlist_id : data.watchlists[0].watchlist_id)
                     }
                 } else {
-                    // No watchlists found, user might need to create one or we create a default
                     setWatchlists([])
                     setStocks([])
                     setLoading(false)
+                    setDataLoaded(true)
                 }
+            } else {
+                setLoading(false)
+                setDataLoaded(true)
             }
         } catch (error) {
             console.error('Error fetching watchlists:', error)
@@ -449,7 +455,7 @@ export default function Watchlist() {
     }
 
     // Show loading until data is fully loaded
-    if (loading || !dataLoaded) {
+    if (loading && !dataLoaded) {
         return (
             <div className="flex-1 flex items-center justify-center min-h-screen bg-black">
                 <WatchlistLoader />
@@ -491,13 +497,28 @@ export default function Watchlist() {
                             onTabChange={(tabId) => setCurrentWatchlistId(tabId)}
                             className="[&>div>div>div]:h-[42px] [&>div>div>div]:px-5 [&>div>div>div]:text-[15px]"
                         />
-                        <button
-                            onClick={() => setIsCreateModalOpen(true)}
-                            className="flex-none flex items-center justify-center text-zinc-400 hover:text-white transition-colors"
-                            title="New Watchlist"
-                        >
-                            <Plus size={24} />
-                        </button>
+                        <div className="flex items-center gap-1 border-l border-white/10 pl-2 ml-2">
+                            <button
+                                onClick={() => currentPortfolio && setIsCreateModalOpen(true)}
+                                disabled={!currentPortfolio}
+                                className={`w-8 h-8 flex items-center justify-center rounded-lg transition-all ${!currentPortfolio
+                                        ? 'text-zinc-600 cursor-not-allowed opacity-50'
+                                        : 'text-zinc-400 hover:text-white hover:bg-white/5'
+                                    }`}
+                                title={currentPortfolio ? "New Watchlist" : "Please create a portfolio first"}
+                            >
+                                <Plus size={18} />
+                            </button>
+                            {currentWatchlistId && watchlists.length > 0 && (
+                                <button
+                                    onClick={() => handleDeleteWatchlist(currentWatchlistId)}
+                                    className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-red-500/10 text-zinc-400 hover:text-red-400 transition-all"
+                                    title="Delete Watchlist"
+                                >
+                                    <Trash2 size={16} />
+                                </button>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -519,21 +540,65 @@ export default function Watchlist() {
                                 />
                             </div>
                         ) : (
-                            <div className="flex flex-col items-center justify-center h-full text-neutral-400 p-8 text-center">
-                                <LayoutGrid className="w-16 h-16 mb-4 opacity-20" />
-                                <h3 className="text-lg font-semibold mb-2">Watchlist is empty</h3>
-                                <p className="text-sm max-w-xs mx-auto mb-6">
-                                    Add stocks to track their performance and get AI-powered insights.
-                                </p>
-                                <div className="bg-gradient-to-r from-blue-500 to-emerald-500 rounded-xl p-0.5">
-                                    <Button
-                                        onClick={() => setIsSearchOpen(true)}
-                                        className="bg-black hover:bg-zinc-900 text-white rounded-[11px]"
-                                    >
-                                        <Plus className="w-4 h-4 mr-2" />
-                                        Add Stocks
-                                    </Button>
-                                </div>
+                            <div className="flex flex-col items-center justify-center h-full text-neutral-400 p-8 text-center bg-black/60 backdrop-blur-md">
+                                {watchlists.length === 0 ? (
+                                    <>
+                                        <div className="w-16 h-16 mb-4 rounded-xl bg-gradient-to-br from-blue-500/10 to-purple-500/10 flex items-center justify-center border border-white/5 shadow-2xl shadow-blue-500/20">
+                                            {currentPortfolio ? (
+                                                <LayoutGrid className="w-8 h-8 text-blue-400" />
+                                            ) : (
+                                                <Folder className="w-8 h-8 text-purple-400" />
+                                            )}
+                                        </div>
+                                        <h3 className="text-xl font-bold text-white mb-2">
+                                            {currentPortfolio ? "Create your first Watchlist" : "Welcome to Portfolio Buzz"}
+                                        </h3>
+                                        <p className="text-sm text-neutral-400 max-w-xs mx-auto mb-8 leading-relaxed">
+                                            {currentPortfolio
+                                                ? "Create a watchlist to start tracking stocks, analyzing trends, and getting AI insights."
+                                                : "To get started, please go to the Settings to create your first Portfolio."}
+                                        </p>
+
+                                        {currentPortfolio ? (
+                                            <div className="bg-gradient-to-r from-blue-500 to-emerald-500 rounded-xl p-0.5">
+                                                <Button
+                                                    onClick={() => setIsCreateModalOpen(true)}
+                                                    className="bg-black hover:bg-zinc-900 text-white rounded-[11px] h-10 px-6 font-semibold"
+                                                >
+                                                    <Plus className="w-4 h-4 mr-2" />
+                                                    Create Watchlist
+                                                </Button>
+                                            </div>
+                                        ) : (
+                                            <div className="bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl p-0.5">
+                                                <Button
+                                                    onClick={() => router.push('/settings')}
+                                                    className="bg-black hover:bg-zinc-900 text-white rounded-[11px] h-10 px-6 font-semibold"
+                                                >
+                                                    <Folder className="w-4 h-4 mr-2" />
+                                                    Create Portfolio
+                                                </Button>
+                                            </div>
+                                        )}
+                                    </>
+                                ) : (
+                                    <>
+                                        <LayoutGrid className="w-16 h-16 mb-4 opacity-20" />
+                                        <h3 className="text-lg font-semibold mb-2">Watchlist is empty</h3>
+                                        <p className="text-sm max-w-xs mx-auto mb-6">
+                                            Add stocks to track their performance and get AI-powered insights.
+                                        </p>
+                                        <div className="bg-gradient-to-r from-blue-500 to-emerald-500 rounded-xl p-0.5">
+                                            <Button
+                                                onClick={() => setIsSearchOpen(true)}
+                                                className="bg-black hover:bg-zinc-900 text-white rounded-[11px]"
+                                            >
+                                                <Plus className="w-4 h-4 mr-2" />
+                                                Add Stocks
+                                            </Button>
+                                        </div>
+                                    </>
+                                )}
                             </div>
                         )}
                     </div>
