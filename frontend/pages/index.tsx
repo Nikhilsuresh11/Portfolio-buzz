@@ -13,15 +13,15 @@ const features = [
     },
     {
         step: 'Step 2',
-        title: 'Monitor Trends',
-        content: 'Track live news and price changes across your customized watchlist with real-time updates.',
-        image: '/images/portfolio.png'
+        title: 'Deep AI Insights',
+        content: 'Our models analyze sentiment, news momentum, and analyst projections in seconds.',
+        image: '/images/ai-insight.png'
     },
     {
         step: 'Step 3',
-        title: 'AI Insights',
-        content: 'Get deep analysis on fundamentals and sentiment to make better investment decisions.',
-        image: 'https://images.unsplash.com/photo-1611974717414-0437fe8b8969?q=80&w=2070&auto=format&fit=crop'
+        title: 'Risk Metrics',
+        content: 'Quantify your exposure with intelligent risk scores and volatility tracking.',
+        image: '/images/risk-metrics.png'
     },
 ];
 
@@ -33,30 +33,39 @@ export default function LandingPage() {
         // Ensure dark theme for landing page aesthetics
         document.documentElement.setAttribute('data-theme', 'dark');
         document.documentElement.classList.add('dark');
+        // Smooth scroll behavior
+        document.documentElement.style.scrollBehavior = 'smooth';
     }, []);
 
     return (
-        <div className="bg-background text-foreground min-h-screen overflow-x-hidden dark">
+        <div className="bg-black text-foreground min-h-screen overflow-x-hidden dark">
             {/* Hero Section */}
             <HeroSection />
 
             {/* Feature Steps Section */}
-            <div className="py-20 bg-zinc-950/50">
+            <div className="py-20 bg-black">
                 <FeatureSteps
                     features={features}
-                    title="Your Journey Starts Here"
+                    title="Intelligent Portfolio Management"
                     autoPlayInterval={4000}
                     imageHeight="h-[500px]"
                 />
             </div>
 
             {/* Pricing Section */}
-            <PricingSection />
+            <div className="bg-black">
+                <PricingSection />
+            </div>
 
             {/* Footer */}
-            <footer className="py-12 border-t border-zinc-800 bg-black text-center text-zinc-500 text-sm">
+            <footer className="py-12 border-t border-zinc-900 bg-black text-center text-zinc-500 text-sm">
                 <div className="max-w-7xl mx-auto px-6">
                     <p>© 2026 Portfolio Buzz. All rights reserved.</p>
+                    <div className="mt-4 flex justify-center gap-6 text-zinc-600">
+                        <a href="#" className="hover:text-zinc-400">Twitter</a>
+                        <a href="#" className="hover:text-zinc-400">GitHub</a>
+                        <a href="#" className="hover:text-zinc-400">Terms</a>
+                    </div>
                 </div>
             </footer>
         </div>
