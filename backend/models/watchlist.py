@@ -17,8 +17,7 @@ class Watchlist:
             list: List of stock tickers in watchlist
         """
         watchlist_col = get_watchlist_collection()
-        
-        # New multi-watchlist schema: one document per ticker
+        # Try exact match with watchlist_id
         cursor = watchlist_col.find({
             'user_email': email.lower(),
             'watchlist_id': watchlist_id
@@ -28,14 +27,49 @@ class Watchlist:
         for doc in cursor:
             tickers.append(doc['ticker'])
             
+        # If not found and watchlist_id is 'default', try finding ANY tickers for this user
+        if not tickers and watchlist_id == 'default':
+            cursor = watchlist_col.find({'user_email': email.lower()})
+            for doc in cursor:
+                tickers.append(doc['ticker'])
+            
         # Fallback for old schema (single document with list)
         if not tickers and watchlist_id == 'default':
-            user_watchlist = watchlist_col.find_one({'email': email.lower()})
+            user_watchlist = watchlist_col.find_one({
+                '$or': [
+                    {'user_email': email.lower()},
+                    {'email': email.lower()}
+                ]
+            })
             if user_watchlist:
                 return user_watchlist.get('watchlist', [])
         
-        return tickers
-    
+    @staticmethod
+    def get_all_user_tickers(email):
+        """
+        Get all stock tickers for a user across all their watchlists
+        """
+        watchlist_col = get_watchlist_collection()
+        
+        # New multi-watchlist schema
+        cursor = watchlist_col.find({'user_email': email.lower()})
+        tickers = set() # Use set to avoid duplicates across watchlists
+        for doc in cursor:
+            tickers.add(doc['ticker'])
+            
+        # Fallback for old schema
+        user_watchlist = watchlist_col.find_one({
+            '$or': [
+                {'user_email': email.lower()},
+                {'email': email.lower()}
+            ]
+        })
+        if user_watchlist and 'watchlist' in user_watchlist:
+            for ticker in user_watchlist['watchlist']:
+                tickers.add(ticker)
+                
+        return list(tickers)
+
     @staticmethod
     def add_stock(email, ticker, watchlist_id='default'):
         """

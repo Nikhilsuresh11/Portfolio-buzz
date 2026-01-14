@@ -21,7 +21,7 @@ class AlertScheduler:
         self.is_running = False
     
     def check_all_users_alerts(self):
-        """Check all users' watchlists and send alerts for stocks below -1%"""
+        """Check all users' watchlists and send alerts for stocks below -3%"""
         try:
             print(f"\n{'='*60}")
             print(f"🔔 Running scheduled alert check at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
@@ -34,27 +34,26 @@ class AlertScheduler:
                 print("ℹ️  No users found")
                 return
             
-            print(f"👥 Checking alerts for {len(users)} users (max 10 per cycle)...")
-            
-            # Limit to 10 users per cycle to prevent memory issues
-            users_to_check = users[:10]
-            if len(users) > 10:
-                print(f"   ℹ️  Limiting to 10 users (total: {len(users)})")
+            print(f"👥 Checking alerts for {len(users)} users...")
             
             total_alerts_sent = 0
             
-            for user in users_to_check:
+            for user in users:
                 user_email = user.get('email')
                 if not user_email:
                     continue
                 
                 print(f"\n📧 Checking watchlist for: {user_email}")
                 
-                # Get user's watchlist
-                success, message, watchlist = WatchlistService.get_watchlist(user_email)
+                # Get user's stocks across ALL watchlists
+                success, message, watchlist = WatchlistService.get_all_stocks_for_user(user_email)
                 
-                if not success or not watchlist:
-                    print(f"   ⚠️  No watchlist found")
+                if not success:
+                    print(f"   ❌ Error fetching stocks for {user_email}: {message}")
+                    continue
+                
+                if not watchlist:
+                    print(f"   ⚠️  No stocks found for {user_email} across any watchlist")
                     continue
                 
                 # Get tickers
@@ -75,8 +74,8 @@ class AlertScheduler:
                     price_data = prices[ticker]
                     change_percent = price_data.get('change_percent', 0)
                     
-                    # Check if stock dropped 5% or more
-                    if change_percent <= -5.0:
+                    # Check if stock dropped 3% or more
+                    if change_percent <= -3.0:
                         print(f"   🔴 {ticker}: {change_percent:.2f}% - Sending alert...")
                         
                         # Prepare stock data
@@ -125,11 +124,11 @@ class AlertScheduler:
             print("⚠️  Scheduler is already running")
             return
         
-        # Run every 30 minutes (optimized for Render free tier)
+        # Run every 30 minutes
         self.scheduler.add_job(
             self.check_all_users_alerts,
             'interval',
-            minutes=30,  # Increased from 15 to reduce load
+            seconds=1800, 
             id='stock_alert_check',
             name='Stock Alert Check (Every 30 minutes)',
             replace_existing=True
@@ -157,9 +156,9 @@ class AlertScheduler:
         print("\n" + "="*60)
         print("🚀 Alert Scheduler Started!")
         print("="*60)
-        print("⏰ Running every 30 minutes (optimized for Render free tier)")
-        print("📧 Will check up to 10 users per cycle")
-        print("🎯 Alert threshold: -5% or more")
+        print("⏰ Running every 30 minutes")
+        print("📧 Will check all users per cycle") 
+        print("🎯 Alert threshold: -3% or more")
         print("="*60 + "\n")
     
     def stop(self):

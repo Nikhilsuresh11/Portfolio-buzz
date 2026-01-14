@@ -78,3 +78,8 @@ def get_positions_collection():
     """Get portfolio positions collection"""
     return Database.get_collection(config.POSITIONS_COLLECTION)
 
+
+def get_notifications_collection():
+    """Get notifications collection"""
+    return Database.get_collection(config.NOTIFICATIONS_COLLECTION)
+

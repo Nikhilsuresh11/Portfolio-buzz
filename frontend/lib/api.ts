@@ -136,4 +136,5 @@ export const positionsApi = {
         }),
 
     getWatchlistPrices: () => fetchWithAuth('/api/watchlist/price'),
+    getNotifications: (limit: number = 50) => fetchWithAuth(`/api/notifications?limit=${limit}`),
 };

@@ -61,12 +61,16 @@ def get_token_from_header():
     auth_header = request.headers.get('Authorization')
     
     if not auth_header:
+        # Debug: Log when header is missing
+        print(f"DEBUG: Missing Authorization header for {request.method} {request.path}")
+        # print(f"DEBUG: All headers: {dict(request.headers)}")
         return None
     
     # Expected format: "Bearer <token>"
     parts = auth_header.split()
     
     if len(parts) != 2 or parts[0].lower() != 'bearer':
+        print(f"DEBUG: Invalid Authorization format: {auth_header[:20]}...")
         return None
     
     return parts[1]

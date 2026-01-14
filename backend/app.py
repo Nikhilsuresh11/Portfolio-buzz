@@ -23,6 +23,7 @@ from routes.analysis_routes import analysis_bp
 from routes.stock_research_routes import stock_research_bp
 from routes.email_alert_routes import email_alert_bp
 from routes.portfolio_analysis_routes import portfolio_analysis_bp
+from routes.notification_routes import notification_bp
 
 
 def create_app(config_name='development'):
@@ -61,6 +62,7 @@ def create_app(config_name='development'):
     app.register_blueprint(stock_research_bp)
     app.register_blueprint(email_alert_bp)
     app.register_blueprint(portfolio_analysis_bp)
+    app.register_blueprint(notification_bp)
     
     from routes.portfolio_routes import portfolio_bp
     app.register_blueprint(portfolio_bp)
@@ -147,6 +149,9 @@ def create_app(config_name='development'):
                 },
                 'email': {
                     'POST /api/email/alert': 'Check watchlist for 5%+ drops and send email alerts'
+                },
+                'notifications': {
+                    'GET /api/notifications': 'Get user notifications'
                 }
             }
         }), 200
