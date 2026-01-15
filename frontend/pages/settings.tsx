@@ -82,10 +82,12 @@ export default function SettingsPage() {
     }
 
     return (
-        <div className="flex-1 flex flex-col min-h-screen relative p-6">
-            <Header user={userEmail?.split('@')[0] || 'User'} />
+        <div className="flex flex-col h-screen relative overflow-hidden bg-black">
+            <div className="flex-none p-6 md:p-8 pb-0 z-10 max-w-[1600px] mx-auto w-full">
+                <Header user={userEmail?.split('@')[0] || 'User'} />
+            </div>
 
-            <div className="max-w-6xl mx-auto w-full z-10 space-y-8 pt-6">
+            <div className="flex-1 px-6 md:px-8 pb-6 md:pb-8 overflow-y-auto scrollbar-hide max-w-[1600px] mx-auto w-full">
                 {/* Profile Settings */}
                 <div className="bg-white/5 border border-white/10 backdrop-blur-sm rounded-2xl p-8 shadow-xl">
                     <div className="flex items-center gap-4 mb-8">
@@ -240,8 +242,8 @@ export default function SettingsPage() {
             </div>
 
             {/* Background ambient light effects */}
-            <div className="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 bg-blue-500/5 rounded-full blur-[100px] pointer-events-none z-0" />
-            <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 bg-purple-500/5 rounded-full blur-[100px] pointer-events-none z-0" />
+            <div className="absolute top-0 right-0 -mr-20 -mt-20 w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[120px] pointer-events-none z-0" />
+            <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-[400px] h-[400px] bg-emerald-500/10 rounded-full blur-[120px] pointer-events-none z-0" />
         </div>
     );
 }

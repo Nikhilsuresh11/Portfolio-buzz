@@ -158,207 +158,279 @@ export default function PortfolioSummaryPage() {
     if (!data) return null;
 
     return (
-        <div className="p-6 max-w-[1600px] mx-auto">
-            <div className="flex justify-between items-center mb-6">
-                <div>
-                    <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-white via-blue-100 to-emerald-100 bg-clip-text text-transparent">
-                        Portfolio Summary
-                    </h1>
-                    <p className="text-neutral-400">Detailed breakdown of your current holdings</p>
-                </div>
-                <div className="bg-gradient-to-r from-blue-500 to-emerald-500 rounded-xl p-0.5">
-                    <button
-                        onClick={() => router.push('/portfolio/metrics')}
-                        className="bg-black hover:bg-zinc-900 text-white gap-2 font-semibold text-sm h-9 px-5 rounded-[11px] flex items-center transition-colors"
-                    >
-                        <BarChart3 size={16} />
-                        View Risk Analysis
-                    </button>
+        <div className="flex flex-col h-screen relative overflow-hidden bg-black">
+            <div className="flex-none p-6 md:p-8 pb-0 z-10 max-w-[1600px] mx-auto w-full">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                    <div>
+                        <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-white via-blue-100 to-emerald-100 bg-clip-text text-transparent">
+                            Portfolio Summary
+                        </h1>
+                        <p className="text-neutral-400">Detailed breakdown of your current holdings</p>
+                    </div>
+                    <div className="bg-gradient-to-r from-blue-500 to-emerald-500 rounded-xl p-0.5">
+                        <button
+                            onClick={() => router.push('/portfolio/metrics')}
+                            className="bg-black hover:bg-zinc-900 text-white gap-2 font-semibold text-sm h-9 px-5 rounded-[11px] flex items-center transition-colors"
+                        >
+                            <BarChart3 size={16} />
+                            View Risk Analysis
+                        </button>
+                    </div>
                 </div>
             </div>
 
-            {/* Insights Cards */}
-            {insights && (
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                    <div className="bg-zinc-900/40 border border-zinc-800/60 backdrop-blur-xl rounded-2xl p-5">
-                        <div className="flex items-center gap-2 text-zinc-400 text-xs uppercase mb-2">
-                            <DollarSign className="w-4 h-4" />
-                            Highest Invested
+            {/* Content Area */}
+            <div className="flex-1 px-6 md:px-8 pb-6 md:pb-8 overflow-y-auto scrollbar-hide max-w-[1600px] mx-auto w-full">
+
+                {/* Insights Cards */}
+                {insights && (
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                        <div className="bg-zinc-900/40 border border-zinc-800/60 backdrop-blur-xl rounded-2xl p-5">
+                            <div className="flex items-center gap-2 text-zinc-400 text-xs uppercase mb-2">
+                                <DollarSign className="w-4 h-4" />
+                                Highest Invested
+                            </div>
+                            <div className="text-xl font-bold text-white">{insights.highestInvested.symbol}</div>
+                            <div className="text-sm text-green-400 mt-1">{formatPercent(insights.highestInvested.return_percent)}</div>
                         </div>
-                        <div className="text-xl font-bold text-white">{insights.highestInvested.symbol}</div>
-                        <div className="text-sm text-green-400 mt-1">{formatPercent(insights.highestInvested.return_percent)}</div>
-                    </div>
 
-                    <div className="bg-zinc-900/40 border border-green-500/30 backdrop-blur-xl rounded-2xl p-5">
-                        <div className="flex items-center gap-2 text-zinc-400 text-xs uppercase mb-2">
-                            <Trophy className="w-4 h-4 text-green-400" />
-                            Best Return
+                        <div className="bg-zinc-900/40 border border-green-500/30 backdrop-blur-xl rounded-2xl p-5">
+                            <div className="flex items-center gap-2 text-zinc-400 text-xs uppercase mb-2">
+                                <Trophy className="w-4 h-4 text-green-400" />
+                                Best Return
+                            </div>
+                            <div className="text-xl font-bold text-green-400">{insights.bestReturn.symbol}</div>
+                            <div className="text-sm text-zinc-400 mt-1">{formatPercent(insights.bestReturn.return_percent)}</div>
                         </div>
-                        <div className="text-xl font-bold text-green-400">{insights.bestReturn.symbol}</div>
-                        <div className="text-sm text-zinc-400 mt-1">{formatPercent(insights.bestReturn.return_percent)}</div>
-                    </div>
 
-                    <div className="bg-zinc-900/40 border border-red-500/30 backdrop-blur-xl rounded-2xl p-5">
-                        <div className="flex items-center gap-2 text-zinc-400 text-xs uppercase mb-2">
-                            <TrendingDown className="w-4 h-4 text-red-400" />
-                            Worst Return
+                        <div className="bg-zinc-900/40 border border-red-500/30 backdrop-blur-xl rounded-2xl p-5">
+                            <div className="flex items-center gap-2 text-zinc-400 text-xs uppercase mb-2">
+                                <TrendingDown className="w-4 h-4 text-red-400" />
+                                Worst Return
+                            </div>
+                            <div className="text-xl font-bold text-red-400">{insights.worstReturn.symbol}</div>
+                            <div className="text-sm text-zinc-400 mt-1">{formatPercent(insights.worstReturn.return_percent)}</div>
                         </div>
-                        <div className="text-xl font-bold text-red-400">{insights.worstReturn.symbol}</div>
-                        <div className="text-sm text-zinc-400 mt-1">{formatPercent(insights.worstReturn.return_percent)}</div>
-                    </div>
 
-                    <div className="bg-zinc-900/40 border border-yellow-500/30 backdrop-blur-xl rounded-2xl p-5">
-                        <div className="flex items-center gap-2 text-zinc-400 text-xs uppercase mb-2">
-                            <Target className="w-4 h-4 text-yellow-400" />
-                            Smallest Holding
+                        <div className="bg-zinc-900/40 border border-yellow-500/30 backdrop-blur-xl rounded-2xl p-5">
+                            <div className="flex items-center gap-2 text-zinc-400 text-xs uppercase mb-2">
+                                <Target className="w-4 h-4 text-yellow-400" />
+                                Smallest Holding
+                            </div>
+                            <div className="text-xl font-bold text-yellow-400">{insights.smallestAllocation.symbol}</div>
+                            <div className="text-sm text-zinc-400 mt-1">{insights.smallestAllocation.allocation_percent.toFixed(2)}%</div>
                         </div>
-                        <div className="text-xl font-bold text-yellow-400">{insights.smallestAllocation.symbol}</div>
-                        <div className="text-sm text-zinc-400 mt-1">{insights.smallestAllocation.allocation_percent.toFixed(2)}%</div>
-                    </div>
-                </div>
-            )}
-
-            {/* Positions Table */}
-            <div className="glass-strong bg-white/5 border border-white/10 rounded-xl p-6 overflow-hidden mb-6">
-                <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
-                    <BarChart3 className="w-5 h-5 text-blue-400" />
-                    Positions
-                </h3>
-                <div className="overflow-x-auto custom-scrollbar">
-                    <table className="w-full text-left">
-                        <thead className="bg-white/5 text-neutral-400 text-xs uppercase font-medium">
-                            <tr>
-                                <th
-                                    className="p-3 cursor-pointer hover:text-white transition-colors"
-                                    onClick={() => handleSort('symbol')}
-                                >
-                                    Symbol
-                                </th>
-                                <th
-                                    className="p-3 text-right cursor-pointer hover:text-white transition-colors"
-                                    onClick={() => handleSort('quantity')}
-                                >
-                                    Quantity
-                                </th>
-                                <th
-                                    className="p-3 text-right cursor-pointer hover:text-white transition-colors"
-                                    onClick={() => handleSort('avg_price')}
-                                >
-                                    Avg Price
-                                </th>
-                                <th
-                                    className="p-3 text-right cursor-pointer hover:text-white transition-colors"
-                                    onClick={() => handleSort('invested_amount')}
-                                >
-                                    Invested
-                                </th>
-                                <th
-                                    className="p-3 text-right cursor-pointer hover:text-white transition-colors"
-                                    onClick={() => handleSort('current_value')}
-                                >
-                                    Current
-                                </th>
-                                <th
-                                    className="p-3 text-right cursor-pointer hover:text-white transition-colors"
-                                    onClick={() => handleSort('profit')}
-                                >
-                                    P/L
-                                </th>
-                                <th
-                                    className="p-3 text-right cursor-pointer hover:text-white transition-colors"
-                                    onClick={() => handleSort('return_percent')}
-                                >
-                                    Return %
-                                </th>
-                                <th
-                                    className="p-3 text-right cursor-pointer hover:text-white transition-colors"
-                                    onClick={() => handleSort('allocation_percent')}
-                                >
-                                    Allocation %
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-white/5">
-                            {sortedAllocations.map((pos: any, idx: number) => (
-                                <tr key={idx} className="hover:bg-white/5 transition-colors">
-                                    <td className="p-3 font-semibold">{pos.symbol}</td>
-                                    <td className="p-3 text-right text-neutral-300">{pos.quantity.toFixed(2)}</td>
-                                    <td className="p-3 text-right text-neutral-300">
-                                        {formatCurrency(pos.invested_amount / pos.quantity)}
-                                    </td>
-                                    <td className="p-3 text-right text-neutral-300">
-                                        {formatCurrency(pos.invested_amount)}
-                                    </td>
-                                    <td className="p-3 text-right text-white">
-                                        {formatCurrency(pos.current_value)}
-                                    </td>
-                                    <td className={`p-3 text-right ${pos.profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                                        {formatCurrency(pos.profit)}
-                                    </td>
-                                    <td className={`p-3 text-right ${pos.return_percent >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                                        {formatPercent(pos.return_percent)}
-                                    </td>
-                                    <td className="p-3 text-right text-blue-400">
-                                        {pos.allocation_percent.toFixed(2)}%
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            {/* Allocation Chart */}
-            <div className="glass-strong bg-white/5 border border-white/10 rounded-xl p-6">
-                <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
-                    <PieChart className="w-5 h-5 text-purple-400" />
-                    Portfolio Allocation
-                </h3>
-                {data.symbol_allocations && data.symbol_allocations.length > 0 ? (
-                    <div className="h-[400px] w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={data.symbol_allocations}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
-                                <XAxis
-                                    dataKey="symbol"
-                                    stroke="#71717a"
-                                    fontSize={12}
-                                    tickLine={false}
-                                    axisLine={false}
-                                    angle={-45}
-                                    textAnchor="end"
-                                    height={80}
-                                />
-                                <YAxis
-                                    stroke="#71717a"
-                                    fontSize={12}
-                                    tickLine={false}
-                                    axisLine={false}
-                                    tickFormatter={(value) => `${value.toFixed(0)}%`}
-                                />
-                                <Tooltip
-                                    contentStyle={{
-                                        backgroundColor: '#18181b',
-                                        borderColor: '#27272a',
-                                        borderRadius: '8px',
-                                        color: '#fff'
-                                    }}
-                                    formatter={(value: any) => [`${value.toFixed(2)}%`, 'Allocation']}
-                                />
-                                <Bar
-                                    dataKey="allocation_percent"
-                                    fill="#3b82f6"
-                                    radius={[8, 8, 0, 0]}
-                                />
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </div>
-                ) : (
-                    <div className="h-[400px] flex items-center justify-center text-zinc-500">
-                        <p>No allocation data available</p>
                     </div>
                 )}
+
+                {/* Positions Table */}
+                <div className="bg-zinc-900/30 border border-zinc-800/50 backdrop-blur-xl rounded-2xl shadow-2xl shadow-black/20 overflow-hidden flex flex-col h-[600px] mb-6">
+                    <div className="p-4 border-b border-white/10 bg-zinc-900/50">
+                        <h3 className="text-lg font-bold flex items-center gap-2">
+                            <BarChart3 className="w-5 h-5 text-blue-400" />
+                            Positions
+                        </h3>
+                    </div>
+                    <div className="flex flex-col flex-1 overflow-hidden">
+                        {/* Sticky Header */}
+                        <table className="w-full border-collapse text-left table-fixed">
+                            <thead className="sticky top-0 z-10 bg-zinc-900/95 backdrop-blur-sm">
+                                <tr className="border-b border-white/10 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                                    <th
+                                        className="px-4 py-3 bg-transparent text-left cursor-pointer hover:text-white transition-colors w-[180px]"
+                                        onClick={() => handleSort('symbol')}
+                                    >
+                                        Symbol
+                                    </th>
+                                    <th
+                                        className="px-3 py-3 bg-transparent text-right cursor-pointer hover:text-white transition-colors w-[110px]"
+                                        onClick={() => handleSort('quantity')}
+                                    >
+                                        Quantity
+                                    </th>
+                                    <th
+                                        className="px-3 py-3 bg-transparent text-right cursor-pointer hover:text-white transition-colors w-[110px]"
+                                        onClick={() => handleSort('avg_price')}
+                                    >
+                                        Avg Price
+                                    </th>
+                                    <th
+                                        className="px-3 py-3 bg-transparent text-right cursor-pointer hover:text-white transition-colors w-[130px]"
+                                        onClick={() => handleSort('invested_amount')}
+                                    >
+                                        Invested
+                                    </th>
+                                    <th
+                                        className="px-3 py-3 bg-transparent text-right cursor-pointer hover:text-white transition-colors w-[130px]"
+                                        onClick={() => handleSort('current_value')}
+                                    >
+                                        Current
+                                    </th>
+                                    <th
+                                        className="px-3 py-3 bg-transparent text-right cursor-pointer hover:text-white transition-colors w-[110px]"
+                                        onClick={() => handleSort('profit')}
+                                    >
+                                        P/L
+                                    </th>
+                                    <th
+                                        className="px-3 py-3 bg-transparent text-right cursor-pointer hover:text-white transition-colors w-[100px]"
+                                        onClick={() => handleSort('return_percent')}
+                                    >
+                                        Return %
+                                    </th>
+                                    <th
+                                        className="px-3 py-3 bg-transparent text-right pr-4 cursor-pointer hover:text-white transition-colors w-[110px]"
+                                        onClick={() => handleSort('allocation_percent')}
+                                    >
+                                        Allocation
+                                    </th>
+                                </tr>
+                            </thead>
+                        </table>
+
+                        {/* Scrollable Body */}
+                        <div className="flex-1 overflow-y-auto scrollbar-hide">
+                            <table className="w-full border-collapse text-left table-fixed">
+                                <tbody className="divide-y divide-white/5">
+                                    {sortedAllocations.map((pos: any, idx: number) => {
+                                        const tickerPrefix = pos.symbol.substring(0, 2).toUpperCase();
+                                        const getRandomColor = (symbol: string) => {
+                                            const colors = [
+                                                'bg-gradient-to-br from-blue-500 to-blue-600',
+                                                'bg-gradient-to-br from-purple-500 to-purple-600',
+                                                'bg-gradient-to-br from-pink-500 to-pink-600',
+                                                'bg-gradient-to-br from-emerald-500 to-emerald-600',
+                                                'bg-gradient-to-br from-amber-500 to-amber-600',
+                                            ];
+                                            const index = symbol.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+                                            return colors[index % colors.length];
+                                        };
+                                        const isPositive = pos.profit >= 0;
+
+                                        return (
+                                            <tr key={idx} className="group cursor-pointer transition-colors duration-200 hover:bg-white/5">
+                                                {/* Symbol Column */}
+                                                <td className="px-4 py-4 w-[180px]">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className={`
+                                                        w-10 h-10 rounded-lg flex items-center justify-center 
+                                                        text-white font-bold text-sm shadow-md
+                                                        ${getRandomColor(pos.symbol)}
+                                                    `}>
+                                                            {tickerPrefix}
+                                                        </div>
+                                                        <div className="min-w-0 flex-1">
+                                                            <div className="font-bold text-gray-100 text-sm">{pos.symbol}</div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+
+                                                {/* Quantity */}
+                                                <td className="px-3 py-4 text-right font-semibold text-sm text-gray-200 tabular-nums w-[110px]">
+                                                    {pos.quantity.toFixed(2)}
+                                                </td>
+
+                                                {/* Avg Price */}
+                                                <td className="px-3 py-4 text-right text-sm text-gray-300 tabular-nums w-[110px]">
+                                                    {formatCurrency(pos.invested_amount / pos.quantity)}
+                                                </td>
+
+                                                {/* Invested */}
+                                                <td className="px-3 py-4 text-right text-sm text-gray-300 tabular-nums w-[130px]">
+                                                    {formatCurrency(pos.invested_amount)}
+                                                </td>
+
+                                                {/* Current Value */}
+                                                <td className="px-3 py-4 text-right font-bold text-[15px] text-gray-200 tabular-nums w-[130px]">
+                                                    {formatCurrency(pos.current_value)}
+                                                </td>
+
+                                                {/* P/L */}
+                                                <td className="px-3 py-4 text-right w-[110px]">
+                                                    <div className={`
+                                                    inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-semibold
+                                                    ${isPositive ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}
+                                                `}>
+                                                        {formatCurrency(pos.profit)}
+                                                    </div>
+                                                </td>
+
+                                                {/* Return % */}
+                                                <td className={`px-3 py-4 text-right text-sm font-semibold w-[100px] ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
+                                                    {formatPercent(pos.return_percent)}
+                                                </td>
+
+                                                {/* Allocation */}
+                                                <td className="px-3 py-4 text-right pr-4 w-[110px]">
+                                                    <span className="text-blue-400 font-semibold text-sm">
+                                                        {pos.allocation_percent.toFixed(2)}%
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Allocation Chart */}
+                <div className="glass-strong bg-white/5 border border-white/10 rounded-xl p-6">
+                    <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+                        <PieChart className="w-5 h-5 text-purple-400" />
+                        Portfolio Allocation
+                    </h3>
+                    {data.symbol_allocations && data.symbol_allocations.length > 0 ? (
+                        <div className="h-[400px] w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={data.symbol_allocations}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
+                                    <XAxis
+                                        dataKey="symbol"
+                                        stroke="#71717a"
+                                        fontSize={12}
+                                        tickLine={false}
+                                        axisLine={false}
+                                        angle={-45}
+                                        textAnchor="end"
+                                        height={80}
+                                    />
+                                    <YAxis
+                                        stroke="#71717a"
+                                        fontSize={12}
+                                        tickLine={false}
+                                        axisLine={false}
+                                        tickFormatter={(value) => `${value.toFixed(0)}%`}
+                                    />
+                                    <Tooltip
+                                        contentStyle={{
+                                            backgroundColor: '#18181b',
+                                            borderColor: '#27272a',
+                                            borderRadius: '8px',
+                                            color: '#fff'
+                                        }}
+                                        formatter={(value: any) => [`${value.toFixed(2)}%`, 'Allocation']}
+                                    />
+                                    <Bar
+                                        dataKey="allocation_percent"
+                                        fill="#3b82f6"
+                                        radius={[8, 8, 0, 0]}
+                                    />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                    ) : (
+                        <div className="h-[400px] flex items-center justify-center text-zinc-500">
+                            <p>No allocation data available</p>
+                        </div>
+                    )}
+                </div>
             </div>
+
+            {/* Background ambient light effects */}
+            <div className="absolute top-0 right-0 -mr-20 -mt-20 w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[120px] pointer-events-none z-0" />
+            <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-[400px] h-[400px] bg-emerald-500/10 rounded-full blur-[120px] pointer-events-none z-0" />
         </div>
     );
 }

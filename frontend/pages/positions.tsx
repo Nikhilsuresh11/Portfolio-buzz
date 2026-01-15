@@ -182,6 +182,18 @@ export default function MyPositionsPage() {
         }
     };
 
+    const getRandomColor = (symbol: string) => {
+        const colors = [
+            'bg-gradient-to-br from-blue-500 to-blue-600',
+            'bg-gradient-to-br from-purple-500 to-purple-600',
+            'bg-gradient-to-br from-pink-500 to-pink-600',
+            'bg-gradient-to-br from-emerald-500 to-emerald-600',
+            'bg-gradient-to-br from-amber-500 to-amber-600',
+        ];
+        const index = symbol.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+        return colors[index % colors.length];
+    };
+
     if (loading && positions.length === 0) {
         return (
             <div className="flex-1 overflow-auto flex items-center justify-center min-h-screen">
@@ -201,8 +213,8 @@ export default function MyPositionsPage() {
     const totalInvested = positions.reduce((sum, p) => sum + p.invested_amount, 0);
 
     return (
-        <div className="min-h-screen bg-black p-6">
-            <div className="max-w-[1600px] mx-auto">
+        <div className="flex flex-col h-screen relative overflow-hidden bg-black">
+            <div className="flex-none p-6 md:p-8 pb-0 z-10 max-w-[1600px] mx-auto w-full">
                 {/* Header */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
                     <div>
@@ -221,7 +233,10 @@ export default function MyPositionsPage() {
                         </Button>
                     </div>
                 </div>
+            </div>
 
+            {/* Content Area */}
+            <div className="flex-1 px-6 md:px-8 pb-6 md:pb-8 overflow-hidden max-w-[1600px] mx-auto w-full" style={{ paddingTop: '0px' }}>
                 {/* Stats Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                     <div className="bg-zinc-900/40 border border-zinc-800/60 backdrop-blur-xl rounded-2xl p-5">
@@ -259,85 +274,119 @@ export default function MyPositionsPage() {
                         </div>
                     </div>
                 ) : (
-                    <div className="bg-zinc-900/20 border border-zinc-800/40 backdrop-blur-xl rounded-2xl overflow-hidden">
-                        <div className="overflow-x-auto">
-                            <table className="w-full">
-                                <thead>
-                                    <tr className="border-b border-zinc-800/40">
+                    <div className="bg-zinc-900/30 border border-zinc-800/50 backdrop-blur-xl rounded-2xl shadow-2xl shadow-black/20 overflow-hidden flex flex-col h-[600px]">
+                        <div className="flex flex-col h-full overflow-hidden">
+                            {/* Sticky Header */}
+                            <table className="w-full border-collapse text-left table-fixed">
+                                <thead className="sticky top-0 z-10 bg-zinc-900/95 backdrop-blur-sm">
+                                    <tr className="border-b border-white/10 text-xs font-semibold text-gray-400 uppercase tracking-wider">
                                         <th
-                                            className="text-left p-4 text-zinc-400 text-sm font-medium cursor-pointer hover:text-white transition-colors"
+                                            className="px-4 py-3 bg-transparent text-left cursor-pointer hover:text-white transition-colors w-[200px]"
                                             onClick={() => handleSort('symbol')}
                                         >
                                             Symbol
                                         </th>
                                         <th
-                                            className="text-right p-4 text-zinc-400 text-sm font-medium cursor-pointer hover:text-white transition-colors"
+                                            className="px-3 py-3 bg-transparent text-right cursor-pointer hover:text-white transition-colors w-[130px]"
                                             onClick={() => handleSort('totalQuantity')}
                                         >
                                             Quantity
                                         </th>
-                                        <th className="text-right p-4 text-zinc-400 text-sm font-medium">
+                                        <th className="px-3 py-3 bg-transparent text-right w-[130px]">
                                             Avg Price
                                         </th>
                                         <th
-                                            className="text-right p-4 text-zinc-400 text-sm font-medium cursor-pointer hover:text-white transition-colors"
+                                            className="px-3 py-3 bg-transparent text-right cursor-pointer hover:text-white transition-colors w-[150px]"
                                             onClick={() => handleSort('totalInvested')}
                                         >
                                             Total Invested
                                         </th>
                                         <th
-                                            className="text-right p-4 text-zinc-400 text-sm font-medium cursor-pointer hover:text-white transition-colors"
+                                            className="px-3 py-3 bg-transparent text-right cursor-pointer hover:text-white transition-colors w-[130px]"
                                             onClick={() => handleSort('transactionCount')}
                                         >
                                             Transactions
                                         </th>
-                                        <th className="text-right p-4 text-zinc-400 text-sm font-medium">
+                                        <th className="px-3 py-3 bg-transparent text-right pr-4 w-[130px]">
                                             Actions
                                         </th>
                                     </tr>
                                 </thead>
-                                <tbody>
-                                    {groupedPositions.map((group, idx) => (
-                                        <tr
-                                            key={group.symbol}
-                                            className={`border-b border-zinc-800/20 hover:bg-zinc-800/20 transition-colors ${idx === groupedPositions.length - 1 ? 'border-b-0' : ''
-                                                }`}
-                                        >
-                                            <td className="p-4">
-                                                <span className="text-base font-bold text-white">{group.symbol}</span>
-                                            </td>
-                                            <td className="p-4 text-right text-zinc-300 text-sm">
-                                                {group.totalQuantity.toFixed(2)}
-                                            </td>
-                                            <td className="p-4 text-right text-zinc-300 text-sm">
-                                                ₹{group.avgPrice.toFixed(2)}
-                                            </td>
-                                            <td className="p-4 text-right">
-                                                <span className="text-white font-semibold text-sm">
-                                                    ₹{group.totalInvested.toLocaleString('en-IN')}
-                                                </span>
-                                            </td>
-                                            <td className="p-4 text-right">
-                                                <span className="inline-block bg-zinc-800/50 px-2 py-1 rounded-lg text-xs text-zinc-400">
-                                                    {group.transactionCount}
-                                                </span>
-                                            </td>
-                                            <td className="p-4 text-right">
-                                                <button
-                                                    onClick={() => setSelectedSymbol(group.symbol)}
-                                                    className="text-blue-400 hover:text-blue-300 font-medium text-sm transition-colors"
-                                                >
-                                                    View Details
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
                             </table>
+
+                            {/* Scrollable Body */}
+                            <div className="flex-1 overflow-y-auto scrollbar-hide">
+                                <table className="w-full border-collapse text-left table-fixed">
+                                    <tbody className="divide-y divide-white/5">
+                                        {groupedPositions.map((group) => {
+                                            const tickerPrefix = group.symbol.substring(0, 2).toUpperCase();
+
+                                            return (
+                                                <tr
+                                                    key={group.symbol}
+                                                    className="group cursor-pointer transition-colors duration-200 hover:bg-white/5"
+                                                >
+                                                    {/* Symbol Column */}
+                                                    <td className="px-4 py-4 w-[200px]">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className={`
+                                                                w-10 h-10 rounded-lg flex items-center justify-center 
+                                                                text-white font-bold text-sm shadow-md
+                                                                ${getRandomColor(group.symbol)}
+                                                            `}>
+                                                                {tickerPrefix}
+                                                            </div>
+                                                            <div className="min-w-0 flex-1">
+                                                                <div className="font-bold text-gray-100 text-sm">{group.symbol}</div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+
+                                                    {/* Quantity */}
+                                                    <td className="px-3 py-4 text-right font-semibold text-sm text-gray-200 tabular-nums w-[130px]">
+                                                        {group.totalQuantity.toFixed(2)}
+                                                    </td>
+
+                                                    {/* Avg Price */}
+                                                    <td className="px-3 py-4 text-right text-sm text-gray-300 tabular-nums w-[130px]">
+                                                        ₹{group.avgPrice.toFixed(2)}
+                                                    </td>
+
+                                                    {/* Total Invested */}
+                                                    <td className="px-3 py-4 text-right font-bold text-[15px] text-gray-200 tabular-nums w-[150px]">
+                                                        ₹{group.totalInvested.toLocaleString('en-IN')}
+                                                    </td>
+
+                                                    {/* Transactions */}
+                                                    <td className="px-3 py-4 text-right w-[130px]">
+                                                        <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-zinc-800/50 text-zinc-400">
+                                                            {group.transactionCount}
+                                                        </span>
+                                                    </td>
+
+                                                    {/* Actions */}
+                                                    <td className="px-3 py-4 text-right pr-4 w-[130px]">
+                                                        <button
+                                                            onClick={() => setSelectedSymbol(group.symbol)}
+                                                            className="text-blue-400 hover:text-blue-300 font-medium text-sm transition-colors"
+                                                        >
+                                                            View Details
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 )}
             </div>
+
+            {/* Background ambient light effects */}
+            <div className="absolute top-0 right-0 -mr-20 -mt-20 w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[120px] pointer-events-none z-0" />
+            <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-[400px] h-[400px] bg-emerald-500/10 rounded-full blur-[120px] pointer-events-none z-0" />
 
             {/* Transaction Details Modal */}
             {selectedGroup && (
