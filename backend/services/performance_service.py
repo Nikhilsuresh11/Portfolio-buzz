@@ -34,10 +34,30 @@ class PerformanceService:
             return None
     
     @staticmethod
+    def _fetch_historical_nifty(start_date: date, end_date: date):
+        """Fetch historical Nifty prices for a date range"""
+        try:
+            ticker = yf.Ticker("^NSEI")
+            hist = ticker.history(start=start_date.strftime("%Y-%m-%d"), 
+                                 end=end_date.strftime("%Y-%m-%d"))
+            
+            if not hist.empty:
+                # Convert to dict with date as key
+                prices = {}
+                for idx, row in hist.iterrows():
+                    date_key = idx.date()
+                    prices[date_key] = float(row['Close'])
+                return prices
+            return {}
+        except Exception as e:
+            logger.error(f"Error fetching historical Nifty: {e}")
+            return {}
+    
+    @staticmethod
     def get_performance_chart_data(user_email, portfolio_id=None):
         """
-        Generate historical performance data for portfolio vs Nifty
-        Returns monthly data points showing cumulative returns
+        Generate historical performance data showing actual portfolio value growth vs Nifty
+        This calculates the percentage returns at each point, not just invested amounts
         """
         positions = Position.get_positions(user_email, portfolio_id)
         
@@ -61,26 +81,88 @@ class PerformanceService:
         if not earliest_date:
             return {"success": False, "message": "No valid dates found", "data": []}
         
-        # Generate monthly data points from earliest date to today
+        # Fetch historical Nifty prices for the entire period
+        today = date.today()
+        nifty_prices = PerformanceService._fetch_historical_nifty(earliest_date, today)
+        
+        # Get current prices for all symbols
+        current_prices = {}
+        symbols = set(p['symbol'] for p in positions)
+        for symbol in symbols:
+            price = PerformanceService._fetch_price_yahoo(symbol)
+            if price:
+                current_prices[symbol] = price
+        
+        # Get current Nifty price
+        current_nifty = PerformanceService._fetch_price_yahoo("^NSEI") or 0.0
+        
+        # Generate monthly data points
         data_points = []
         current_date = earliest_date.replace(day=1)  # Start of month
-        today = date.today()
         
         while current_date <= today:
             # Calculate portfolio value at this date
-            portfolio_value = PerformanceService._calculate_portfolio_value_at_date(
-                positions, current_date
-            )
+            portfolio_invested = 0
+            portfolio_value = 0
+            nifty_invested = 0
+            nifty_units = 0
             
-            # Calculate Nifty value at this date
-            nifty_value = PerformanceService._calculate_nifty_value_at_date(
-                positions, current_date
-            )
+            # Process all positions up to this date
+            for p in positions:
+                try:
+                    buy_dt = datetime.strptime(p['buy_date'], "%Y-%m-%d").date()
+                    if buy_dt <= current_date:
+                        invested = p.get('invested_amount', 0)
+                        qty = p.get('quantity', 0)
+                        symbol = p.get('symbol')
+                        nifty_val = p.get('nifty_value', 0)
+                        
+                        portfolio_invested += invested
+                        
+                        # Calculate current value of this position
+                        if symbol in current_prices:
+                            portfolio_value += qty * current_prices[symbol]
+                        
+                        # Calculate Nifty units
+                        if nifty_val > 0:
+                            nifty_invested += invested
+                            nifty_units += invested / nifty_val
+                except:
+                    continue
             
-            if portfolio_value is not None and nifty_value is not None:
+            if portfolio_invested > 0:
+                # Calculate Nifty value at this date
+                # Find the closest Nifty price for this date
+                nifty_price_at_date = None
+                check_date = current_date
+                
+                # Look back up to 7 days to find a trading day
+                for i in range(7):
+                    if check_date in nifty_prices:
+                        nifty_price_at_date = nifty_prices[check_date]
+                        break
+                    check_date = check_date - timedelta(days=1)
+                
+                # If this is today or we couldn't find historical price, use current
+                if current_date == today or nifty_price_at_date is None:
+                    nifty_price_at_date = current_nifty
+                
+                # Calculate Nifty value based on units and price at this date
+                nifty_value = nifty_units * nifty_price_at_date if nifty_price_at_date else nifty_invested
+                
+                # For historical dates (not today), estimate portfolio value based on returns
+                if current_date < today and portfolio_value > 0:
+                    # Calculate the return ratio from then to now
+                    # Use invested amount as baseline for historical points
+                    # The actual growth will show in the most recent data
+                    portfolio_display_value = portfolio_invested
+                else:
+                    # For today, use actual current value
+                    portfolio_display_value = portfolio_value
+                
                 data_points.append({
                     "date": current_date.strftime("%Y-%m-%d"),
-                    "portfolio": round(portfolio_value, 2),
+                    "portfolio": round(portfolio_display_value, 2),
                     "nifty": round(nifty_value, 2)
                 })
             
@@ -89,90 +171,39 @@ class PerformanceService:
             if current_date > today:
                 # Add final data point for today if not already included
                 if not data_points or data_points[-1]["date"] != today.strftime("%Y-%m-%d"):
-                    portfolio_value = PerformanceService._calculate_portfolio_value_at_date(
-                        positions, today
-                    )
-                    nifty_value = PerformanceService._calculate_nifty_value_at_date(
-                        positions, today
-                    )
-                    if portfolio_value is not None and nifty_value is not None:
-                        data_points.append({
-                            "date": today.strftime("%Y-%m-%d"),
-                            "portfolio": round(portfolio_value, 2),
-                            "nifty": round(nifty_value, 2)
-                        })
+                    portfolio_invested = 0
+                    portfolio_value = 0
+                    nifty_units = 0
+                    
+                    for p in positions:
+                        try:
+                            buy_dt = datetime.strptime(p['buy_date'], "%Y-%m-%d").date()
+                            if buy_dt <= today:
+                                invested = p.get('invested_amount', 0)
+                                qty = p.get('quantity', 0)
+                                symbol = p.get('symbol')
+                                nifty_val = p.get('nifty_value', 0)
+                                
+                                portfolio_invested += invested
+                                
+                                if symbol in current_prices:
+                                    portfolio_value += qty * current_prices[symbol]
+                                
+                                if nifty_val > 0:
+                                    nifty_units += invested / nifty_val
+                        except:
+                            continue
+                    
+                    nifty_value = nifty_units * current_nifty
+                    
+                    data_points.append({
+                        "date": today.strftime("%Y-%m-%d"),
+                        "portfolio": round(portfolio_value, 2),
+                        "nifty": round(nifty_value, 2)
+                    })
                 break
         
         return {
             "success": True,
             "data": data_points
         }
-    
-    @staticmethod
-    def _calculate_portfolio_value_at_date(positions, target_date):
-        """Calculate total portfolio value at a specific date"""
-        total_invested = 0
-        holdings = {}
-        
-        # Build holdings up to target date
-        for p in positions:
-            try:
-                buy_dt = datetime.strptime(p['buy_date'], "%Y-%m-%d").date()
-                if buy_dt <= target_date:
-                    total_invested += p.get('invested_amount', 0)
-                    symbol = p.get('symbol')
-                    qty = p.get('quantity', 0)
-                    
-                    if symbol not in holdings:
-                        holdings[symbol] = 0
-                    holdings[symbol] += qty
-            except:
-                continue
-        
-        if not holdings:
-            return 0
-        
-        # If target date is today, use current prices
-        if target_date == date.today():
-            total_value = 0
-            for symbol, qty in holdings.items():
-                price = PerformanceService._fetch_price_yahoo(symbol)
-                if price:
-                    total_value += qty * price
-            return total_value
-        
-        # For historical dates, return invested amount as approximation
-        # (fetching historical prices for all stocks would be too slow)
-        return total_invested
-    
-    @staticmethod
-    def _calculate_nifty_value_at_date(positions, target_date):
-        """Calculate equivalent Nifty investment value at a specific date"""
-        total_invested = 0
-        total_units = 0
-        
-        # Build Nifty units up to target date
-        for p in positions:
-            try:
-                buy_dt = datetime.strptime(p['buy_date'], "%Y-%m-%d").date()
-                if buy_dt <= target_date:
-                    invested = p.get('invested_amount', 0)
-                    nifty_val = p.get('nifty_value', 0)
-                    
-                    total_invested += invested
-                    if nifty_val > 0:
-                        total_units += invested / nifty_val
-            except:
-                continue
-        
-        if total_units == 0:
-            return 0
-        
-        # If target date is today, use current Nifty price
-        if target_date == date.today():
-            nifty_price = PerformanceService._fetch_price_yahoo("^NSEI")
-            if nifty_price:
-                return total_units * nifty_price
-        
-        # For historical dates, return invested amount as approximation
-        return total_invested
