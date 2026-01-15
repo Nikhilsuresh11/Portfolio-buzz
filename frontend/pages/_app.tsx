@@ -7,6 +7,8 @@ import { useRouter } from 'next/router'
 import { MessageLoading } from '@/components/ui/message-loading'
 import { AuthProvider } from '../lib/auth-context'
 import { PortfolioProvider } from '../lib/portfolio-context'
+import { GoogleOAuthProvider } from '@react-oauth/google'
+import { config } from '../config'
 
 import Sidebar from '../components/Sidebar'
 
@@ -55,7 +57,7 @@ export default function App({ Component, pageProps }: AppProps) {
   }, [router])
 
   return (
-    <>
+    <GoogleOAuthProvider clientId={config.GOOGLE_CLIENT_ID}>
       <AuthProvider>
         <PortfolioProvider>
           <Layout>
@@ -67,6 +69,6 @@ export default function App({ Component, pageProps }: AppProps) {
           <ToastContainer position="top-right" theme="dark" />
         </PortfolioProvider>
       </AuthProvider>
-    </>
+    </GoogleOAuthProvider>
   )
 }

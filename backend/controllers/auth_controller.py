@@ -1,24 +1,21 @@
 from flask import request
 from services.auth_service import AuthService
 from utils.response import success_response, error_response
-from utils.validators import require_json
 import traceback
 
 
 class AuthController:
-    """Authentication controller for login and signup"""
+    """Authentication controller for Google OAuth"""
     
     @staticmethod
-    @require_json('email', 'password')
-    def login():
+    def google_auth():
         """
-        POST /login
-        Login user and return JWT token
+        POST /auth/google
+        Authenticate user with Google ID token
         
         Request body:
         {
-            "email": "user@example.com",
-            "password": "password123"
+            "token": "google_id_token_here"
         }
         
         Response:
@@ -26,17 +23,23 @@ class AuthController:
             "success": true,
             "data": {
                 "user": { "email": "..." },
-                "token": "jwt_token_here"
+                "email": "user@example.com"
             },
             "error": null
         }
         """
         try:
             data = request.get_json()
-            email = data.get('email', '').strip()
-            password = data.get('password', '')
             
-            success, message, result = AuthService.login_user(email, password)
+            if not data or 'token' not in data:
+                return error_response("Google token is required", 400)
+            
+            token = data.get('token', '').strip()
+            
+            if not token:
+                return error_response("Google token cannot be empty", 400)
+            
+            success, message, result = AuthService.verify_google_token(token)
             
             if success:
                 return success_response(result, message, 200)
@@ -44,46 +47,6 @@ class AuthController:
                 return error_response(message, 401)
         
         except Exception as e:
-            print(f"Login error: {e}")
+            print(f"Google auth error: {e}")
             traceback.print_exc()
-            return error_response(f"Login failed: {str(e)}", 500)
-    
-    @staticmethod
-    @require_json('email', 'password')
-    def signup():
-        """
-        POST /signup
-        Register new user and return JWT token
-        
-        Request body:
-        {
-            "email": "user@example.com",
-            "password": "SecurePass123!"
-        }
-        
-        Response:
-        {
-            "success": true,
-            "data": {
-                "user": { "email": "..." },
-                "token": "jwt_token_here"
-            },
-            "error": null
-        }
-        """
-        try:
-            data = request.get_json()
-            email = data.get('email', '').strip()
-            password = data.get('password', '')
-            
-            success, message, result = AuthService.register_user(email, password)
-            
-            if success:
-                return success_response(result, message, 201)
-            else:
-                return error_response(message, 400)
-        
-        except Exception as e:
-            print(f"Signup error: {e}")
-            traceback.print_exc()
-            return error_response(f"Registration failed: {str(e)}", 500)
+            return error_response(f"Authentication failed: {str(e)}", 500)

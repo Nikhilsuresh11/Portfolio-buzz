@@ -12,7 +12,7 @@ export default function SelectPortfolioPage() {
 
     useEffect(() => {
         if (!isAuthLoading && !userEmail) {
-            router.push('/auth/login');
+            router.push('/');
         }
     }, [isAuthLoading, userEmail, router]);
 

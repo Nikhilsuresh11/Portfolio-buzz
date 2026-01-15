@@ -108,7 +108,7 @@ export default function Sidebar({ onSearchClick }: { onSearchClick?: () => void 
 
     const handleLogout = () => {
         logout();
-        router.push('/auth/login');
+        router.push('/');
     };
 
     const handleNavigate = (path: string) => {

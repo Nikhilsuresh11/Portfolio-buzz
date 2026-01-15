@@ -28,7 +28,7 @@ export default function SettingsPage() {
         if (userData) {
             setUser(userData);
         } else {
-            router.push('/auth/login');
+            router.push('/');
         }
         document.documentElement.setAttribute('data-theme', 'dark');
         setLoading(false);

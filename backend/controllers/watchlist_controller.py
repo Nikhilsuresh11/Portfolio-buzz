@@ -1,21 +1,16 @@
 from flask import request
 from services.watchlist_service import WatchlistService
 from utils.response import success_response, error_response
-from utils.jwt_helper import token_required
 
 
 class WatchlistController:
     """Watchlist controller for managing user watchlists"""
     
     @staticmethod
-    @token_required
-    def get_watchlist(current_user_email):
+    def get_watchlist(user_email):
         """
-        GET /watchlist
+        GET /{user_email}/watchlist
         Get user's watchlist with stock details
-        
-        Headers:
-        Authorization: Bearer <jwt_token>
         
         Response:
         {
@@ -36,7 +31,7 @@ class WatchlistController:
             # Get watchlist_id from query parameter (optional)
             watchlist_id = request.args.get('watchlist_id', 'default')
             
-            success, message, watchlist = WatchlistService.get_watchlist(current_user_email, watchlist_id)
+            success, message, watchlist = WatchlistService.get_watchlist(user_email, watchlist_id)
             
             if success:
                 return success_response(watchlist, message, 200)
@@ -47,14 +42,10 @@ class WatchlistController:
             return error_response(f"Error retrieving watchlist: {str(e)}", 500)
     
     @staticmethod
-    @token_required
-    def add_to_watchlist(current_user_email):
+    def add_to_watchlist(user_email):
         """
-        POST /watchlist
+        POST /{user_email}/watchlist
         Add stock to user's watchlist
-        
-        Headers:
-        Authorization: Bearer <jwt_token>
         
         Request body:
         {
@@ -80,7 +71,7 @@ class WatchlistController:
             if not ticker:
                 return error_response("Ticker cannot be empty", 400)
             
-            success, message, watchlist = WatchlistService.add_to_watchlist(current_user_email, ticker, watchlist_id)
+            success, message, watchlist = WatchlistService.add_to_watchlist(user_email, ticker, watchlist_id)
             
             if success:
                 return success_response(watchlist, message, 200)
@@ -91,14 +82,10 @@ class WatchlistController:
             return error_response(f"Error adding to watchlist: {str(e)}", 500)
     
     @staticmethod
-    @token_required
-    def remove_from_watchlist(current_user_email, ticker):
+    def remove_from_watchlist(user_email, ticker):
         """
-        DELETE /watchlist/<ticker>
+        DELETE /{user_email}/watchlist/<ticker>
         Remove stock from user's watchlist
-        
-        Headers:
-        Authorization: Bearer <jwt_token>
         
         Response:
         {
@@ -111,7 +98,7 @@ class WatchlistController:
             # Get watchlist_id from query parameter (optional)
             watchlist_id = request.args.get('watchlist_id', 'default')
             
-            success, message, watchlist = WatchlistService.remove_from_watchlist(current_user_email, ticker, watchlist_id)
+            success, message, watchlist = WatchlistService.remove_from_watchlist(user_email, ticker, watchlist_id)
             
             if success:
                 return success_response(watchlist, message, 200)
@@ -122,14 +109,10 @@ class WatchlistController:
             return error_response(f"Error removing from watchlist: {str(e)}", 500)
     
     @staticmethod
-    @token_required
-    def get_watchlist_news(current_user_email):
+    def get_watchlist_news(user_email):
         """
-        GET /watchlist/news?time_filter=day&sort_by=date
+        GET /{user_email}/watchlist/news?time_filter=day&sort_by=date
         Get news for all stocks in user's watchlist with time filtering
-        
-        Headers:
-        Authorization: Bearer <jwt_token>
         
         Query Parameters:
         - time_filter (optional): hour, day, week, month, year (default: week)
@@ -156,7 +139,7 @@ class WatchlistController:
             sort_by = request.args.get('sort_by', 'date')
             max_articles = request.args.get('max_articles', 10, type=int)
             
-            print(f"\n[WATCHLIST_NEWS] 📋 Request from {current_user_email} for watchlist {watchlist_id}")
+            print(f"\n[WATCHLIST_NEWS] 📋 Request from {user_email} for watchlist {watchlist_id}")
             print(f"[WATCHLIST_NEWS] ⚙️  Parameters: time_filter={time_filter}, sort_by={sort_by}, max_articles={max_articles}")
             
             # Validate parameters
@@ -169,7 +152,7 @@ class WatchlistController:
                 return error_response(f"Invalid sort_by. Must be one of: {', '.join(valid_sorts)}", 400)
             
             success, message, news_data = WatchlistService.get_watchlist_news(
-                current_user_email,
+                user_email,
                 watchlist_id=watchlist_id,
                 time_filter=time_filter,
                 sort_by=sort_by,
@@ -194,14 +177,10 @@ class WatchlistController:
             return error_response(f"Error fetching news: {str(e)}", 500)
     
     @staticmethod
-    @token_required
-    def get_watchlist_prices(current_user_email):
+    def get_watchlist_prices(user_email):
         """
-        GET /watchlist/price
+        GET /{user_email}/watchlist/price
         Get current prices for all stocks in user's watchlist
-        
-        Headers:
-        Authorization: Bearer <jwt_token>
         
         Response:
         {
@@ -219,7 +198,7 @@ class WatchlistController:
         """
         try:
             watchlist_id = request.args.get('watchlist_id', 'default')
-            success, message, price_data = WatchlistService.get_watchlist_prices(current_user_email, watchlist_id)
+            success, message, price_data = WatchlistService.get_watchlist_prices(user_email, watchlist_id)
             
             if success:
                 return success_response(price_data, message, 200)

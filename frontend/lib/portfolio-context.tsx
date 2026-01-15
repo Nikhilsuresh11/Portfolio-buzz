@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useAuth } from './auth-context';
 import { config } from '../config';
-import { getToken } from './auth';
+import { buildApiUrl, getApiHeaders } from './api-helpers';
 
 interface Portfolio {
     portfolio_id: string;
@@ -25,7 +25,7 @@ interface PortfolioContextType {
 const PortfolioContext = createContext<PortfolioContextType | undefined>(undefined);
 
 export function PortfolioProvider({ children }: { children: ReactNode }) {
-    const { userEmail, token } = useAuth();
+    const { userEmail } = useAuth();
     const [portfolios, setPortfolios] = useState<Portfolio[]>([]);
     const [currentPortfolio, setCurrentPortfolioState] = useState<Portfolio | null>(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -45,22 +45,21 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
     }, []);
 
     useEffect(() => {
-        if (userEmail && token) {
+        if (userEmail) {
             refreshPortfolios();
         } else {
             setPortfolios([]);
         }
-    }, [userEmail, token]);
+    }, [userEmail]);
 
     const refreshPortfolios = async () => {
-        if (!userEmail || !token) return;
+        if (!userEmail) return;
 
         setIsLoading(true);
         try {
-            const response = await fetch(`${config.API_BASE_URL}/api/portfolio-management/portfolios`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
+            const url = buildApiUrl(userEmail, 'portfolio-management/portfolios');
+            const response = await fetch(url, {
+                headers: getApiHeaders()
             });
 
             const data = await response.json();
@@ -95,15 +94,13 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
     };
 
     const createPortfolio = async (name: string, description: string, isDefault: boolean) => {
-        if (!token) return;
+        if (!userEmail) return;
 
         try {
-            const response = await fetch(`${config.API_BASE_URL}/api/portfolio-management/portfolios`, {
+            const url = buildApiUrl(userEmail, 'portfolio-management/portfolios');
+            const response = await fetch(url, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
+                headers: getApiHeaders(),
                 body: JSON.stringify({
                     portfolio_name: name,
                     description: description,
@@ -123,15 +120,13 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
     };
 
     const updatePortfolio = async (portfolioId: string, updateData: any) => {
-        if (!token) return;
+        if (!userEmail) return;
 
         try {
-            const response = await fetch(`${config.API_BASE_URL}/api/portfolio-management/portfolios/${portfolioId}`, {
+            const url = buildApiUrl(userEmail, `portfolio-management/portfolios/${portfolioId}`);
+            const response = await fetch(url, {
                 method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
+                headers: getApiHeaders(),
                 body: JSON.stringify(updateData)
             });
 
@@ -147,14 +142,13 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
     };
 
     const deletePortfolio = async (portfolioId: string) => {
-        if (!token) return;
+        if (!userEmail) return;
 
         try {
-            const response = await fetch(`${config.API_BASE_URL}/api/portfolio-management/portfolios/${portfolioId}`, {
+            const url = buildApiUrl(userEmail, `portfolio-management/portfolios/${portfolioId}`);
+            const response = await fetch(url, {
                 method: 'DELETE',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
+                headers: getApiHeaders()
             });
 
             const data = await response.json();

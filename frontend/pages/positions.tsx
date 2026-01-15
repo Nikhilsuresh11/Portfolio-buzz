@@ -46,7 +46,7 @@ export default function MyPositionsPage() {
 
     useEffect(() => {
         if (!isAuthLoading && !userEmail) {
-            router.push('/auth/login');
+            router.push('/');
         } else if (userEmail && !currentPortfolio) {
             router.push('/select-portfolio');
         } else if (userEmail && currentPortfolio) {

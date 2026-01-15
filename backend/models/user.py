@@ -1,45 +1,30 @@
-import hashlib
 from datetime import datetime
 from utils.db import get_users_collection
 
 
 class User:
-    """User model for authentication and user management"""
+    """User model for Google OAuth authentication"""
     
     @staticmethod
-    def hash_password(password):
+    def create_user(email):
         """
-        Hash password using SHA-256
+        Create a new user with Google OAuth
         
         Args:
-            password: Plain text password
+            email: User's email address from Google
         
         Returns:
-            str: Hashed password
-        """
-        return hashlib.sha256(password.encode()).hexdigest()
-    
-    @staticmethod
-    def create_user(email, password):
-        """
-        Create a new user
-        
-        Args:
-            email: User's email address
-            password: Plain text password
-        
-        Returns:
-            dict: Created user document or None if email exists
+            dict: Created user document or existing user if email exists
         """
         users_col = get_users_collection()
         
         # Check if user already exists
-        if users_col.find_one({'email': email.lower()}):
-            return None
+        existing_user = users_col.find_one({'email': email.lower()})
+        if existing_user:
+            return existing_user
         
         user_doc = {
             'email': email.lower(),
-            'password': User.hash_password(password),
             'created_at': datetime.utcnow(),
             'updated_at': datetime.utcnow()
         }
@@ -62,26 +47,6 @@ class User:
         """
         users_col = get_users_collection()
         return users_col.find_one({'email': email.lower()})
-    
-    @staticmethod
-    def verify_password(email, password):
-        """
-        Verify user password
-        
-        Args:
-            email: User's email address
-            password: Plain text password to verify
-        
-        Returns:
-            bool: True if password matches, False otherwise
-        """
-        user = User.find_by_email(email)
-        
-        if not user:
-            return False
-        
-        hashed_password = User.hash_password(password)
-        return user['password'] == hashed_password
     
     @staticmethod
     def update_user(email, update_data):
@@ -130,18 +95,18 @@ class User:
             list: List of user documents
         """
         users_col = get_users_collection()
-        return list(users_col.find({}, {'password': 0}))  # Exclude password field
+        return list(users_col.find({}))
     
     @staticmethod
     def to_dict(user_doc):
         """
-        Convert user document to dictionary (excluding password)
+        Convert user document to dictionary
         
         Args:
             user_doc: User document from MongoDB
         
         Returns:
-            dict: User data without sensitive information
+            dict: User data
         """
         if not user_doc:
             return None

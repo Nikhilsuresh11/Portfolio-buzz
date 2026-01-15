@@ -87,7 +87,7 @@ export default function ResearchPage() {
         // Auth check
         const userData = getUser()
         if (!userData) {
-            router.push('/auth/login')
+            router.push('/')
             return
         }
         setUser(userData)

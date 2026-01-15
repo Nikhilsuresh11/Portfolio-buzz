@@ -15,7 +15,7 @@ export default function OverallPortfolioPage() {
 
     useEffect(() => {
         if (!isAuthLoading && !userEmail) {
-            router.push('/auth/login');
+            router.push('/');
         } else if (userEmail && !currentPortfolio) {
             // If we have a user but no portfolio, redirect to select
             router.push('/select-portfolio');
