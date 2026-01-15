@@ -1,15 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { positionsApi, PortfolioSummaryResponse } from '../../lib/api';
 import { useAuth } from '../../lib/auth-context';
 import { usePortfolio } from '../../lib/portfolio-context';
+import { buildApiUrl, getApiHeaders } from '../../lib/api-helpers';
 import { TrendingUp, TrendingDown, DollarSign, BarChart3, PieChart, Activity, Loader2 } from 'lucide-react';
 
 export default function PortfolioSummaryPage() {
     const router = useRouter();
     const { userEmail } = useAuth();
     const { currentPortfolio } = usePortfolio();
-    const [data, setData] = useState<PortfolioSummaryResponse | null>(null);
+    const [data, setData] = useState<any | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -20,13 +20,18 @@ export default function PortfolioSummaryPage() {
     }, [userEmail, currentPortfolio]);
 
     const fetchSummary = async () => {
-        if (!currentPortfolio) return;
+        if (!currentPortfolio || !userEmail) return;
 
         try {
             setLoading(true);
             setError(null);
-            const response = await positionsApi.getPortfolioSummary(currentPortfolio.portfolio_id);
-            setData(response);
+
+            const url = buildApiUrl(userEmail, `portfolio/summary?portfolio_id=${currentPortfolio.portfolio_id || 'default'}`);
+            const response = await fetch(url, {
+                headers: getApiHeaders()
+            });
+            const resData = await response.json();
+            setData(resData);
         } catch (err: any) {
             console.error('Error fetching summary:', err);
             setError(err.message || 'Failed to load summary');
@@ -115,7 +120,7 @@ export default function PortfolioSummaryPage() {
                         Allocation
                     </h3>
                     <div className="space-y-3 custom-scrollbar max-h-[400px] overflow-y-auto">
-                        {data.symbol_allocations.map((item, idx) => (
+                        {data.symbol_allocations.map((item: any, idx: number) => (
                             <div key={idx}>
                                 <div className="flex justify-between text-sm mb-1">
                                     <span className="font-semibold">{item.symbol}</span>
@@ -152,7 +157,7 @@ export default function PortfolioSummaryPage() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-white/5">
-                                {data.symbol_allocations.map((pos, idx) => (
+                                {data.symbol_allocations.map((pos: any, idx: number) => (
                                     <tr key={idx} className="hover:bg-white/5 transition-colors">
                                         <td className="p-3 font-semibold">{pos.symbol}</td>
                                         <td className="p-3 text-right text-neutral-300">{pos.quantity.toFixed(2)}</td>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { Search, X, Loader2, FlaskConical, TrendingUp, DollarSign, BarChart3, AlertCircle, ArrowLeft } from 'lucide-react'
-import { getAuthHeaders } from '../lib/auth'
+import { buildPublicApiUrl, getApiHeaders } from '../lib/api-helpers'
+import { useAuth } from '../lib/auth-context'
 import { config } from '../config'
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -44,6 +45,7 @@ interface StockResearchModalProps {
 }
 
 export default function StockResearchModal({ isOpen, onClose }: StockResearchModalProps) {
+    const { userEmail } = useAuth()
     const [query, setQuery] = useState('')
     const [searchResults, setSearchResults] = useState<Stock[]>([])
     const [searchLoading, setSearchLoading] = useState(false)
@@ -80,10 +82,8 @@ export default function StockResearchModal({ isOpen, onClose }: StockResearchMod
 
             setSearchLoading(true)
             try {
-                const res = await fetch(
-                    `${config.API_BASE_URL}/api/search/autocomplete?q=${encodeURIComponent(query)}&limit=8`,
-                    { headers: getAuthHeaders() }
-                )
+                const url = buildPublicApiUrl(`search/autocomplete?q=${encodeURIComponent(query)}&limit=8`);
+                const res = await fetch(url, { headers: getApiHeaders() })
                 const data = await res.json()
                 if (data.success) {
                     setSearchResults(data.data)
@@ -107,9 +107,10 @@ export default function StockResearchModal({ isOpen, onClose }: StockResearchMod
         setResearchData(null)
 
         try {
-            const res = await fetch(`${config.API_BASE_URL}/api/stock-research`, {
+            const url = buildPublicApiUrl('stock-research');
+            const res = await fetch(url, {
                 method: 'POST',
-                headers: getAuthHeaders(),
+                headers: getApiHeaders(),
                 body: JSON.stringify({
                     stock_name: stock.name,
                     ticker_name: stock.ticker

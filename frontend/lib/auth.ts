@@ -1,27 +1,13 @@
 /**
  * Authentication utility functions - Updated for Google OAuth
- * These functions now work with email-based authentication instead of JWT tokens
+ * These functions track session state via localStorage
  */
 
 const USER_EMAIL_KEY = 'pb_user_email';
 const USER_DATA_KEY = 'pb_user_data';
 
-// Legacy token key (for backward compatibility during migration)
-const TOKEN_KEY = 'pb_token';
-
 /**
- * Check if user email exists (replaces token check)
- */
-export const getToken = (): string | null => {
-    // Return email as "token" for backward compatibility
-    if (typeof window !== 'undefined') {
-        return localStorage.getItem(USER_EMAIL_KEY);
-    }
-    return null;
-};
-
-/**
- * Check if user is authenticated (now checks for email)
+ * Check if user is authenticated (checks for email in session)
  */
 export const isAuthenticated = (): boolean => {
     if (typeof window !== 'undefined') {
@@ -52,15 +38,6 @@ export const getUserEmail = (): string | null => {
 };
 
 /**
- * Get authorization headers for API requests (no longer includes token)
- */
-export const getAuthHeaders = (): HeadersInit => {
-    return {
-        'Content-Type': 'application/json',
-    };
-};
-
-/**
  * Save user data (called by auth-context)
  */
 export const saveUser = (user: any): void => {
@@ -79,22 +56,24 @@ export const saveUserEmail = (email: string): void => {
 };
 
 /**
- * Remove user data (logout)
+ * Remove session data (logout)
  */
-export const removeToken = (): void => {
+export const logout = (): void => {
     if (typeof window !== 'undefined') {
         localStorage.removeItem(USER_EMAIL_KEY);
         localStorage.removeItem(USER_DATA_KEY);
-        // Also remove legacy token if it exists
-        localStorage.removeItem(TOKEN_KEY);
+        // Clear any legacy keys
+        localStorage.removeItem('pb_token');
         localStorage.removeItem('pb_user');
+        localStorage.removeItem('current_portfolio');
     }
 };
 
-export const logout = removeToken;
-
-// Legacy function for backward compatibility
-export const saveToken = (token: string): void => {
-    // No longer used, but kept for compatibility
-    console.warn('saveToken is deprecated - using email-based auth now');
+/**
+ * Placeholder for headers - most API calls now use getApiHeaders from api-helpers.ts
+ */
+export const getAuthHeaders = (): HeadersInit => {
+    return {
+        'Content-Type': 'application/json',
+    };
 };

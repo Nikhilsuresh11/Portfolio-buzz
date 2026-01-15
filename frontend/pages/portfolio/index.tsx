@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { positionsApi, OverallTransactionsResponse } from '../../lib/api';
+import { OverallTransactionsResponse } from '../../lib/types';
 import { useAuth } from '../../lib/auth-context';
 import { usePortfolio } from '../../lib/portfolio-context';
+import { buildApiUrl, getApiHeaders } from '../../lib/api-helpers';
 import { TrendingUp, TrendingDown, DollarSign, BarChart3, Activity, Calendar, Loader2 } from 'lucide-react';
 
 export default function OverallPortfolioPage() {
@@ -16,7 +17,7 @@ export default function OverallPortfolioPage() {
     useEffect(() => {
         if (!isAuthLoading && !userEmail) {
             router.push('/');
-        } else if (userEmail && !currentPortfolio) {
+        } else if (userEmail && !currentPortfolio && !isAuthLoading) {
             // If we have a user but no portfolio, redirect to select
             router.push('/select-portfolio');
         }
@@ -29,13 +30,24 @@ export default function OverallPortfolioPage() {
     }, [userEmail, currentPortfolio]);
 
     const fetchOverallData = async () => {
-        if (!currentPortfolio) return;
+        if (!currentPortfolio || !userEmail) return;
 
         try {
             setLoading(true);
             setError(null);
-            const response = await positionsApi.getOverallTransactions(currentPortfolio.portfolio_id);
-            setData(response);
+
+            const url = buildApiUrl(userEmail, `portfolio/overall-transactions?portfolio_id=${currentPortfolio.portfolio_id}`);
+            const response = await fetch(url, {
+                headers: getApiHeaders()
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || `API error: ${response.status}`);
+            }
+
+            const result = await response.json();
+            setData(result);
         } catch (err: any) {
             console.error('Error fetching overall transactions:', err);
             if (err.message && err.message.includes("404")) {

@@ -1,7 +1,7 @@
 import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
 import Header from '../components/Header';
-import { getUser } from '../lib/auth';
+import { useAuth } from '../lib/auth-context';
 import { usePortfolio } from '../lib/portfolio-context';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,8 +11,7 @@ import { MessageLoading } from '@/components/ui/message-loading';
 
 export default function SettingsPage() {
     const router = useRouter();
-    const [user, setUser] = useState<any>(null);
-    const [loading, setLoading] = useState(true);
+    const { userEmail, isLoading: isAuthLoading } = useAuth();
     const { portfolios, currentPortfolio, setCurrentPortfolio, createPortfolio, updatePortfolio, deletePortfolio, refreshPortfolios } = usePortfolio();
 
     // Portfolio form state
@@ -24,15 +23,11 @@ export default function SettingsPage() {
     const [editingPortfolio, setEditingPortfolio] = useState<string | null>(null);
 
     useEffect(() => {
-        const userData = getUser();
-        if (userData) {
-            setUser(userData);
-        } else {
+        if (!isAuthLoading && !userEmail) {
             router.push('/');
         }
         document.documentElement.setAttribute('data-theme', 'dark');
-        setLoading(false);
-    }, [router]);
+    }, [router, isAuthLoading, userEmail]);
 
     const handleCreatePortfolio = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -71,7 +66,7 @@ export default function SettingsPage() {
         }
     };
 
-    if (loading) {
+    if (isAuthLoading) {
         return (
             <div className="flex-1 flex items-center justify-center">
                 <MessageLoading />
@@ -81,7 +76,7 @@ export default function SettingsPage() {
 
     return (
         <div className="flex-1 flex flex-col min-h-screen relative p-6">
-            <Header user={user?.name && user.name !== 'User' ? user.name : (user?.email?.split('@')[0] || 'User')} />
+            <Header user={userEmail?.split('@')[0] || 'User'} />
 
             <div className="max-w-6xl mx-auto w-full z-10 space-y-8 pt-6">
                 {/* Profile Settings */}
@@ -100,7 +95,7 @@ export default function SettingsPage() {
                         <div className="space-y-2">
                             <Label className="text-neutral-400 uppercase text-[10px] font-bold tracking-widest">Email Address</Label>
                             <Input
-                                value={user?.email || ''}
+                                value={userEmail || ''}
                                 disabled
                                 className="bg-white/5 border-white/10 text-neutral-300"
                             />
