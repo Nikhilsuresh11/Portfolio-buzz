@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Check, Shield, User, Plus, Trash2, Edit2, Folder, Star } from 'lucide-react';
-import { MessageLoading } from '@/components/ui/message-loading';
+import { PageLoader } from '@/components/ui/page-loader';
 
 export default function SettingsPage() {
     const router = useRouter();
@@ -68,8 +68,15 @@ export default function SettingsPage() {
 
     if (isAuthLoading) {
         return (
-            <div className="flex-1 flex items-center justify-center">
-                <MessageLoading />
+            <div className="flex-1 flex items-center justify-center min-h-screen">
+                <PageLoader
+                    messages={[
+                        "Loading settings...",
+                        "Fetching your account...",
+                        "Almost ready..."
+                    ]}
+                    subtitle="Preparing your settings"
+                />
             </div>
         );
     }

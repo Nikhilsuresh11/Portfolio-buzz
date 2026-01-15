@@ -3,7 +3,8 @@ import { useRouter } from 'next/router';
 import { useAuth } from '../lib/auth-context';
 import { usePortfolio } from '../lib/portfolio-context';
 import { buildApiUrl, getApiHeaders } from '../lib/api-helpers';
-import { Plus, Trash2, Edit2, Loader2, TrendingUp, Calendar, DollarSign, Hash, ChevronRight, ArrowLeft } from 'lucide-react';
+import { Plus, Trash2, Calendar, Package, X } from 'lucide-react';
+import { PageLoader } from '../components/ui/page-loader';
 import { Button } from '@/components/ui/button';
 
 interface Position {
@@ -27,6 +28,9 @@ interface GroupedPosition {
     transactions: Position[];
 }
 
+type SortField = 'symbol' | 'totalInvested' | 'totalQuantity' | 'transactionCount';
+type SortDirection = 'asc' | 'desc';
+
 export default function MyPositionsPage() {
     const router = useRouter();
     const { userEmail, isLoading: isAuthLoading } = useAuth();
@@ -35,6 +39,8 @@ export default function MyPositionsPage() {
     const [loading, setLoading] = useState(true);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [selectedSymbol, setSelectedSymbol] = useState<string | null>(null);
+    const [sortField, setSortField] = useState<SortField>('totalInvested');
+    const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
     const [formData, setFormData] = useState({
         symbol: '',
         quantity: '',
@@ -96,270 +102,322 @@ export default function MyPositionsPage() {
 
         Object.values(groups).forEach(group => {
             group.avgPrice = group.totalInvested / group.totalQuantity;
-            // Sort transactions by date descending
             group.transactions.sort((a, b) => new Date(b.buy_date).getTime() - new Date(a.buy_date).getTime());
         });
 
-        return Object.values(groups).sort((a, b) => b.totalInvested - a.totalInvested);
-    }, [positions]);
+        const sorted = Object.values(groups).sort((a, b) => {
+            const aVal = a[sortField];
+            const bVal = b[sortField];
+
+            if (sortField === 'symbol') {
+                return sortDirection === 'asc'
+                    ? aVal.toString().localeCompare(bVal.toString())
+                    : bVal.toString().localeCompare(aVal.toString());
+            }
+
+            return sortDirection === 'asc' ? Number(aVal) - Number(bVal) : Number(bVal) - Number(aVal);
+        });
+
+        return sorted;
+    }, [positions, sortField, sortDirection]);
+
+    const handleSort = (field: SortField) => {
+        if (sortField === field) {
+            setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSortField(field);
+            setSortDirection('desc');
+        }
+    };
 
     const handleAddPosition = async (e: React.FormEvent) => {
         e.preventDefault();
-        setSubmitting(true);
-        setError(null);
+        if (!currentPortfolio || !userEmail) return;
 
         try {
-            if (!currentPortfolio || !userEmail) return;
-
-            const data = {
-                symbol: formData.symbol.toUpperCase(),
-                quantity: parseFloat(formData.quantity),
-                buy_date: formData.buy_date,
-                invested_amount: parseFloat(formData.invested_amount),
-                portfolio_id: currentPortfolio.portfolio_id,
-                portfolio_name: currentPortfolio.portfolio_name || 'Main Portfolio',
-            };
+            setSubmitting(true);
+            setError(null);
 
             const url = buildApiUrl(userEmail, 'portfolio/positions');
             const response = await fetch(url, {
                 method: 'POST',
-                headers: getApiHeaders(),
-                body: JSON.stringify(data)
+                headers: {
+                    ...getApiHeaders(),
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    ...formData,
+                    portfolio_id: currentPortfolio.portfolio_id || 'default',
+                    quantity: parseFloat(formData.quantity),
+                    invested_amount: parseFloat(formData.invested_amount),
+                }),
             });
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || 'Failed to add position');
-            }
+            if (!response.ok) throw new Error('Failed to add position');
 
-            setFormData({
-                symbol: '',
-                quantity: '',
-                buy_date: '',
-                invested_amount: '',
-            });
+            setFormData({ symbol: '', quantity: '', buy_date: '', invested_amount: '' });
             setIsAddModalOpen(false);
-            await fetchPositions();
-        } catch (error: any) {
-            console.error('Error adding position:', error);
-            setError(error.message || 'Failed to add position');
+            fetchPositions();
+        } catch (err: any) {
+            setError(err.message || 'Failed to add position');
         } finally {
             setSubmitting(false);
         }
     };
 
     const handleDeletePosition = async (positionId: string) => {
-        if (!confirm('Are you sure you want to delete this transaction?') || !userEmail) return;
+        if (!userEmail || !confirm('Are you sure you want to delete this position?')) return;
+
         try {
             const url = buildApiUrl(userEmail, `portfolio/positions/${positionId}`);
             const response = await fetch(url, {
                 method: 'DELETE',
-                headers: getApiHeaders()
+                headers: getApiHeaders(),
             });
 
-            if (response.ok) {
-                fetchPositions();
-            } else {
-                const errorData = await response.json();
-                console.error('Error deleting position:', errorData.message);
-            }
+            if (!response.ok) throw new Error('Failed to delete position');
+            fetchPositions();
         } catch (error) {
             console.error('Error deleting position:', error);
         }
     };
 
-    if (isAuthLoading || loading) {
+    if (loading && positions.length === 0) {
         return (
-            <div className="flex h-full items-center justify-center">
-                <div className="text-center">
-                    <Loader2 className="w-12 h-12 animate-spin text-blue-500 mx-auto mb-4" />
-                    <h2 className="text-xl font-semibold mb-2 text-white">Loading Positions</h2>
-                    <p className="text-neutral-400 text-sm">Fetching your portfolio data...</p>
-                </div>
+            <div className="flex-1 overflow-auto flex items-center justify-center min-h-screen">
+                <PageLoader
+                    messages={[
+                        "Loading your positions...",
+                        "Fetching transaction history...",
+                        "Almost ready..."
+                    ]}
+                    subtitle="Preparing your portfolio data"
+                />
             </div>
         );
     }
 
     const selectedGroup = groupedPositions.find(g => g.symbol === selectedSymbol);
+    const totalInvested = positions.reduce((sum, p) => sum + p.invested_amount, 0);
 
     return (
-        <div className="p-6 max-w-7xl mx-auto">
-            <div className="flex justify-between items-center mb-8">
-                <div>
-                    <h1 className="text-3xl font-bold mb-2 text-white">My Positions</h1>
-                    <p className="text-neutral-400">Manage your stock positions and track performance</p>
-                </div>
-                <Button
-                    onClick={() => setIsAddModalOpen(true)}
-                    className="bg-blue-600 hover:bg-blue-700 text-white"
-                >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add Position
-                </Button>
-            </div>
-
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                <div className="bg-white/5 border border-white/10 rounded-xl p-5 backdrop-blur-sm">
-                    <div className="flex items-center justify-between mb-2">
-                        <span className="text-neutral-400 text-xs uppercase tracking-widest font-bold">Total Portfolios Value</span>
-                        <Hash className="w-4 h-4 text-blue-400" />
+        <div className="min-h-screen bg-black p-6">
+            <div className="max-w-[1600px] mx-auto">
+                {/* Header */}
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                    <div>
+                        <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-white via-blue-100 to-emerald-100 bg-clip-text text-transparent">
+                            My Positions
+                        </h1>
+                        <p className="text-zinc-400">Track and manage all your stock transactions</p>
                     </div>
-                    <div className="text-2xl font-bold text-white leading-none">
-                        {positions.length} <span className="text-sm font-normal text-neutral-500 ml-1">Entries</span>
-                    </div>
-                </div>
-
-                <div className="bg-white/5 border border-white/10 rounded-xl p-5 backdrop-blur-sm">
-                    <div className="flex items-center justify-between mb-2">
-                        <span className="text-neutral-400 text-xs uppercase tracking-widest font-bold">Total Invested</span>
-                        <DollarSign className="w-4 h-4 text-green-400" />
-                    </div>
-                    <div className="text-2xl font-bold text-white leading-none">
-                        ₹{positions.reduce((sum, p) => sum + p.invested_amount, 0).toLocaleString('en-IN')}
-                    </div>
-                </div>
-
-                <div className="bg-white/5 border border-white/10 rounded-xl p-5 backdrop-blur-sm">
-                    <div className="flex items-center justify-between mb-2">
-                        <span className="text-neutral-400 text-xs uppercase tracking-widest font-bold">Unique Holdings</span>
-                        <TrendingUp className="w-4 h-4 text-purple-400" />
-                    </div>
-                    <div className="text-2xl font-bold text-white leading-none">
-                        {groupedPositions.length}
-                    </div>
-                </div>
-            </div>
-
-            {/* Positions Card Grid */}
-            {groupedPositions.length === 0 ? (
-                <div className="bg-white/5 border border-white/10 rounded-2xl p-20 text-center">
-                    <TrendingUp className="w-16 h-16 mx-auto mb-6 text-neutral-600" />
-                    <h3 className="text-xl font-bold text-white mb-2">No positions found</h3>
-                    <p className="text-neutral-400 mb-8 max-w-sm mx-auto">Start tracking your investment journey by adding your first position.</p>
-                    <Button onClick={() => setIsAddModalOpen(true)} className="bg-blue-600 hover:bg-blue-700 text-white">
-                        Add First Position
-                    </Button>
-                </div>
-            ) : (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-                    {groupedPositions.map((group) => (
-                        <div
-                            key={group.symbol}
-                            onClick={() => setSelectedSymbol(group.symbol)}
-                            className="bg-white/5 border border-white/10 rounded-xl p-4 hover:bg-white/[0.08] hover:border-blue-500/30 transition-all cursor-pointer group relative overflow-hidden active:scale-[0.98]"
+                    <div className="bg-gradient-to-r from-blue-500 to-emerald-500 rounded-xl p-0.5">
+                        <Button
+                            onClick={() => setIsAddModalOpen(true)}
+                            className="bg-black hover:bg-zinc-900 text-white gap-2 font-semibold text-sm h-9 px-5 rounded-[11px]"
                         >
-                            <div className="flex justify-between items-start mb-3">
-                                <h3 className="text-base font-black text-white group-hover:text-blue-400 transition-colors uppercase tracking-tight truncate">{group.symbol}</h3>
-                                <span className="text-[9px] bg-white/5 px-1.5 py-0.5 rounded text-neutral-500 font-bold">{group.transactionCount} Tx</span>
-                            </div>
-
-                            <div className="space-y-1">
-                                <div className="flex justify-between items-center">
-                                    <p className="text-[9px] text-neutral-500 font-bold uppercase tracking-wider">Total</p>
-                                    <p className="text-sm font-black text-white">₹{group.totalInvested.toLocaleString('en-IN')}</p>
-                                </div>
-                                <div className="flex justify-between items-center pt-1 border-t border-white/5">
-                                    <p className="text-[9px] text-neutral-500 font-medium uppercase">Qty</p>
-                                    <p className="text-[11px] font-bold text-neutral-300">{group.totalQuantity.toLocaleString('en-IN')}</p>
-                                </div>
-                            </div>
-                        </div>
-                    ))}
+                            <Plus size={16} />
+                            Add Position
+                        </Button>
+                    </div>
                 </div>
-            )}
 
-            {/* Transaction History Modal */}
-            {selectedGroup && (
-                <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-[100] flex items-center justify-center p-4">
-                    <div className="bg-[#09090B] border border-white/10 rounded-3xl w-full max-w-4xl max-h-[85vh] overflow-hidden shadow-2xl flex flex-col animate-in slide-in-from-bottom-5 duration-300">
-                        <div className="p-8 border-b border-white/10 flex justify-between items-center bg-white/[0.02]">
-                            <div>
-                                <div className="flex items-center gap-3 mb-1">
-                                    <button
-                                        onClick={() => setSelectedSymbol(null)}
-                                        className="p-1 hover:bg-white/10 rounded-lg transition-colors text-neutral-400"
-                                    >
-                                        <ArrowLeft size={20} />
-                                    </button>
-                                    <h2 className="text-3xl font-black text-white uppercase tracking-tight">{selectedGroup.symbol} History</h2>
-                                </div>
-                                <p className="text-neutral-400 ml-9">Detailed transaction logs for this asset</p>
-                            </div>
+                {/* Stats Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div className="bg-zinc-900/40 border border-zinc-800/60 backdrop-blur-xl rounded-2xl p-5">
+                        <p className="text-zinc-500 text-xs mb-2">Total Transactions</p>
+                        <p className="text-2xl font-bold text-white">{positions.length}</p>
+                    </div>
+                    <div className="bg-zinc-900/40 border border-zinc-800/60 backdrop-blur-xl rounded-2xl p-5">
+                        <p className="text-zinc-500 text-xs mb-2">Total Invested</p>
+                        <p className="text-2xl font-bold text-white">₹{totalInvested.toLocaleString('en-IN')}</p>
+                    </div>
+                    <div className="bg-zinc-900/40 border border-zinc-800/60 backdrop-blur-xl rounded-2xl p-5">
+                        <p className="text-zinc-500 text-xs mb-2">Unique Stocks</p>
+                        <p className="text-2xl font-bold text-white">{groupedPositions.length}</p>
+                    </div>
+                </div>
+
+                {/* Table */}
+                {groupedPositions.length === 0 ? (
+                    <div className="bg-zinc-900/20 border border-zinc-800/40 backdrop-blur-xl rounded-2xl p-16 text-center">
+                        <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-zinc-800/50 to-zinc-900/50 flex items-center justify-center mx-auto mb-6">
+                            <Package className="w-10 h-10 text-zinc-600" />
+                        </div>
+                        <h3 className="text-2xl font-bold text-white mb-3">No positions yet</h3>
+                        <p className="text-zinc-400 mb-8 max-w-md mx-auto">
+                            Start building your portfolio by adding your first stock position
+                        </p>
+                        <div className="bg-gradient-to-r from-blue-500 to-emerald-500 rounded-xl p-0.5 inline-block">
                             <Button
-                                variant="ghost"
-                                onClick={() => setSelectedSymbol(null)}
-                                className="text-neutral-500 hover:text-white"
+                                onClick={() => setIsAddModalOpen(true)}
+                                className="bg-black hover:bg-zinc-900 text-white gap-2 font-semibold text-sm h-9 px-5 rounded-[11px]"
                             >
-                                Close
+                                <Plus size={16} />
+                                Add First Position
                             </Button>
                         </div>
-
-                        <div className="flex-1 overflow-auto p-8 custom-scrollbar">
-                            <table className="w-full text-left">
-                                <thead className="text-[10px] font-bold text-neutral-500 uppercase tracking-[0.2em] border-b border-white/5">
-                                    <tr>
-                                        <th className="pb-4">Date</th>
-                                        <th className="pb-4 text-right">Quantity</th>
-                                        <th className="pb-4 text-right">Buy Price</th>
-                                        <th className="pb-4 text-right">Invested</th>
-                                        <th className="pb-4 text-right">Actions</th>
+                    </div>
+                ) : (
+                    <div className="bg-zinc-900/20 border border-zinc-800/40 backdrop-blur-xl rounded-2xl overflow-hidden">
+                        <div className="overflow-x-auto">
+                            <table className="w-full">
+                                <thead>
+                                    <tr className="border-b border-zinc-800/40">
+                                        <th
+                                            className="text-left p-4 text-zinc-400 text-sm font-medium cursor-pointer hover:text-white transition-colors"
+                                            onClick={() => handleSort('symbol')}
+                                        >
+                                            Symbol
+                                        </th>
+                                        <th
+                                            className="text-right p-4 text-zinc-400 text-sm font-medium cursor-pointer hover:text-white transition-colors"
+                                            onClick={() => handleSort('totalQuantity')}
+                                        >
+                                            Quantity
+                                        </th>
+                                        <th className="text-right p-4 text-zinc-400 text-sm font-medium">
+                                            Avg Price
+                                        </th>
+                                        <th
+                                            className="text-right p-4 text-zinc-400 text-sm font-medium cursor-pointer hover:text-white transition-colors"
+                                            onClick={() => handleSort('totalInvested')}
+                                        >
+                                            Total Invested
+                                        </th>
+                                        <th
+                                            className="text-right p-4 text-zinc-400 text-sm font-medium cursor-pointer hover:text-white transition-colors"
+                                            onClick={() => handleSort('transactionCount')}
+                                        >
+                                            Transactions
+                                        </th>
+                                        <th className="text-right p-4 text-zinc-400 text-sm font-medium">
+                                            Actions
+                                        </th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-white/5">
-                                    {selectedGroup.transactions.map((t) => (
-                                        <tr key={t.position_id} className="group hover:bg-white/[0.02] transition-colors">
-                                            <td className="py-5 font-medium text-neutral-300">
-                                                {new Date(t.buy_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                <tbody>
+                                    {groupedPositions.map((group, idx) => (
+                                        <tr
+                                            key={group.symbol}
+                                            className={`border-b border-zinc-800/20 hover:bg-zinc-800/20 transition-colors ${idx === groupedPositions.length - 1 ? 'border-b-0' : ''
+                                                }`}
+                                        >
+                                            <td className="p-4">
+                                                <span className="text-base font-bold text-white">{group.symbol}</span>
                                             </td>
-                                            <td className="py-5 text-right font-bold text-white">
-                                                {t.quantity.toLocaleString('en-IN')}
+                                            <td className="p-4 text-right text-zinc-300 text-sm">
+                                                {group.totalQuantity.toFixed(2)}
                                             </td>
-                                            <td className="py-5 text-right text-neutral-400">
-                                                ₹{(t.invested_amount / t.quantity).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                                            <td className="p-4 text-right text-zinc-300 text-sm">
+                                                ₹{group.avgPrice.toFixed(2)}
                                             </td>
-                                            <td className="py-5 text-right font-bold text-white">
-                                                ₹{t.invested_amount.toLocaleString('en-IN')}
+                                            <td className="p-4 text-right">
+                                                <span className="text-white font-semibold text-sm">
+                                                    ₹{group.totalInvested.toLocaleString('en-IN')}
+                                                </span>
                                             </td>
-                                            <td className="py-5 text-right">
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        handleDeletePosition(t.position_id);
-                                                    }}
-                                                    className="h-8 w-8 text-neutral-600 hover:text-red-500 hover:bg-red-500/10 transition-all opacity-0 group-hover:opacity-100"
+                                            <td className="p-4 text-right">
+                                                <span className="inline-block bg-zinc-800/50 px-2 py-1 rounded-lg text-xs text-zinc-400">
+                                                    {group.transactionCount}
+                                                </span>
+                                            </td>
+                                            <td className="p-4 text-right">
+                                                <button
+                                                    onClick={() => setSelectedSymbol(group.symbol)}
+                                                    className="text-blue-400 hover:text-blue-300 font-medium text-sm transition-colors"
                                                 >
-                                                    <Trash2 size={14} />
-                                                </Button>
+                                                    View Details
+                                                </button>
                                             </td>
                                         </tr>
                                     ))}
                                 </tbody>
                             </table>
                         </div>
+                    </div>
+                )}
+            </div>
 
-                        <div className="p-6 border-t border-white/10 bg-white/[0.02] flex justify-between items-center">
-                            <div className="flex gap-8">
-                                <div>
-                                    <p className="text-[10px] text-neutral-500 font-bold uppercase tracking-widest mb-1">Aggregate Cost</p>
-                                    <p className="text-xl font-bold text-white">₹{selectedGroup.totalInvested.toLocaleString('en-IN')}</p>
-                                </div>
-                                <div>
-                                    <p className="text-[10px] text-neutral-500 font-bold uppercase tracking-widest mb-1">Total Quantity</p>
-                                    <p className="text-xl font-bold text-white">{selectedGroup.totalQuantity.toLocaleString('en-IN')}</p>
-                                </div>
+            {/* Transaction Details Modal */}
+            {selectedGroup && (
+                <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
+                    <div className="bg-zinc-900 border border-zinc-800 rounded-3xl w-full max-w-4xl max-h-[85vh] overflow-hidden shadow-2xl flex flex-col">
+                        <div className="p-6 border-b border-zinc-800 flex justify-between items-center">
+                            <div>
+                                <h2 className="text-2xl font-bold text-white mb-1">
+                                    {selectedGroup.symbol} Transactions
+                                </h2>
+                                <p className="text-zinc-400 text-sm">
+                                    {selectedGroup.transactionCount} transaction{selectedGroup.transactionCount !== 1 ? 's' : ''} • Total: ₹{selectedGroup.totalInvested.toLocaleString('en-IN')}
+                                </p>
                             </div>
-                            <Button
-                                onClick={() => {
-                                    setFormData({ ...formData, symbol: selectedGroup.symbol });
-                                    setIsAddModalOpen(true);
-                                }}
-                                className="bg-white/10 hover:bg-white/20 text-white border border-white/10"
+                            <button
+                                onClick={() => setSelectedSymbol(null)}
+                                className="w-10 h-10 rounded-xl bg-zinc-800/50 hover:bg-zinc-800 flex items-center justify-center transition-colors"
                             >
-                                Add Transaction
-                            </Button>
+                                <X className="w-5 h-5 text-zinc-400" />
+                            </button>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto p-6 scrollbar-hide">
+                            <div className="overflow-x-auto">
+                                <table className="w-full">
+                                    <thead>
+                                        <tr className="border-b border-zinc-800/40">
+                                            <th className="text-left p-3 text-zinc-400 text-sm font-medium">Date</th>
+                                            <th className="text-right p-3 text-zinc-400 text-sm font-medium">Quantity</th>
+                                            <th className="text-right p-3 text-zinc-400 text-sm font-medium">Price</th>
+                                            <th className="text-right p-3 text-zinc-400 text-sm font-medium">Amount</th>
+                                            <th className="text-right p-3 text-zinc-400 text-sm font-medium">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {selectedGroup.transactions.map((transaction, idx) => (
+                                            <tr
+                                                key={transaction.position_id}
+                                                className={`border-b border-zinc-800/20 hover:bg-zinc-800/20 transition-colors ${idx === selectedGroup.transactions.length - 1 ? 'border-b-0' : ''
+                                                    }`}
+                                            >
+                                                <td className="p-3">
+                                                    <div className="flex items-center gap-2">
+                                                        <Calendar className="w-4 h-4 text-blue-400" />
+                                                        <span className="text-white text-sm">
+                                                            {new Date(transaction.buy_date).toLocaleDateString('en-IN', {
+                                                                day: 'numeric',
+                                                                month: 'short',
+                                                                year: 'numeric'
+                                                            })}
+                                                        </span>
+                                                    </div>
+                                                </td>
+                                                <td className="p-3 text-right text-zinc-300 text-sm">
+                                                    {transaction.quantity.toFixed(2)}
+                                                </td>
+                                                <td className="p-3 text-right text-zinc-300 text-sm">
+                                                    ₹{(transaction.invested_amount / transaction.quantity).toFixed(2)}
+                                                </td>
+                                                <td className="p-3 text-right">
+                                                    <span className="text-green-400 font-semibold text-sm">
+                                                        ₹{transaction.invested_amount.toLocaleString('en-IN')}
+                                                    </span>
+                                                </td>
+                                                <td className="p-3 text-right">
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleDeletePosition(transaction.position_id);
+                                                        }}
+                                                        className="w-8 h-8 rounded-lg bg-red-500/10 hover:bg-red-500/20 flex items-center justify-center transition-colors ml-auto"
+                                                    >
+                                                        <Trash2 className="w-4 h-4 text-red-400" />
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -367,81 +425,99 @@ export default function MyPositionsPage() {
 
             {/* Add Position Modal */}
             {isAddModalOpen && (
-                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
-                    <div className="bg-[#111] border border-white/10 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
-                        <div className="p-8 border-b border-white/10 flex justify-between items-center">
-                            <h3 className="text-2xl font-black text-white uppercase tracking-tight">Add Position</h3>
-                            <button onClick={() => setIsAddModalOpen(false)} className="text-neutral-500 hover:text-white">✕</button>
+                <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
+                    <div className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-md shadow-2xl">
+                        <div className="p-5 border-b border-zinc-800 flex justify-between items-center">
+                            <h3 className="text-2xl font-bold text-white">Add Position</h3>
+                            <button
+                                onClick={() => setIsAddModalOpen(false)}
+                                className="w-10 h-10 rounded-xl bg-zinc-800/50 hover:bg-zinc-800 flex items-center justify-center transition-colors"
+                            >
+                                <X className="w-5 h-5 text-zinc-400" />
+                            </button>
                         </div>
-                        <form onSubmit={handleAddPosition} className="p-8 space-y-6">
+
+                        <form onSubmit={handleAddPosition} className="p-5 space-y-4">
                             {error && (
-                                <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 text-red-400 text-sm">
+                                <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 text-red-400 text-sm">
                                     {error}
                                 </div>
                             )}
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">Stock Symbol</label>
+
+                            <div>
+                                <label className="block text-sm font-medium text-zinc-400 mb-2">
+                                    Stock Symbol
+                                </label>
                                 <input
-                                    required
                                     type="text"
-                                    placeholder="e.g. RELIANCE"
-                                    className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 hover:bg-white/[0.08] transition-all"
-                                    value={formData.symbol}
-                                    onChange={e => setFormData({ ...formData, symbol: e.target.value })}
-                                />
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">Quantity</label>
-                                    <input
-                                        required
-                                        type="number"
-                                        step="any"
-                                        placeholder="0"
-                                        className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 hover:bg-white/[0.08] transition-all"
-                                        value={formData.quantity}
-                                        onChange={e => setFormData({ ...formData, quantity: e.target.value })}
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">Buy Date</label>
-                                    <input
-                                        required
-                                        type="date"
-                                        className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 hover:bg-white/[0.08] transition-all"
-                                        value={formData.buy_date}
-                                        onChange={e => setFormData({ ...formData, buy_date: e.target.value })}
-                                    />
-                                </div>
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">Total Invested (₹)</label>
-                                <input
                                     required
-                                    type="number"
-                                    step="any"
-                                    placeholder="0.00"
-                                    className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 hover:bg-white/[0.08] transition-all"
-                                    value={formData.invested_amount}
-                                    onChange={e => setFormData({ ...formData, invested_amount: e.target.value })}
+                                    value={formData.symbol}
+                                    onChange={(e) => setFormData({ ...formData, symbol: e.target.value.toUpperCase() })}
+                                    className="w-full bg-zinc-800/50 border border-zinc-700 rounded-xl px-4 py-2.5 text-white placeholder-zinc-500 focus:outline-none focus:border-blue-500 transition-colors"
+                                    placeholder="e.g., RELIANCE"
                                 />
                             </div>
-                            <div className="flex gap-4 pt-4">
-                                <Button
+
+                            <div>
+                                <label className="block text-sm font-medium text-zinc-400 mb-2">
+                                    Quantity
+                                </label>
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    required
+                                    value={formData.quantity}
+                                    onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
+                                    className="w-full bg-zinc-800/50 border border-zinc-700 rounded-xl px-4 py-2.5 text-white placeholder-zinc-500 focus:outline-none focus:border-blue-500 transition-colors"
+                                    placeholder="0.00"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-zinc-400 mb-2">
+                                    Buy Date
+                                </label>
+                                <input
+                                    type="date"
+                                    required
+                                    value={formData.buy_date}
+                                    onChange={(e) => setFormData({ ...formData, buy_date: e.target.value })}
+                                    className="w-full bg-zinc-800/50 border border-zinc-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-blue-500 transition-colors"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-zinc-400 mb-2">
+                                    Invested Amount (₹)
+                                </label>
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    required
+                                    value={formData.invested_amount}
+                                    onChange={(e) => setFormData({ ...formData, invested_amount: e.target.value })}
+                                    className="w-full bg-zinc-800/50 border border-zinc-700 rounded-xl px-4 py-2.5 text-white placeholder-zinc-500 focus:outline-none focus:border-blue-500 transition-colors"
+                                    placeholder="0.00"
+                                />
+                            </div>
+
+                            <div className="flex gap-3 pt-2">
+                                <button
                                     type="button"
-                                    variant="ghost"
                                     onClick={() => setIsAddModalOpen(false)}
-                                    className="flex-1 h-12 rounded-xl border border-white/10 text-white"
+                                    className="flex-1 bg-zinc-800/50 hover:bg-zinc-800 text-white font-semibold py-2.5 rounded-xl transition-colors"
                                 >
                                     Cancel
-                                </Button>
-                                <Button
-                                    type="submit"
-                                    disabled={submitting}
-                                    className="flex-1 h-12 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold"
-                                >
-                                    {submitting ? 'Processing...' : 'Add Holding'}
-                                </Button>
+                                </button>
+                                <div className="flex-1 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-xl p-0.5">
+                                    <button
+                                        type="submit"
+                                        disabled={submitting}
+                                        className="w-full bg-black hover:bg-zinc-900 text-white font-semibold py-[9px] rounded-[11px] transition-colors disabled:opacity-50"
+                                    >
+                                        {submitting ? 'Adding...' : 'Add Position'}
+                                    </button>
+                                </div>
                             </div>
                         </form>
                     </div>

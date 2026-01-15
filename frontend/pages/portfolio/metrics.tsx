@@ -10,8 +10,8 @@ import {
     PieChart as PieIcon, BarChart3, Info, Zap, Layers, RefreshCw
 } from 'lucide-react'
 import { usePortfolio } from '../../lib/portfolio-context'
-import Header from '../../components/Header'
 import { useAuth } from '../../lib/auth-context'
+import { PageLoader } from '../../components/ui/page-loader'
 
 // Interfaces
 interface AnalysisData {
@@ -160,8 +160,17 @@ export default function Analytics() {
 
     if (loading && !data) {
         return (
-            <div className="flex-1 overflow-auto flex items-center justify-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+            <div className="flex-1 overflow-auto flex items-center justify-center min-h-screen">
+                <PageLoader
+                    messages={[
+                        "Analyzing portfolio risk...",
+                        "Calculating market metrics...",
+                        "Computing correlations...",
+                        "Generating insights...",
+                        "Almost ready..."
+                    ]}
+                    subtitle="Performing comprehensive risk analysis"
+                />
             </div>
         );
     }
@@ -172,9 +181,7 @@ export default function Analytics() {
                 <title>Portfolio Metrics | Portfolio Buzz</title>
             </Head>
 
-            <Header user={userEmail} />
-
-            <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4 pt-6">
+            <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
                 <div>
                     <h2 className="text-2xl font-bold text-white">Portfolio Risk Analysis</h2>
                     <p className="text-sm text-gray-400">Based on your current positions in <span className="text-blue-400">{currentPortfolio?.portfolio_name}</span></p>

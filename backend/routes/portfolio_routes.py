@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
 from services.portfolio_service import PortfolioService
+from services.performance_service import PerformanceService
 from models.position import Position
 from werkzeug.exceptions import BadRequest, NotFound
 
@@ -89,6 +90,18 @@ def overall_transactions(user_email):
     try:
         portfolio_id = request.args.get('portfolio_id', 'default')
         result = PortfolioService.get_overall_transactions(user_email, portfolio_id)
+        return jsonify(result)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"message": str(e)}), 500
+
+@portfolio_bp.route('/performance-chart', methods=['GET'])
+def performance_chart(user_email):
+    """Get historical performance data for chart"""
+    try:
+        portfolio_id = request.args.get('portfolio_id', 'default')
+        result = PerformanceService.get_performance_chart_data(user_email, portfolio_id)
         return jsonify(result)
     except Exception as e:
         import traceback
