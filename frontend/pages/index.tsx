@@ -89,7 +89,8 @@ export default function LandingPage() {
                         <a href="#features" className="hover:text-zinc-400 transition-colors">Features</a>
                         <a href="#solution" className="hover:text-zinc-400 transition-colors">Solution</a>
                         <a href="#pricing" className="hover:text-zinc-400 transition-colors">Pricing</a>
-                        <a href="#about" className="hover:text-zinc-400 transition-colors">About</a>
+                        <a href="/terms" className="hover:text-zinc-400 transition-colors">Terms</a>
+                        <a href="/privacy" className="hover:text-zinc-400 transition-colors">Privacy</a>
                     </div>
                 </div>
             </footer>

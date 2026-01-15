@@ -210,11 +210,21 @@ export function GoogleSignInModal({ open, onClose }: GoogleSignInModalProps) {
 
                                         <p className="text-[11px] text-zinc-500 text-center mt-8 px-6 leading-relaxed">
                                             By continuing, you agree to our{' '}
-                                            <a href="#" className="text-zinc-300 hover:text-white transition-colors underline underline-offset-4">
+                                            <a
+                                                href="/terms"
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-zinc-300 hover:text-white transition-colors underline underline-offset-4"
+                                            >
                                                 Terms
                                             </a>{' '}
                                             &{' '}
-                                            <a href="#" className="text-zinc-300 hover:text-white transition-colors underline underline-offset-4">
+                                            <a
+                                                href="/privacy"
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-zinc-300 hover:text-white transition-colors underline underline-offset-4"
+                                            >
                                                 Privacy
                                             </a>
                                         </p>
