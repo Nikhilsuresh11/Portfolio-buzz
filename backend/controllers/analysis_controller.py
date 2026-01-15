@@ -2,6 +2,7 @@ from flask import request
 from services.analysis_service import AnalysisService
 from services.news_service import NewsService
 from utils.response import success_response, error_response
+from flask_cors import cross_origin
 from utils.date_utils import validate_days_parameter, get_default_days, ALLOWED_DAYS
 
 
@@ -176,3 +177,35 @@ class AnalysisController:
         
         except Exception as e:
             return error_response(f"Error generating insights: {str(e)}", 500)
+
+    @staticmethod
+    @cross_origin()
+    def generate_watchlist_insights(user_email=None):
+        """
+        POST /api/key-insights/watchlist
+        Generate concise market insights for a list of tickers
+        
+        Request body:
+        {
+            "tickers": ["AAPL", "TSLA", "NVDA", ...],
+            "watchlist_id": "optional_id"
+        }
+        """
+        try:
+            data = request.get_json()
+            tickers = data.get('tickers', [])
+            
+            if not tickers or not isinstance(tickers, list):
+                return error_response("tickers list is required", 400)
+            
+            # TODO: If watchlist_id provided, we could fetch news more efficiently if cached
+            
+            success, message, result = AnalysisService.generate_market_insights(tickers)
+            
+            if success:
+                return success_response(result, message, 200)
+            else:
+                return error_response(message, 400)
+                
+        except Exception as e:
+            return error_response(f"Error generating watchlist insights: {str(e)}", 500)

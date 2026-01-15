@@ -1,6 +1,9 @@
+import React, { useState } from 'react';
 import { PricingCard } from "@/components/ui/dark-gradient-pricing"
+import { GoogleSignInModal } from "@/components/GoogleSignInModal"
 
 export function PricingSection() {
+    const [showSignInModal, setShowSignInModal] = useState(false);
     return (
         <section id="pricing" className="relative overflow-hidden bg-black text-foreground">
             <div className="relative z-10 mx-auto max-w-5xl px-4 py-20 md:px-8">
@@ -18,6 +21,7 @@ export function PricingSection() {
                         price="$0/mo"
                         bestFor="Perfect for getting started"
                         CTA="Get started free"
+                        onCTAClick={() => setShowSignInModal(true)}
                         benefits={[
                             { text: "Track up to 10 stocks", checked: true },
                             { text: "Basic AI insights", checked: true },
@@ -57,6 +61,10 @@ export function PricingSection() {
                     />
                 </div>
             </div>
+            <GoogleSignInModal
+                open={showSignInModal}
+                onClose={() => setShowSignInModal(false)}
+            />
         </section>
     )
 }
