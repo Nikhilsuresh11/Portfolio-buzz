@@ -5,7 +5,7 @@ import { useAuth } from '../lib/auth-context'
 import { config } from '../config'
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { ResearchLoader } from '@/components/ui/research-loader'
+import { WatchlistLoader } from '@/components/ui/watchlist-loader'
 
 interface Stock {
     ticker: string
@@ -235,8 +235,8 @@ export default function StockResearchModal({ isOpen, onClose }: StockResearchMod
                             </div>
 
                             {researchLoading ? (
-                                <div className="flex-1 flex items-center justify-center min-h-[400px]">
-                                    <ResearchLoader />
+                                <div className="flex-1 flex items-center justify-center min-h-[500px]">
+                                    <WatchlistLoader />
                                 </div>
                             ) : error ? (
                                 <div className="flex flex-col items-center justify-center gap-6 py-20 text-red-500">

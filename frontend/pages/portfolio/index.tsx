@@ -4,7 +4,8 @@ import { OverallTransactionsResponse } from '../../lib/types';
 import { useAuth } from '../../lib/auth-context';
 import { usePortfolio } from '../../lib/portfolio-context';
 import { buildApiUrl, getApiHeaders } from '../../lib/api-helpers';
-import { TrendingUp, TrendingDown, DollarSign, BarChart3, Activity, Calendar, Loader2 } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, BarChart3, Activity, Calendar } from 'lucide-react';
+import { PageLoader } from '../../components/ui/page-loader';
 
 export default function OverallPortfolioPage() {
     const router = useRouter();
@@ -76,11 +77,16 @@ export default function OverallPortfolioPage() {
     if (isAuthLoading || (loading && !data)) {
         return (
             <div className="flex items-center justify-center h-full">
-                <div className="text-center">
-                    <Loader2 className="w-12 h-12 animate-spin text-blue-500 mx-auto mb-4" />
-                    <h2 className="text-xl font-semibold mb-2">Loading Overall Portfolio</h2>
-                    <p className="text-neutral-400 text-sm">Calculating comprehensive metrics and XIRR...</p>
-                </div>
+                <PageLoader
+                    messages={[
+                        "Loading your portfolio...",
+                        "Calculating comprehensive metrics...",
+                        "Computing XIRR returns...",
+                        "Comparing with Nifty 50...",
+                        "Almost there..."
+                    ]}
+                    subtitle="Analyzing your investment performance"
+                />
             </div>
         );
     }

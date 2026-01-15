@@ -3,7 +3,8 @@ import { useRouter } from 'next/router';
 import { useAuth } from '../lib/auth-context';
 import { usePortfolio } from '../lib/portfolio-context';
 import { buildApiUrl, getApiHeaders } from '../lib/api-helpers';
-import { Plus, Trash2, Edit2, Loader2, TrendingUp, Calendar, DollarSign, Hash, ChevronRight, ArrowLeft } from 'lucide-react';
+import { Plus, Trash2, Edit2, TrendingUp, Calendar, DollarSign, Hash, ChevronRight, ArrowLeft } from 'lucide-react';
+import { PageLoader } from '../components/ui/page-loader';
 import { Button } from '@/components/ui/button';
 
 interface Position {
@@ -171,11 +172,15 @@ export default function MyPositionsPage() {
     if (isAuthLoading || loading) {
         return (
             <div className="flex h-full items-center justify-center">
-                <div className="text-center">
-                    <Loader2 className="w-12 h-12 animate-spin text-blue-500 mx-auto mb-4" />
-                    <h2 className="text-xl font-semibold mb-2 text-white">Loading Positions</h2>
-                    <p className="text-neutral-400 text-sm">Fetching your portfolio data...</p>
-                </div>
+                <PageLoader
+                    messages={[
+                        "Loading your positions...",
+                        "Fetching transaction history...",
+                        "Organizing your holdings...",
+                        "Almost ready..."
+                    ]}
+                    subtitle="Preparing your portfolio data"
+                />
             </div>
         );
     }

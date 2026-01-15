@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../lib/auth-context';
 import { usePortfolio } from '../lib/portfolio-context';
-import { Folder, Plus, ArrowRight, Loader2 } from 'lucide-react';
+import { Folder, Plus, ArrowRight } from 'lucide-react';
+import { PageLoader } from '../components/ui/page-loader';
 
 export default function SelectPortfolioPage() {
     const router = useRouter();
@@ -34,7 +35,14 @@ export default function SelectPortfolioPage() {
     if (isAuthLoading || isPortfolioLoading) {
         return (
             <div className="flex-1 flex items-center justify-center">
-                <Loader2 className="w-12 h-12 animate-spin text-blue-500" />
+                <PageLoader
+                    messages={[
+                        "Loading your portfolios...",
+                        "Fetching portfolio data...",
+                        "Almost there..."
+                    ]}
+                    subtitle="Preparing your portfolio selection"
+                />
             </div>
         );
     }

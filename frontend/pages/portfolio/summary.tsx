@@ -3,7 +3,8 @@ import { useRouter } from 'next/router';
 import { useAuth } from '../../lib/auth-context';
 import { usePortfolio } from '../../lib/portfolio-context';
 import { buildApiUrl, getApiHeaders } from '../../lib/api-helpers';
-import { TrendingUp, TrendingDown, DollarSign, BarChart3, PieChart, Activity, Loader2 } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, BarChart3, PieChart, Activity } from 'lucide-react';
+import { PageLoader } from '../../components/ui/page-loader';
 
 export default function PortfolioSummaryPage() {
     const router = useRouter();
@@ -55,8 +56,16 @@ export default function PortfolioSummaryPage() {
 
     if (loading && !data) {
         return (
-            <div className="flex-1 overflow-auto flex items-center justify-center">
-                <Loader2 className="w-12 h-12 animate-spin text-blue-500" />
+            <div className="flex-1 overflow-auto flex items-center justify-center min-h-screen">
+                <PageLoader
+                    messages={[
+                        "Loading portfolio summary...",
+                        "Fetching your holdings...",
+                        "Calculating allocations...",
+                        "Almost ready..."
+                    ]}
+                    subtitle="Preparing your portfolio breakdown"
+                />
             </div>
         );
     }

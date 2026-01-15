@@ -12,6 +12,7 @@ import {
 import { usePortfolio } from '../../lib/portfolio-context'
 import Header from '../../components/Header'
 import { useAuth } from '../../lib/auth-context'
+import { PageLoader } from '../../components/ui/page-loader'
 
 // Interfaces
 interface AnalysisData {
@@ -160,8 +161,17 @@ export default function Analytics() {
 
     if (loading && !data) {
         return (
-            <div className="flex-1 overflow-auto flex items-center justify-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+            <div className="flex-1 overflow-auto flex items-center justify-center min-h-screen">
+                <PageLoader
+                    messages={[
+                        "Analyzing portfolio risk...",
+                        "Calculating market metrics...",
+                        "Computing correlations...",
+                        "Generating insights...",
+                        "Almost ready..."
+                    ]}
+                    subtitle="Performing comprehensive risk analysis"
+                />
             </div>
         );
     }

@@ -4,7 +4,7 @@ import 'react-toastify/dist/ReactToastify.css'
 import type { AppProps } from 'next/app'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
-import { MessageLoading } from '@/components/ui/message-loading'
+import { PageLoader } from '@/components/ui/page-loader'
 import { AuthProvider } from '../lib/auth-context'
 import { PortfolioProvider } from '../lib/portfolio-context'
 import { GoogleOAuthProvider } from '@react-oauth/google'
@@ -31,8 +31,15 @@ function Layout({ children }: { children: React.ReactNode }) {
 
 function PageLoadingOverlay() {
   return (
-    <div className="absolute inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-300">
-      <MessageLoading />
+    <div className="absolute inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-md animate-in fade-in duration-300">
+      <PageLoader
+        messages={[
+          "Loading page...",
+          "Almost there...",
+          "Just a moment..."
+        ]}
+        subtitle="Please wait"
+      />
     </div>
   )
 }

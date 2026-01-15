@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import { useAuth } from '../lib/auth-context'
 import { buildApiUrl, getApiHeaders } from '../lib/api-helpers'
-import { MessageLoading } from '@/components/ui/message-loading'
+import { PageLoader } from '@/components/ui/page-loader'
 import { Bell, Calendar, Info, Trash2, ArrowRight, TrendingDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { format } from 'date-fns'
@@ -62,8 +62,15 @@ export default function Notifications() {
 
     if (loading && notifications.length === 0) {
         return (
-            <div className="flex-1 flex items-center justify-center h-full">
-                <MessageLoading />
+            <div className="flex-1 flex items-center justify-center h-full min-h-screen">
+                <PageLoader
+                    messages={[
+                        "Loading notifications...",
+                        "Fetching your alerts...",
+                        "Almost ready..."
+                    ]}
+                    subtitle="Checking for updates"
+                />
             </div>
         )
     }
