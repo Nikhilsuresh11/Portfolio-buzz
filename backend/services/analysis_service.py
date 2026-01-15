@@ -409,3 +409,121 @@ OUTPUT NOW:"""
                     return False, f"Error generating insights (both models failed): {str(fallback_error)}", None
             
             return False, f"Error generating insights: {str(e)}", None
+
+    @staticmethod
+    def generate_market_insights(tickers, articles_map=None):
+        """
+        Generate market insights for a list of tickers (watchlist summary)
+        
+        Args:
+            tickers: List of stock tickers
+            articles_map: Optional map of ticker -> articles
+            
+        Returns:
+            tuple: (success: bool, message: str, data: dict or None)
+        """
+        try:
+            print(f"=== GENERATE_MARKET_INSIGHTS DEBUG ===")
+            print(f"Tickers: {tickers}")
+            
+            if not config.GROQ_API_KEY:
+                return False, "GROQ API key not configured", None
+            
+            # Fetch news for tickers if not provided
+            all_entries = []
+            
+            if not articles_map:
+                # Limit to top 10 tickers to avoid timeout/overload
+                target_tickers = tickers[:10]
+                
+                # Use NewsService to fetch news (assuming we can fetch batch or loop safely)
+                # For now, we'll fetch for each ticker (max 10) in parallel or sequential
+                # In production, a batch news endpoint would be better
+                
+                # Fetch aggressively for top stocks
+                for ticker in target_tickers:
+                    # We use a short timeframe (2 days) for immediacy
+                    success, _, articles = NewsService.fetch_news_by_days(ticker, ticker, days=2)
+                    if success and articles:
+                        seen_titles = set()
+                        for article in articles[:3]: # Top 3 per stock
+                            title = article.get('title', '').strip()
+                            if not title or title.lower() in seen_titles:
+                                continue
+                            seen_titles.add(title.lower())
+                            
+                            all_entries.append(f"[{ticker}] {title}")
+            
+            else:
+                # Use provided articles map
+                for ticker, articles in articles_map.items():
+                    if ticker in tickers and articles:
+                        seen_titles = set()
+                        for article in articles[:3]:
+                            title = article.get('title', '').strip()
+                            if not title or title.lower() in seen_titles:
+                                continue
+                            seen_titles.add(title.lower())
+                            all_entries.append(f"[{ticker}] {title}")
+            
+            if not all_entries:
+                return False, "No recent news found for watchlist", None
+                
+            # Randomize/shuffle slightly to avoid alphabetical bias, but here we just take top 40 items
+            articles_text = "\n".join(all_entries[:50])
+            
+            prompt = f"""You are a Senior Market Strategist at a major hedge fund.
+            
+Analyze the following news headlines from our watchlist stocks and extract the 4-5 MOST CRITICAL market-moving themes or specific stock catalysts today.
+
+INPUT HEADLINES:
+{articles_text}
+
+OUTPUT REQUIREMENTS:
+- Generate exactly 4-5 bullet points.
+- Focus on the most impactful movers, sector trends, or macro catalysts visible in the news.
+- Start each bullet with "• **[TICKER]**: ..." or "• **[SECTOR]**: ..." if broader.
+- Provide a brief but elaborated summary (1-2 sentences) for each, explaining the specific catalyst (e.g., "Shares rose 5% after reporting strong Q3 earnings driven by cloud growth...").
+- IGNORE minor news. Focus on Earnings, M&A, FDA approvals, Major Contracts, or Macro shifts.
+- NO intro/outro. Just the bullets.
+
+Example Output:
+• **NVDA**: Surges 5% on new AI chip orders from cloud giants.
+• **TSLA**: Recall affects 2M vehicles, stock down 2% pre-market.
+• **Tech Sector**: Weakness seen across semis following rate hike fears.
+• **AAPL**: Key supplier hints at iPhone 16 production delays.
+
+NOW GENERATE:"""
+
+            # Initialize GROQ client
+            os.environ['GROQ_API_KEY'] = config.GROQ_API_KEY
+            client = Groq()
+            
+            response = client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[
+                    {"role": "system", "content": "You are a concise market strategist. Output only bullet points."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.1,
+                max_tokens=300,
+                timeout=30
+            )
+            
+            raw = response.choices[0].message.content.strip()
+            
+            # Basic cleanup
+            bullets = [l.strip() for l in raw.split('\n') if l.strip().startswith('•')]
+            
+            if not bullets:
+                # Fallback if model didn't output bullets
+                bullets = [f"• {l.strip()}" for l in raw.split('\n') if l.strip()]
+            
+            return True, "Market insights generated", {
+                'bullets': bullets[:5],
+                'generated_at': datetime.now().isoformat()
+            }
+            
+        except Exception as e:
+            print(f"Error generating market insights: {e}")
+            return False, str(e), None

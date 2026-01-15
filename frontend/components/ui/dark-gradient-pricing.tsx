@@ -33,6 +33,7 @@ interface PricingCardProps {
     CTA: string
     benefits: Array<{ text: string; checked: boolean }>
     className?: string
+    onCTAClick?: () => void
 }
 
 export const PricingCard = ({
@@ -42,6 +43,7 @@ export const PricingCard = ({
     CTA,
     benefits,
     className,
+    onCTAClick,
 }: PricingCardProps) => {
     return (
         <motion.div
@@ -77,6 +79,7 @@ export const PricingCard = ({
                 <Button
                     className="w-full"
                     variant={tier === "Pro" ? "default" : "ghost"}
+                    onClick={onCTAClick}
                 >
                     {CTA}
                 </Button>
