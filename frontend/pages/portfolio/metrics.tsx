@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import Head from 'next/head'
-import { config } from '../../config'
-import { getToken } from '../../lib/auth'
+import { buildApiUrl, getApiHeaders } from '../../lib/api-helpers'
 import {
     PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend,
     LineChart, Line, CartesianGrid, ReferenceLine
@@ -121,24 +120,21 @@ export default function Analytics() {
     const [error, setError] = useState('');
 
     useEffect(() => {
-        if (currentPortfolio) {
+        if (currentPortfolio && userEmail) {
             fetchAnalytics();
         }
-    }, [currentPortfolio]);
+    }, [currentPortfolio, userEmail]);
 
     const fetchAnalytics = async () => {
+        if (!currentPortfolio || !userEmail) return;
+
         setLoading(true);
         setError('');
         try {
-            const token = getToken();
-            if (!token || !currentPortfolio) return;
-
-            let url = `${config.API_BASE_URL}/api/analysis/portfolio?portfolio_id=${currentPortfolio.portfolio_id}`;
+            const url = buildApiUrl(userEmail, `analysis/portfolio?portfolio_id=${currentPortfolio.portfolio_id}`);
 
             const res = await fetch(url, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
+                headers: getApiHeaders()
             });
 
             const json = await res.json();

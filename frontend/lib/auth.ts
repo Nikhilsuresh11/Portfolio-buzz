@@ -1,71 +1,19 @@
 /**
- * Authentication utility functions for JWT token management
+ * Authentication utility functions - Updated for Google OAuth
+ * These functions track session state via localStorage
  */
 
-const TOKEN_KEY = 'pb_token';
-const USER_KEY = 'pb_user';
+const USER_EMAIL_KEY = 'pb_user_email';
+const USER_DATA_KEY = 'pb_user_data';
 
 /**
- * Save JWT token to localStorage
- */
-export const saveToken = (token: string): void => {
-    if (typeof window !== 'undefined') {
-        localStorage.setItem(TOKEN_KEY, token);
-    }
-};
-
-/**
- * Get JWT token from localStorage
- */
-export const getToken = (): string | null => {
-    if (typeof window !== 'undefined') {
-        return localStorage.getItem(TOKEN_KEY);
-    }
-    return null;
-};
-
-/**
- * Remove JWT token from localStorage (logout)
- */
-export const removeToken = (): void => {
-    if (typeof window !== 'undefined') {
-        localStorage.removeItem(TOKEN_KEY);
-        localStorage.removeItem(USER_KEY);
-    }
-};
-
-export const logout = removeToken;
-
-/**
- * Check if user is authenticated
+ * Check if user is authenticated (checks for email in session)
  */
 export const isAuthenticated = (): boolean => {
-    return !!getToken();
-};
-
-/**
- * Get authorization headers for API requests
- */
-export const getAuthHeaders = (): HeadersInit => {
-    const token = getToken();
-    if (token) {
-        return {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-        };
-    }
-    return {
-        'Content-Type': 'application/json',
-    };
-};
-
-/**
- * Save user data to localStorage
- */
-export const saveUser = (user: any): void => {
     if (typeof window !== 'undefined') {
-        localStorage.setItem(USER_KEY, JSON.stringify(user));
+        return !!localStorage.getItem(USER_EMAIL_KEY);
     }
+    return false;
 };
 
 /**
@@ -73,8 +21,59 @@ export const saveUser = (user: any): void => {
  */
 export const getUser = (): any | null => {
     if (typeof window !== 'undefined') {
-        const userData = localStorage.getItem(USER_KEY);
+        const userData = localStorage.getItem(USER_DATA_KEY);
         return userData ? JSON.parse(userData) : null;
     }
     return null;
+};
+
+/**
+ * Get user email
+ */
+export const getUserEmail = (): string | null => {
+    if (typeof window !== 'undefined') {
+        return localStorage.getItem(USER_EMAIL_KEY);
+    }
+    return null;
+};
+
+/**
+ * Save user data (called by auth-context)
+ */
+export const saveUser = (user: any): void => {
+    if (typeof window !== 'undefined') {
+        localStorage.setItem(USER_DATA_KEY, JSON.stringify(user));
+    }
+};
+
+/**
+ * Save user email (called by auth-context)
+ */
+export const saveUserEmail = (email: string): void => {
+    if (typeof window !== 'undefined') {
+        localStorage.setItem(USER_EMAIL_KEY, email);
+    }
+};
+
+/**
+ * Remove session data (logout)
+ */
+export const logout = (): void => {
+    if (typeof window !== 'undefined') {
+        localStorage.removeItem(USER_EMAIL_KEY);
+        localStorage.removeItem(USER_DATA_KEY);
+        // Clear any legacy keys
+        localStorage.removeItem('pb_token');
+        localStorage.removeItem('pb_user');
+        localStorage.removeItem('current_portfolio');
+    }
+};
+
+/**
+ * Placeholder for headers - most API calls now use getApiHeaders from api-helpers.ts
+ */
+export const getAuthHeaders = (): HeadersInit => {
+    return {
+        'Content-Type': 'application/json',
+    };
 };

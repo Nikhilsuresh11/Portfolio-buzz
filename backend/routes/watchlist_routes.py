@@ -2,7 +2,7 @@ from flask import Blueprint
 from controllers.watchlist_controller import WatchlistController
 
 # Create watchlist blueprint
-watchlist_bp = Blueprint('watchlist', __name__, url_prefix='/api/watchlist')
+watchlist_bp = Blueprint('watchlist', __name__, url_prefix='/api/<string:user_email>/watchlist')
 
 # Register routes
 watchlist_bp.route('', methods=['GET'])(WatchlistController.get_watchlist)

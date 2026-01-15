@@ -4,6 +4,7 @@ import { ArrowRight, ChevronRight, Menu, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { AnimatedGroup } from '@/components/ui/animated-group'
 import { cn } from '@/lib/utils'
+import { GoogleSignInModal } from '@/components/GoogleSignInModal'
 
 const transitionVariants = {
     item: {
@@ -28,9 +29,11 @@ const transitionVariants = {
 import { Variants } from 'framer-motion'
 
 export function HeroSection() {
+    const [showSignInModal, setShowSignInModal] = React.useState(false);
+
     return (
         <>
-            <HeroHeader />
+            <HeroHeader onSignInClick={() => setShowSignInModal(true)} />
             <main className="overflow-hidden">
                 <div
                     aria-hidden
@@ -90,12 +93,10 @@ export function HeroSection() {
                                         key={1}
                                         className="bg-foreground/10 rounded-[14px] border border-white/10 p-0.5">
                                         <Button
-                                            asChild
+                                            onClick={() => setShowSignInModal(true)}
                                             size="lg"
                                             className="rounded-xl px-8 text-base bg-white text-black hover:bg-neutral-200">
-                                            <Link href="/auth/login?mode=signup">
-                                                <span className="text-nowrap font-semibold">Get Started Free</span>
-                                            </Link>
+                                            <span className="text-nowrap font-semibold">Navigate to Dashboard</span>
                                         </Button>
                                     </div>
                                 </AnimatedGroup>
@@ -140,6 +141,11 @@ export function HeroSection() {
                     </div>
                 </section>
             </main>
+
+            <GoogleSignInModal
+                open={showSignInModal}
+                onClose={() => setShowSignInModal(false)}
+            />
         </>
     )
 }
@@ -151,7 +157,7 @@ const menuItems = [
     { name: 'About', href: '#about' },
 ]
 
-const HeroHeader = () => {
+const HeroHeader = ({ onSignInClick }: { onSignInClick: () => void }) => {
     const [menuState, setMenuState] = React.useState(false)
     const [isScrolled, setIsScrolled] = React.useState(false)
 
@@ -219,29 +225,10 @@ const HeroHeader = () => {
                             </div>
                             <div className="flex w-full flex-col space-y-3 sm:flex-row sm:gap-3 sm:space-y-0 md:w-fit">
                                 <Button
-                                    asChild
-                                    variant="outline"
+                                    onClick={onSignInClick}
                                     size="sm"
-                                    className={cn(isScrolled && 'lg:hidden')}>
-                                    <Link href="/auth/login?mode=login">
-                                        <span>Login</span>
-                                    </Link>
-                                </Button>
-                                <Button
-                                    asChild
-                                    size="sm"
-                                    className={cn(isScrolled && 'lg:hidden')}>
-                                    <Link href="/auth/login?mode=signup">
-                                        <span>Sign Up</span>
-                                    </Link>
-                                </Button>
-                                <Button
-                                    asChild
-                                    size="sm"
-                                    className={cn(isScrolled ? 'lg:inline-flex' : 'hidden')}>
-                                    <Link href="/auth/login?mode=signup">
-                                        <span>Get Started</span>
-                                    </Link>
+                                    className="bg-white text-black hover:bg-neutral-200">
+                                    <span>Sign In</span>
                                 </Button>
                             </div>
                         </div>

@@ -1,8 +1,8 @@
 import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/router'
 import Header from '../components/Header'
-import { getUser, getAuthHeaders } from '../lib/auth'
-import { config } from '../config'
+import { useAuth } from '../lib/auth-context'
+import { buildApiUrl, buildPublicApiUrl, getApiHeaders } from '../lib/api-helpers'
 import { Search, Loader2, FlaskConical, TrendingUp, DollarSign, BarChart3, AlertCircle, CheckCircle2, XCircle } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -71,7 +71,7 @@ const MOCK_DATA: ResearchData = {
 
 export default function ResearchPage() {
     const router = useRouter()
-    const [user, setUser] = useState<any>(null)
+    const { userEmail, isLoading: isAuthLoading } = useAuth()
     const [query, setQuery] = useState('')
     const [searchResults, setSearchResults] = useState<Stock[]>([])
     const [searchLoading, setSearchLoading] = useState(false)
@@ -84,19 +84,16 @@ export default function ResearchPage() {
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
-        // Auth check
-        const userData = getUser()
-        if (!userData) {
-            router.push('/auth/login')
+        if (!isAuthLoading && !userEmail) {
+            router.push('/')
             return
         }
-        setUser(userData)
         document.documentElement.setAttribute('data-theme', 'dark')
 
         // Auto focus search on mount if empty
         setTimeout(() => inputRef.current?.focus(), 100)
         setLoading(false)
-    }, [router])
+    }, [router, isAuthLoading, userEmail])
 
     // Keyboard shortcuts
     useEffect(() => {
@@ -128,10 +125,9 @@ export default function ResearchPage() {
 
             setSearchLoading(true)
             try {
-                const res = await fetch(
-                    `${config.API_BASE_URL}/api/search/autocomplete?q=${encodeURIComponent(query)}&limit=8`,
-                    { headers: getAuthHeaders() }
-                )
+                // Search is public
+                const url = buildPublicApiUrl(`search/autocomplete?q=${encodeURIComponent(query)}&limit=8`);
+                const res = await fetch(url, { headers: getApiHeaders() })
                 const data = await res.json()
                 if (data.success) {
                     setSearchResults(data.data)
@@ -148,6 +144,8 @@ export default function ResearchPage() {
     }, [query])
 
     const fetchResearch = async (stock: Stock) => {
+        if (!userEmail) return;
+
         setSelectedStock(stock)
         setResearchLoading(true)
         setError(null)
@@ -164,9 +162,10 @@ export default function ResearchPage() {
         }
 
         try {
-            const res = await fetch(`${config.API_BASE_URL}/api/stock-research`, {
+            const url = buildPublicApiUrl('stock-research'); // Stock research is public
+            const res = await fetch(url, {
                 method: 'POST',
-                headers: getAuthHeaders(),
+                headers: getApiHeaders(),
                 body: JSON.stringify({
                     stock_name: stock.name,
                     ticker_name: stock.ticker

@@ -2,16 +2,14 @@ from flask import request, jsonify
 from services.portfolio_analysis_service import PortfolioAnalysisService
 from services.watchlist_service import WatchlistService
 from utils.response import success_response, error_response
-from utils.jwt_helper import token_required
 
 class PortfolioAnalysisController:
     """Controller for portfolio analysis endpoints"""
     
     @staticmethod
-    @token_required
-    def get_portfolio_analysis(current_user_email):
+    def get_portfolio_analysis(user_email):
         """
-        GET /api/analysis/portfolio
+        GET /api/{user_email}/analysis/portfolio
         Get comprehensive portfolio analytics
         """
         try:
@@ -20,7 +18,7 @@ class PortfolioAnalysisController:
             
             # Get tickers from portfolio positions (as requested: "based on the portfolio positions and not the watchlist")
             from models.position import Position
-            positions = Position.get_positions(current_user_email, portfolio_id)
+            positions = Position.get_positions(user_email, portfolio_id)
             
             if not positions:
                 return success_response({

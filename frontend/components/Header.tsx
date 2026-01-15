@@ -18,7 +18,7 @@ export default function Header({ user }: { user?: string | null }) {
 
   const handleLogout = () => {
     logout()
-    router.push('/auth/login')
+    router.push('/')
   }
 
   const getPageTitle = () => {

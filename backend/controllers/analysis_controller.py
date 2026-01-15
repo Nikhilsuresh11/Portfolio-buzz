@@ -2,7 +2,6 @@ from flask import request
 from services.analysis_service import AnalysisService
 from services.news_service import NewsService
 from utils.response import success_response, error_response
-from utils.jwt_helper import token_required, optional_token
 from utils.date_utils import validate_days_parameter, get_default_days, ALLOWED_DAYS
 
 
@@ -10,14 +9,10 @@ class AnalysisController:
     """Analysis controller for AI-powered stock analysis"""
     
     @staticmethod
-    @token_required
-    def generate_ai_insight(current_user_email):
+    def generate_ai_insight():
         """
-        POST /ai-insight
+        POST /api/ai-insight
         Generate AI-powered stock analysis
-        
-        Headers:
-        Authorization: Bearer <jwt_token>
         
         Request body:
         {
@@ -63,8 +58,7 @@ class AnalysisController:
             return error_response(f"Error generating analysis: {str(e)}", 500)
     
     @staticmethod
-    @optional_token
-    def get_news_by_days(current_user_email=None, days=None):
+    def get_news_by_days(days=None):
         """
         GET /news or /news/<days>
         Get news for the last N days (defaults to 2 days)
@@ -137,14 +131,10 @@ class AnalysisController:
             return error_response(f"Error fetching news: {str(e)}", 500)
     
     @staticmethod
-    @token_required
-    def generate_key_insights(current_user_email):
+    def generate_key_insights():
         """
-        POST /key-insights
+        POST /api/key-insights
         Generate concise key insights (3-5 bullet points)
-        
-        Headers:
-        Authorization: Bearer <jwt_token>
         
         Request body:
         {

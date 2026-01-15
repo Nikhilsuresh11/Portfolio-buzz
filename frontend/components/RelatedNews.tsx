@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Clock, Newspaper, X } from 'lucide-react'
-import { getToken } from '../lib/auth'
-import { config } from '../config'
+import { useAuth } from '../lib/auth-context'
+import { buildApiUrl, buildPublicApiUrl, getApiHeaders } from '../lib/api-helpers'
 import { Button } from "@/components/ui/button"
 
 interface Article {
@@ -24,31 +24,28 @@ interface Props {
 export default function RelatedNews({ ticker, watchlistId, onClose }: Props) {
   const [news, setNews] = useState<Article[]>([])
   const [loading, setLoading] = useState(false)
+  const { userEmail } = useAuth()
 
   useEffect(() => {
     const fetchNews = async () => {
       setLoading(true)
       try {
-        const token = getToken()
-        const headers: HeadersInit = {}
-        if (token) headers['Authorization'] = `Bearer ${token}`
-
-        // If ticker is provided, fetch news specifically for that ticker
-        // Otherwise fetch general watchlist news
         let url: string
         if (ticker) {
-          // Fetch news for specific ticker from /api/news endpoint (7 days default)
-          url = `${config.API_BASE_URL}/api/news/7?stock_name=${ticker}&ticker=${ticker}`
+          // Fetch news for specific ticker - public endpoint
+          url = buildPublicApiUrl(`news/7?stock_name=${ticker}&ticker=${ticker}`)
+        } else if (userEmail) {
+          // Fetch watchlist news - requires user email
+          url = buildApiUrl(userEmail, `watchlist/news${watchlistId ? `?watchlist_id=${watchlistId}` : ''}`)
         } else {
-          // Fetch specific watchlist news if ID is provided, otherwise default
-          url = `${config.API_BASE_URL}/api/watchlist/news${watchlistId ? `?watchlist_id=${watchlistId}` : ''}`
+          setLoading(false)
+          return
         }
 
-        const res = await fetch(url, { headers })
+        const res = await fetch(url, { headers: getApiHeaders() })
         const data = await res.json()
 
         if (data.success) {
-          // Handle different response structures
           if (ticker) {
             // Response from /api/news endpoint
             if (data.data?.articles && Array.isArray(data.data.articles)) {
@@ -76,7 +73,7 @@ export default function RelatedNews({ ticker, watchlistId, onClose }: Props) {
     }
 
     fetchNews()
-  }, [ticker, watchlistId])
+  }, [ticker, watchlistId, userEmail])
 
   return (
     <div className="h-full flex flex-col bg-transparent">

@@ -1,17 +1,12 @@
 from flask import request
 from services.stock_research_service import get_fundamental_research
 from utils.response import success_response, error_response
-from utils.jwt_helper import token_required
 
 
-@token_required
-def get_stock_research(current_user_email):
+def get_stock_research():
     """
-    POST /stock-research
+    POST /api/stock-research
     Generate comprehensive fundamental research for a stock
-    
-    Headers:
-    Authorization: Bearer <jwt_token>
     
     Request body:
     {

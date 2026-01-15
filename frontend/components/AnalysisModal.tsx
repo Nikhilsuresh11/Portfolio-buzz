@@ -1,7 +1,6 @@
 import ReactMarkdown from 'react-markdown'
 import { useEffect, useState } from 'react'
-import { getToken } from '../lib/auth'
-import { config } from '../config'
+import { buildPublicApiUrl, getApiHeaders } from '../lib/api-helpers'
 import { Button } from "@/components/ui/button"
 import { X, Loader2, Sparkles } from 'lucide-react'
 import {
@@ -84,8 +83,6 @@ export default function AnalysisModal({ ticker, open, onClose, newsArticles = []
     setLoading(true)
     setError('')
     try {
-      const token = getToken()
-
       // Format articles for AI context
       const newsContext = articles.map(article => ({
         title: article.title,
@@ -94,12 +91,10 @@ export default function AnalysisModal({ ticker, open, onClose, newsArticles = []
         published_at: article.published_at
       }))
 
-      const res = await fetch(`${config.API_BASE_URL}/api/ai-insight`, {
+      const url = buildPublicApiUrl('ai-insight');
+      const res = await fetch(url, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+        headers: getApiHeaders(),
         body: JSON.stringify({
           stock_name: stockTicker.split('.')[0],
           ticker: stockTicker,

@@ -1,55 +1,62 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { useRouter } from 'next/router';
-import { getToken, getUser, removeToken, saveToken, saveUser } from './auth';
 
 interface AuthContextType {
     user: any | null;
     userEmail: string | null;
-    token: string | null;
     isLoading: boolean;
-    login: (token: string, user: any) => void;
+    login: (email: string, user: any) => void;
     logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const USER_EMAIL_KEY = 'pb_user_email';
+const USER_DATA_KEY = 'pb_user_data';
+
 export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setUserState] = useState<any | null>(null);
-    const [token, setTokenState] = useState<string | null>(null);
+    const [userEmail, setUserEmail] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const router = useRouter();
 
     useEffect(() => {
         // Initialize from local storage
-        const storedToken = getToken();
-        const storedUser = getUser();
+        if (typeof window !== 'undefined') {
+            const storedEmail = localStorage.getItem(USER_EMAIL_KEY);
+            const storedUser = localStorage.getItem(USER_DATA_KEY);
 
-        if (storedToken && storedUser) {
-            setTokenState(storedToken);
-            setUserState(storedUser);
+            if (storedEmail && storedUser) {
+                setUserEmail(storedEmail);
+                setUserState(JSON.parse(storedUser));
+            }
         }
         setIsLoading(false);
     }, []);
 
-    const login = (newToken: string, newUser: any) => {
-        saveToken(newToken);
-        saveUser(newUser);
-        setTokenState(newToken);
-        setUserState(newUser);
+    const login = (email: string, userData: any) => {
+        if (typeof window !== 'undefined') {
+            localStorage.setItem(USER_EMAIL_KEY, email);
+            localStorage.setItem(USER_DATA_KEY, JSON.stringify(userData));
+        }
+        setUserEmail(email);
+        setUserState(userData);
     };
 
     const logout = () => {
-        removeToken();
-        setTokenState(null);
+        if (typeof window !== 'undefined') {
+            localStorage.removeItem(USER_EMAIL_KEY);
+            localStorage.removeItem(USER_DATA_KEY);
+        }
+        setUserEmail(null);
         setUserState(null);
-        router.push('/auth/login');
+        router.push('/');
     };
 
     return (
         <AuthContext.Provider value={{
             user,
-            userEmail: user?.email || null,
-            token,
+            userEmail,
             isLoading,
             login,
             logout

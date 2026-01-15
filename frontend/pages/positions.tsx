@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/router';
-import { positionsApi } from '../lib/api';
 import { useAuth } from '../lib/auth-context';
 import { usePortfolio } from '../lib/portfolio-context';
+import { buildApiUrl, getApiHeaders } from '../lib/api-helpers';
 import { Plus, Trash2, Edit2, Loader2, TrendingUp, Calendar, DollarSign, Hash, ChevronRight, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -46,8 +46,8 @@ export default function MyPositionsPage() {
 
     useEffect(() => {
         if (!isAuthLoading && !userEmail) {
-            router.push('/auth/login');
-        } else if (userEmail && !currentPortfolio) {
+            router.push('/');
+        } else if (userEmail && !currentPortfolio && !isAuthLoading) {
             router.push('/select-portfolio');
         } else if (userEmail && currentPortfolio) {
             fetchPositions();
@@ -55,12 +55,17 @@ export default function MyPositionsPage() {
     }, [userEmail, currentPortfolio, isAuthLoading, router]);
 
     const fetchPositions = async () => {
+        if (!currentPortfolio || !userEmail) return;
+
         try {
             setLoading(true);
-            if (currentPortfolio) {
-                const response = await positionsApi.listPositions(currentPortfolio.portfolio_id);
-                setPositions(response.positions || []);
-            }
+            const query = `?portfolio_id=${currentPortfolio.portfolio_id || 'default'}`;
+            const url = buildApiUrl(userEmail, `portfolio/positions${query}`);
+            const response = await fetch(url, {
+                headers: getApiHeaders()
+            });
+            const data = await response.json();
+            setPositions(data.positions || []);
         } catch (error) {
             console.error('Error fetching positions:', error);
         } finally {
@@ -104,16 +109,27 @@ export default function MyPositionsPage() {
         setError(null);
 
         try {
+            if (!currentPortfolio || !userEmail) return;
+
             const data = {
                 symbol: formData.symbol.toUpperCase(),
                 quantity: parseFloat(formData.quantity),
                 buy_date: formData.buy_date,
                 invested_amount: parseFloat(formData.invested_amount),
-                portfolio_name: currentPortfolio?.portfolio_name || 'Main Portfolio',
+                portfolio_id: currentPortfolio.portfolio_id,
+                portfolio_name: currentPortfolio.portfolio_name || 'Main Portfolio',
             };
 
-            if (currentPortfolio) {
-                await positionsApi.createPosition(currentPortfolio.portfolio_id, data);
+            const url = buildApiUrl(userEmail, 'portfolio/positions');
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: getApiHeaders(),
+                body: JSON.stringify(data)
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to add position');
             }
 
             setFormData({
@@ -133,10 +149,20 @@ export default function MyPositionsPage() {
     };
 
     const handleDeletePosition = async (positionId: string) => {
-        if (!confirm('Are you sure you want to delete this transaction?')) return;
+        if (!confirm('Are you sure you want to delete this transaction?') || !userEmail) return;
         try {
-            await positionsApi.deletePosition(positionId);
-            fetchPositions();
+            const url = buildApiUrl(userEmail, `portfolio/positions/${positionId}`);
+            const response = await fetch(url, {
+                method: 'DELETE',
+                headers: getApiHeaders()
+            });
+
+            if (response.ok) {
+                fetchPositions();
+            } else {
+                const errorData = await response.json();
+                console.error('Error deleting position:', errorData.message);
+            }
         } catch (error) {
             console.error('Error deleting position:', error);
         }

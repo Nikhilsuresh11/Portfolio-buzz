@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { Search, X, Plus, Check, Loader2 } from 'lucide-react'
-import { getToken } from '../lib/auth'
-import { config } from '../config'
+import { buildPublicApiUrl, getApiHeaders } from '../lib/api-helpers'
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -67,12 +66,9 @@ export default function StockSearchModal({ isOpen, onClose, onAddStock, watchlis
 
             setLoading(true)
             try {
-                const token = getToken()
-                const headers: HeadersInit = {}
-                if (token) headers['Authorization'] = `Bearer ${token}`
-
-                const res = await fetch(`${config.API_BASE_URL}/api/search/autocomplete?q=${encodeURIComponent(query)}&limit=10`, {
-                    headers
+                const url = buildPublicApiUrl(`search/autocomplete?q=${encodeURIComponent(query)}&limit=10`);
+                const res = await fetch(url, {
+                    headers: getApiHeaders()
                 })
 
                 const data = await res.json()

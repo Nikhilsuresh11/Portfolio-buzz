@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/router';
 import { HeroSection } from "@/components/blocks/hero-section-1";
 import { FeatureSteps } from "@/components/blocks/feature-section";
 import { SolutionSection } from "@/components/blocks/solution-section";
 import { PricingSection } from "@/components/blocks/pricing-section";
 import { AboutUs } from "@/components/blocks/about-us";
 import { isAuthenticated } from '../lib/auth';
+import { motion } from 'framer-motion';
 
 const features = [
     {
@@ -28,19 +30,33 @@ const features = [
 ];
 
 export default function LandingPage() {
-    const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const router = useRouter();
+    const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
     useEffect(() => {
-        setIsLoggedIn(isAuthenticated());
+        if (isAuthenticated()) {
+            router.replace('/watchlist');
+        } else {
+            setIsCheckingAuth(false);
+        }
         // Ensure dark theme for landing page aesthetics
         document.documentElement.setAttribute('data-theme', 'dark');
         document.documentElement.classList.add('dark');
         // Smooth scroll behavior
         document.documentElement.style.scrollBehavior = 'smooth';
-    }, []);
+    }, [router]);
+
+    if (isCheckingAuth) {
+        return <div className="min-h-screen bg-black" />;
+    }
 
     return (
-        <div className="bg-black text-foreground min-h-screen overflow-x-hidden dark">
+        <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.8, ease: 'easeOut' }}
+            className="bg-black text-foreground min-h-screen overflow-x-hidden dark"
+        >
             {/* Hero Section */}
             <HeroSection />
 
@@ -73,10 +89,12 @@ export default function LandingPage() {
                         <a href="#features" className="hover:text-zinc-400 transition-colors">Features</a>
                         <a href="#solution" className="hover:text-zinc-400 transition-colors">Solution</a>
                         <a href="#pricing" className="hover:text-zinc-400 transition-colors">Pricing</a>
-                        <a href="#about" className="hover:text-zinc-400 transition-colors">About</a>
+                        <a href="/terms" className="hover:text-zinc-400 transition-colors">Terms</a>
+                        <a href="/privacy" className="hover:text-zinc-400 transition-colors">Privacy</a>
                     </div>
                 </div>
             </footer>
-        </div>
+        </motion.div>
     );
 }
+

@@ -7,8 +7,8 @@ import StockSearchModal from '../components/StockSearchModal'
 import StockResearchModal from '../components/StockResearchModal'
 import WelcomeModal from '../components/WelcomeModal'
 import AnalysisModal from '../components/AnalysisModal'
-import { getToken, getUser } from '../lib/auth'
-import { config } from '../config'
+import { useAuth } from '../lib/auth-context'
+import { buildApiUrl, getApiHeaders } from '../lib/api-helpers'
 import { WatchlistLoader } from '@/components/ui/watchlist-loader'
 import { Plus, Trash2, Edit2, MoreVertical, LayoutGrid, Folder } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -48,9 +48,9 @@ type UserWatchlist = {
 export default function Watchlist() {
     const router = useRouter()
     const { currentPortfolio } = usePortfolio()
+    const { userEmail, isLoading: authLoading } = useAuth()
 
-    // Auth & User State
-    const [user, setUser] = useState<any>(null)
+    // UI State
     const [loading, setLoading] = useState(true)
     const [dataLoaded, setDataLoaded] = useState(false)
 
@@ -76,23 +76,12 @@ export default function Watchlist() {
     const [deletingTicker, setDeletingTicker] = useState<string | null>(null)
 
     useEffect(() => {
-        const token = getToken()
-        const userData = getUser()
-
-        if (!token || !userData) {
-            router.push('/auth/login')
+        if (!authLoading && !userEmail) {
+            router.push('/')
             return
         }
 
-        setUser(userData)
-
-        const savedTheme = localStorage.getItem('pb_theme') as 'light' | 'dark' | null
-        if (savedTheme) {
-            document.documentElement.setAttribute('data-theme', savedTheme)
-        } else {
-            document.documentElement.setAttribute('data-theme', 'dark')
-            localStorage.setItem('pb_theme', 'dark')
-        }
+        document.documentElement.setAttribute('data-theme', 'dark')
 
         const handleKeyDown = (e: KeyboardEvent) => {
             if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
@@ -103,19 +92,16 @@ export default function Watchlist() {
 
         window.addEventListener('keydown', handleKeyDown)
         return () => window.removeEventListener('keydown', handleKeyDown)
-    }, [])
+    }, [authLoading, userEmail, router])
 
     // Fetch watchlists when portfolio changes
     useEffect(() => {
-        if (user && currentPortfolio) {
+        if (userEmail && currentPortfolio) {
             fetchWatchlists()
-        } else if (user && !currentPortfolio) {
-            // Fallback if no portfolio context yet (or standalone usage), fetch all user watchlists
-            // Or maybe we don't fetch anything until portfolio is ready.
-            // But let's verify if we can fetch all watchlists without portfolio_id
+        } else if (userEmail && !currentPortfolio) {
             fetchAllUserWatchlists()
         }
-    }, [user, currentPortfolio])
+    }, [userEmail, currentPortfolio])
 
     // Fetch stocks when current watchlist changes
     useEffect(() => {
@@ -126,16 +112,15 @@ export default function Watchlist() {
 
     const fetchAllUserWatchlists = async () => {
         try {
-            const token = getToken()
-            if (!token) return
+            if (!userEmail) return
 
-            const res = await fetch(`${config.API_BASE_URL}/api/portfolio-management/watchlists`, {
-                headers: { 'Authorization': `Bearer ${token}` }
+            const url = buildApiUrl(userEmail, 'portfolio-management/watchlists')
+            const res = await fetch(url, {
+                headers: getApiHeaders()
             })
             const data = await res.json()
             if (data.success && data.watchlists.length > 0) {
                 setWatchlists(data.watchlists)
-                // Select default or first
                 const defaultW = data.watchlists.find((w: UserWatchlist) => w.is_default)
                 setCurrentWatchlistId(defaultW ? defaultW.watchlist_id : data.watchlists[0].watchlist_id)
             } else {
@@ -153,16 +138,15 @@ export default function Watchlist() {
     const fetchWatchlists = async () => {
         try {
             setLoading(true)
-            const token = getToken()
-            if (!token) return
+            if (!userEmail) return
 
-            // If we have a current portfolio, fetch watchlists for that portfolio
-            const url = currentPortfolio
-                ? `${config.API_BASE_URL}/api/portfolio-management/portfolios/${currentPortfolio.portfolio_id}/watchlists`
-                : `${config.API_BASE_URL}/api/portfolio-management/watchlists`
+            const endpoint = currentPortfolio
+                ? `portfolio-management/portfolios/${currentPortfolio.portfolio_id}/watchlists`
+                : `portfolio-management/watchlists`
 
+            const url = buildApiUrl(userEmail, endpoint)
             const res = await fetch(url, {
-                headers: { 'Authorization': `Bearer ${token}` }
+                headers: getApiHeaders()
             })
 
             const data = await res.json()
@@ -171,12 +155,10 @@ export default function Watchlist() {
                 if (data.watchlists.length > 0) {
                     setWatchlists(data.watchlists)
 
-                    // Determine which watchlist to select
                     const currentStillExists = data.watchlists.find((w: UserWatchlist) => w.watchlist_id === currentWatchlistId)
 
                     if (currentStillExists) {
                         if (!currentWatchlistId) setCurrentWatchlistId(currentStillExists.watchlist_id)
-                        // If it didn't change, we still need to clear loading if useEffect won't run
                         if (currentWatchlistId === currentStillExists.watchlist_id) {
                             setLoading(false)
                             setDataLoaded(true)
@@ -205,19 +187,17 @@ export default function Watchlist() {
         try {
             setLoading(true)
             setDataLoaded(false)
-            const token = getToken()
-            if (!token) return
+            if (!userEmail) return
 
-            const headers = { 'Authorization': `Bearer ${token}` }
+            const headers = getApiHeaders()
 
-            // Fetch watchlist stocks, prices, and news - wait for ALL to complete
+            // Fetch watchlist stocks, prices, and news
             const [watchlistRes, pricesRes, newsRes] = await Promise.all([
-                fetch(`${config.API_BASE_URL}/api/watchlist?watchlist_id=${watchlistId}`, { headers }),
-                fetch(`${config.API_BASE_URL}/api/watchlist/price?watchlist_id=${watchlistId}`, { headers }),
-                fetch(`${config.API_BASE_URL}/api/watchlist/news?time_filter=week&watchlist_id=${watchlistId}`, { headers })
+                fetch(buildApiUrl(userEmail, `watchlist?watchlist_id=${watchlistId}`), { headers }),
+                fetch(buildApiUrl(userEmail, `watchlist/price?watchlist_id=${watchlistId}`), { headers }),
+                fetch(buildApiUrl(userEmail, `watchlist/news?time_filter=week&watchlist_id=${watchlistId}`), { headers })
             ])
 
-            // Wait for ALL JSON parsing to complete
             const [watchlistData, pricesData, newsDataResponse] = await Promise.all([
                 watchlistRes.json(),
                 pricesRes.json(),
@@ -242,7 +222,7 @@ export default function Watchlist() {
                                 low: priceInfo.low,
                                 open: priceInfo.open,
                                 prev_close: priceInfo.prev_close,
-                                historical_returns: priceInfo.historical_returns  // Add historical returns
+                                historical_returns: priceInfo.historical_returns
                             }
                         }
                         return stock
@@ -254,42 +234,33 @@ export default function Watchlist() {
                 }
 
                 setStocks(fetchedStocks)
-                setDataLoaded(true) // Mark data as loaded only after everything is ready
+                setDataLoaded(true)
 
                 if (fetchedStocks.length === 0) {
-                    const hasShown = sessionStorage.getItem('welcome_shown')
-                    if (!hasShown) {
-                        setIsWelcomeOpen(true)
-                        sessionStorage.setItem('welcome_shown', 'true')
-                    }
+                    setIsWelcomeOpen(true)
                 }
             }
         } catch (error) {
             console.error('Error fetching watchlist data:', error)
-            setDataLoaded(true) // Still mark as loaded to show error state
+            setDataLoaded(true)
         } finally {
             setLoading(false)
         }
     }
 
     const handleCreateWatchlist = async () => {
-        if (!newWatchlistName.trim()) return
+        if (!newWatchlistName.trim() || !userEmail) return
 
         try {
-            const token = getToken()
-            if (!token) return
-
-            const res = await fetch(`${config.API_BASE_URL}/api/portfolio-management/watchlists`, {
+            const url = buildApiUrl(userEmail, 'portfolio-management/watchlists')
+            const res = await fetch(url, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
+                headers: getApiHeaders(),
                 body: JSON.stringify({
                     watchlist_name: newWatchlistName,
                     portfolio_id: currentPortfolio?.portfolio_id || 'default',
                     description: 'Created via web',
-                    is_default: watchlists.length === 0 // If first one, make default
+                    is_default: watchlists.length === 0
                 })
             })
 
@@ -297,8 +268,8 @@ export default function Watchlist() {
             if (data.success) {
                 setNewWatchlistName('')
                 setIsCreateModalOpen(false)
-                await fetchWatchlists() // Refresh list
-                setCurrentWatchlistId(data.watchlist.watchlist_id) // Switch to new one
+                await fetchWatchlists()
+                setCurrentWatchlistId(data.watchlist.watchlist_id)
             }
         } catch (error) {
             console.error('Error creating watchlist:', error)
@@ -307,24 +278,22 @@ export default function Watchlist() {
 
     const handleDeleteWatchlist = async (id: string) => {
         const watchlistToDelete = watchlists.find(w => w.watchlist_id === id)
-        if (!watchlistToDelete) return
+        if (!watchlistToDelete || !userEmail) return
 
         if (!confirm(`Are you sure you want to delete the watchlist "${watchlistToDelete.watchlist_name}"?`)) return
 
         try {
-            const token = getToken()
-            if (!token) return
-
-            const res = await fetch(`${config.API_BASE_URL}/api/portfolio-management/watchlists/${id}`, {
+            const url = buildApiUrl(userEmail, `portfolio-management/watchlists/${id}`)
+            const res = await fetch(url, {
                 method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${token}` }
+                headers: getApiHeaders()
             })
 
             const data = await res.json()
             if (data.success) {
-                fetchWatchlists() // Refresh list
+                fetchWatchlists()
                 if (currentWatchlistId === id) {
-                    setCurrentWatchlistId(null) // Reset selection, useEffect will pick new default
+                    setCurrentWatchlistId(null)
                 }
             } else {
                 alert(data.message || "Could not delete watchlist")
@@ -335,19 +304,16 @@ export default function Watchlist() {
     }
 
 
-    // Refresh watchlist data without showing the full page loader
     const refreshWatchlistData = async (watchlistId: string) => {
         try {
-            const token = getToken()
-            if (!token) return
+            if (!userEmail) return
 
-            const headers = { 'Authorization': `Bearer ${token}` }
+            const headers = getApiHeaders()
 
-            // Fetch watchlist stocks, prices, and news in background
             const [watchlistRes, pricesRes, newsRes] = await Promise.all([
-                fetch(`${config.API_BASE_URL}/api/watchlist?watchlist_id=${watchlistId}`, { headers }),
-                fetch(`${config.API_BASE_URL}/api/watchlist/price?watchlist_id=${watchlistId}`, { headers }),
-                fetch(`${config.API_BASE_URL}/api/watchlist/news?time_filter=week&watchlist_id=${watchlistId}`, { headers })
+                fetch(buildApiUrl(userEmail, `watchlist?watchlist_id=${watchlistId}`), { headers }),
+                fetch(buildApiUrl(userEmail, `watchlist/price?watchlist_id=${watchlistId}`), { headers }),
+                fetch(buildApiUrl(userEmail, `watchlist/news?time_filter=week&watchlist_id=${watchlistId}`), { headers })
             ])
 
             const [watchlistData, pricesData, newsDataResponse] = await Promise.all([
@@ -394,15 +360,12 @@ export default function Watchlist() {
 
     const addStock = async (ticker: string) => {
         try {
-            const token = getToken()
-            if (!token || !currentWatchlistId) throw new Error("Please log in and select a watchlist first.")
+            if (!userEmail || !currentWatchlistId) throw new Error("Please log in and select a watchlist first.")
 
-            const res = await fetch(`${config.API_BASE_URL}/api/watchlist`, {
+            const url = buildApiUrl(userEmail, 'watchlist')
+            const res = await fetch(url, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
+                headers: getApiHeaders(),
                 body: JSON.stringify({
                     ticker,
                     watchlist_id: currentWatchlistId
@@ -411,10 +374,9 @@ export default function Watchlist() {
 
             const data = await res.json()
             if (data.success) {
-                // Refresh data in background without loader
                 await refreshWatchlistData(currentWatchlistId)
                 setSelectedTicker(ticker)
-                setIsSearchOpen(false)  // Close search modal
+                setIsSearchOpen(false)
                 return true
             } else {
                 throw new Error(data.message || "Failed to add stock")
@@ -427,15 +389,13 @@ export default function Watchlist() {
 
     const removeStock = async (ticker: string) => {
         try {
-            setDeletingTicker(ticker)  // Start loading
-            const token = getToken()
-            if (!token || !currentWatchlistId) return
+            setDeletingTicker(ticker)
+            if (!userEmail || !currentWatchlistId) return
 
-            const res = await fetch(`${config.API_BASE_URL}/api/watchlist/${ticker}?watchlist_id=${currentWatchlistId}`, {
+            const url = buildApiUrl(userEmail, `watchlist/${ticker}?watchlist_id=${currentWatchlistId}`)
+            const res = await fetch(url, {
                 method: 'DELETE',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
+                headers: getApiHeaders()
             })
 
             const data = await res.json()
@@ -448,7 +408,7 @@ export default function Watchlist() {
         } catch (error) {
             console.error('Error removing stock:', error)
         } finally {
-            setDeletingTicker(null)  // Stop loading
+            setDeletingTicker(null)
         }
     }
 

@@ -1,19 +1,21 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import Header from '../components/Header'
-import { getUser } from '../lib/auth'
+import { useAuth } from '../lib/auth-context'
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, Download } from 'lucide-react'
 
 export default function Analysis() {
   const router = useRouter()
+  const { userEmail, isLoading: isAuthLoading } = useAuth()
   const [ticker, setTicker] = useState<string | null>(null)
   const [analysis, setAnalysis] = useState<string | null>(null)
-  const [user, setUser] = useState<any>(null)
 
   useEffect(() => {
-    const userData = getUser()
-    setUser(userData)
+    if (!isAuthLoading && !userEmail) {
+      router.push('/')
+      return
+    }
     // Enforce dark mode
     document.documentElement.setAttribute('data-theme', 'dark')
 
@@ -22,10 +24,12 @@ export default function Analysis() {
     // For demo, load simple placeholder or fetch from backend when available
     if (sel) {
       setAnalysis(`• Key insight 1 for ${sel}\n• Key insight 2 for ${sel}\n\n(Connect to news backend to generate full report)`)
-    } else {
-      router.push('/')
+    } else if (!isAuthLoading) {
+      router.push('/watchlist')
     }
-  }, [router])
+  }, [router, isAuthLoading, userEmail])
+
+  if (isAuthLoading) return null;
 
   const download = () => {
     if (!ticker || !analysis) return
@@ -39,7 +43,7 @@ export default function Analysis() {
 
   return (
     <div className="flex-1 flex flex-col min-h-screen relative p-6 bg-gradient-to-br from-[#000] to-[#1A2428] text-white">
-      <Header user={user?.name || 'User'} />
+      <Header user={userEmail?.split('@')[0] || 'User'} />
 
       <div className="max-w-4xl mx-auto w-full z-10">
         <div className="flex justify-between items-center mb-6">

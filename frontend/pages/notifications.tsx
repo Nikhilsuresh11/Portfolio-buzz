@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
-import { getToken, getUser } from '../lib/auth'
-import { positionsApi } from '../lib/api'
+import { useAuth } from '../lib/auth-context'
+import { buildApiUrl, getApiHeaders } from '../lib/api-helpers'
 import { MessageLoading } from '@/components/ui/message-loading'
 import { Bell, Calendar, Info, Trash2, ArrowRight, TrendingDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -24,29 +24,34 @@ interface Notification {
 
 export default function Notifications() {
     const router = useRouter()
-    const [user, setUser] = useState<any>(null)
+    const { userEmail, isLoading: authLoading } = useAuth()
     const [loading, setLoading] = useState(true)
     const [notifications, setNotifications] = useState<Notification[]>([])
 
     useEffect(() => {
-        const token = getToken()
-        const userData = getUser()
-
-        if (!token || !userData) {
-            router.push('/auth/login')
+        if (!authLoading && !userEmail) {
+            router.push('/')
             return
         }
 
-        setUser(userData)
-        fetchNotifications()
-    }, [])
+        if (userEmail) {
+            fetchNotifications()
+        }
+    }, [authLoading, userEmail, router])
 
     const fetchNotifications = async () => {
+        if (!userEmail) return
+
         try {
             setLoading(true)
-            const response = await positionsApi.getNotifications(100)
-            if (response.success) {
-                setNotifications(response.data)
+            const url = buildApiUrl(userEmail, 'notifications?limit=100')
+            const response = await fetch(url, {
+                headers: getApiHeaders()
+            })
+            const data = await response.json()
+
+            if (data.success) {
+                setNotifications(data.data)
             }
         } catch (error) {
             console.error('Error fetching notifications:', error)
