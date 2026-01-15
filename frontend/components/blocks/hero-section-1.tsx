@@ -96,7 +96,7 @@ export function HeroSection() {
                                             onClick={() => setShowSignInModal(true)}
                                             size="lg"
                                             className="rounded-xl px-8 text-base bg-white text-black hover:bg-neutral-200">
-                                            <span className="text-nowrap font-semibold">Sign In with Google</span>
+                                            <span className="text-nowrap font-semibold">Navigate to Dashboard</span>
                                         </Button>
                                     </div>
                                 </AnimatedGroup>

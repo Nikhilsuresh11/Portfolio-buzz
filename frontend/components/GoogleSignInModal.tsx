@@ -4,10 +4,53 @@ import { useRouter } from 'next/router';
 import { useAuth } from '@/lib/auth-context';
 import { config } from '@/config';
 import { X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { cn } from '@/lib/utils';
 
 interface GoogleSignInModalProps {
     open: boolean;
     onClose: () => void;
+}
+
+const Logo = ({ className }: { className?: string }) => {
+    return (
+        <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            className={cn('h-8 w-8', className)}>
+            <defs>
+                <linearGradient
+                    id="logo-gradient-modal"
+                    x1="0"
+                    y1="0"
+                    x2="24"
+                    y2="24"
+                    gradientUnits="userSpaceOnUse">
+                    <stop stopColor="#3B82F6" />
+                    <stop offset="1" stopColor="#10B981" />
+                </linearGradient>
+            </defs>
+            <path
+                d="M3 3h18v18H3V3z"
+                fill="url(#logo-gradient-modal)"
+                opacity="0.2"
+            />
+            <path
+                d="M7 12l3 3 7-7"
+                stroke="url(#logo-gradient-modal)"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+            />
+            <path
+                d="M12 3v3m0 12v3M3 12h3m12 0h3"
+                stroke="url(#logo-gradient-modal)"
+                strokeWidth="2"
+                strokeLinecap="round"
+            />
+        </svg>
+    )
 }
 
 export function GoogleSignInModal({ open, onClose }: GoogleSignInModalProps) {
@@ -30,8 +73,6 @@ export function GoogleSignInModal({ open, onClose }: GoogleSignInModalProps) {
             document.body.style.overflow = 'unset';
         };
     }, [open, onClose]);
-
-    if (!open) return null;
 
     const handleGoogleSuccess = async (credentialResponse: any) => {
         setIsLoading(true);
@@ -74,73 +115,125 @@ export function GoogleSignInModal({ open, onClose }: GoogleSignInModalProps) {
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-            {/* Backdrop */}
-            <div
-                className="absolute inset-0 bg-black/80 backdrop-blur-sm"
-                onClick={onClose}
-            />
+        <AnimatePresence>
+            {open && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    {/* Backdrop */}
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={onClose}
+                        className="absolute inset-0 bg-black/60 backdrop-blur-md"
+                    />
 
-            {/* Modal */}
-            <div className="relative bg-neutral-900 border border-neutral-800 rounded-2xl shadow-2xl max-w-md w-full mx-4 p-8">
-                {/* Close button */}
-                <button
-                    onClick={onClose}
-                    className="absolute top-4 right-4 text-neutral-400 hover:text-white transition-colors">
-                    <X className="w-5 h-5" />
-                </button>
+                    {/* Modal Container */}
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                        transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                        className="relative w-full max-w-[440px] overflow-hidden"
+                    >
+                        {/* Background Decoration */}
+                        <div className="absolute inset-0 -z-10 bg-zinc-950 rounded-[2rem] border border-white/10" />
+                        <div className="absolute -top-24 -left-24 w-48 h-48 bg-blue-500/10 blur-[60px] rounded-full pointer-events-none" />
+                        <div className="absolute -bottom-24 -right-24 w-48 h-48 bg-emerald-500/10 blur-[60px] rounded-full pointer-events-none" />
 
-                {/* Header */}
-                <div className="text-center mb-8">
-                    <h2 className="text-3xl font-bold text-white mb-2">
-                        Sign In to Portfolio Buzz
-                    </h2>
-                    <p className="text-neutral-400">
-                        Use your Google account to get started
-                    </p>
-                </div>
-
-                {/* Content */}
-                <div className="flex flex-col items-center justify-center space-y-4">
-                    {isLoading ? (
-                        <div className="flex items-center justify-center py-8">
-                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-                        </div>
-                    ) : (
-                        <>
-                            <div className="w-full flex justify-center">
-                                <GoogleLogin
-                                    onSuccess={handleGoogleSuccess}
-                                    onError={handleGoogleError}
-                                    theme="filled_black"
-                                    size="large"
-                                    text="signin_with"
-                                    shape="rectangular"
-                                    logo_alignment="left"
-                                    width="300"
-                                />
+                        <div className="p-8 sm:p-10 flex flex-col items-center">
+                            {/* Brand Header */}
+                            <div className="flex flex-col items-center mb-8">
+                                <motion.div
+                                    initial={{ y: -10, opacity: 0 }}
+                                    animate={{ y: 0, opacity: 1 }}
+                                    transition={{ delay: 0.1 }}
+                                    className="mb-4"
+                                >
+                                    <Logo />
+                                </motion.div>
+                                <motion.h2
+                                    initial={{ y: -5, opacity: 0 }}
+                                    animate={{ y: 0, opacity: 1 }}
+                                    transition={{ delay: 0.15 }}
+                                    className="text-2xl font-bold tracking-tight text-white text-center"
+                                >
+                                    Sign In to <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400">Portfolio Buzz</span>
+                                </motion.h2>
+                                <motion.p
+                                    initial={{ y: -5, opacity: 0 }}
+                                    animate={{ y: 0, opacity: 1 }}
+                                    transition={{ delay: 0.2 }}
+                                    className="text-zinc-500 text-sm mt-2 text-center"
+                                >
+                                    Elevate your investment strategy with AI
+                                </motion.p>
                             </div>
 
-                            {error && (
-                                <div className="w-full p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
-                                    <p className="text-sm text-red-400 text-center">{error}</p>
-                                </div>
-                            )}
+                            {/* Sign In Content */}
+                            <motion.div
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.2 }}
+                                className="w-full flex flex-col items-center"
+                            >
+                                {isLoading ? (
+                                    <div className="flex flex-col items-center justify-center py-6 gap-3">
+                                        <div className="w-10 h-10 border-2 border-blue-500/20 border-t-blue-500 rounded-full animate-spin" />
+                                        <p className="text-zinc-400 text-sm font-medium">Authenticating...</p>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <div className="group w-full flex justify-center p-0.5 rounded-xl bg-gradient-to-r from-blue-500/20 to-emerald-500/20 hover:from-blue-500/40 hover:to-emerald-500/40 transition-all duration-300">
+                                            <div className="w-full h-[46px] flex justify-center">
+                                                <GoogleLogin
+                                                    onSuccess={handleGoogleSuccess}
+                                                    onError={handleGoogleError}
+                                                    theme="filled_black"
+                                                    size="large"
+                                                    text="continue_with"
+                                                    shape="rectangular"
+                                                    logo_alignment="left"
+                                                    width="360"
+                                                />
+                                            </div>
+                                        </div>
 
-                            <p className="text-xs text-neutral-500 text-center mt-6 px-4">
-                                By signing in, you agree to our{' '}
-                                <a href="#" className="text-blue-400 hover:underline">
-                                    Terms of Service
-                                </a>{' '}
-                                and{' '}
-                                <a href="#" className="text-blue-400 hover:underline">
-                                    Privacy Policy
-                                </a>
-                            </p>
-                        </>
-                    )}
+                                        {error && (
+                                            <motion.div
+                                                initial={{ opacity: 0, scale: 0.9 }}
+                                                animate={{ opacity: 1, scale: 1 }}
+                                                className="w-full p-3 mt-4 bg-red-500/10 border border-red-500/20 rounded-xl"
+                                            >
+                                                <p className="text-xs text-red-500 text-center font-medium">{error}</p>
+                                            </motion.div>
+                                        )}
+
+                                        <p className="text-[11px] text-zinc-500 text-center mt-8 px-6 leading-relaxed">
+                                            By continuing, you agree to our{' '}
+                                            <a href="#" className="text-zinc-300 hover:text-white transition-colors underline underline-offset-4">
+                                                Terms
+                                            </a>{' '}
+                                            &{' '}
+                                            <a href="#" className="text-zinc-300 hover:text-white transition-colors underline underline-offset-4">
+                                                Privacy
+                                            </a>
+                                        </p>
+                                    </>
+                                )}
+                            </motion.div>
+
+                            {/* Close button */}
+                            <button
+                                onClick={onClose}
+                                className="absolute top-6 right-6 p-2 text-zinc-500 hover:text-white transition-all hover:bg-white/5 rounded-full"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+                    </motion.div>
                 </div>
-            </div>
-        </div>
+            )}
+        </AnimatePresence>
     );
 }
+
