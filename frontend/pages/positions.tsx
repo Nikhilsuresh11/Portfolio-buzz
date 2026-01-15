@@ -194,13 +194,15 @@ export default function MyPositionsPage() {
                     <h1 className="text-3xl font-bold mb-2 text-white">My Positions</h1>
                     <p className="text-neutral-400">Manage your stock positions and track performance</p>
                 </div>
-                <Button
-                    onClick={() => setIsAddModalOpen(true)}
-                    className="bg-blue-600 hover:bg-blue-700 text-white"
-                >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add Position
-                </Button>
+                <div className="bg-gradient-to-r from-blue-500 to-emerald-500 rounded-xl p-0.5">
+                    <Button
+                        onClick={() => setIsAddModalOpen(true)}
+                        className="bg-black hover:bg-zinc-900 text-white gap-2 font-semibold text-sm h-9 px-5 rounded-[11px]"
+                    >
+                        <Plus size={16} />
+                        Add Position
+                    </Button>
+                </div>
             </div>
 
             {/* Stats Cards */}

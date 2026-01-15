@@ -10,7 +10,6 @@ import {
     PieChart as PieIcon, BarChart3, Info, Zap, Layers, RefreshCw
 } from 'lucide-react'
 import { usePortfolio } from '../../lib/portfolio-context'
-import Header from '../../components/Header'
 import { useAuth } from '../../lib/auth-context'
 import { PageLoader } from '../../components/ui/page-loader'
 
@@ -182,9 +181,7 @@ export default function Analytics() {
                 <title>Portfolio Metrics | Portfolio Buzz</title>
             </Head>
 
-            <Header user={userEmail} />
-
-            <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4 pt-6">
+            <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
                 <div>
                     <h2 className="text-2xl font-bold text-white">Portfolio Risk Analysis</h2>
                     <p className="text-sm text-gray-400">Based on your current positions in <span className="text-blue-400">{currentPortfolio?.portfolio_name}</span></p>
