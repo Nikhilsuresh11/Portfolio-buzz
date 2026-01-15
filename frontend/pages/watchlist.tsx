@@ -47,8 +47,8 @@ type UserWatchlist = {
 
 export default function Watchlist() {
     const router = useRouter()
-    const { currentPortfolio } = usePortfolio()
     const { userEmail, isLoading: authLoading } = useAuth()
+    const { currentPortfolio, isLoading: portfolioLoading } = usePortfolio()
 
     // UI State
     const [loading, setLoading] = useState(true)
@@ -75,40 +75,46 @@ export default function Watchlist() {
     const [newsData, setNewsData] = useState<Record<string, any[]>>({})
     const [deletingTicker, setDeletingTicker] = useState<string | null>(null)
 
+    // Unified initialization and fetching
     useEffect(() => {
-        if (!authLoading && !userEmail) {
-            router.push('/')
-            return
+        // 1. Wait for auth to be ready
+        if (authLoading) return;
+
+        // 2. Redirect if not logged in
+        if (!userEmail) {
+            router.push('/');
+            return;
         }
 
-        document.documentElement.setAttribute('data-theme', 'dark')
-
+        // 3. Document theme and shortcuts
+        document.documentElement.setAttribute('data-theme', 'dark');
         const handleKeyDown = (e: KeyboardEvent) => {
             if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
-                e.preventDefault()
-                setIsSearchOpen(prev => !prev)
+                e.preventDefault();
+                setIsSearchOpen(prev => !prev);
             }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+
+        // 4. Fetch initial data once auth is confirmed
+        // We fetch watchlists based on whether we have a portfolio yet
+        if (currentPortfolio) {
+            fetchWatchlists();
+        } else if (!portfolioLoading) {
+            // If portfolio context finished loading and still no portfolio, 
+            // try fetching all user watchlists as a fallback
+            fetchAllUserWatchlists();
         }
 
-        window.addEventListener('keydown', handleKeyDown)
-        return () => window.removeEventListener('keydown', handleKeyDown)
-    }, [authLoading, userEmail, router])
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [authLoading, userEmail, currentPortfolio, portfolioLoading, router]);
 
-    // Fetch watchlists when portfolio changes
-    useEffect(() => {
-        if (userEmail && currentPortfolio) {
-            fetchWatchlists()
-        } else if (userEmail && !currentPortfolio) {
-            fetchAllUserWatchlists()
-        }
-    }, [userEmail, currentPortfolio])
-
-    // Fetch stocks when current watchlist changes
+    // Update stocks if currentWatchlistId changes
     useEffect(() => {
         if (currentWatchlistId) {
-            fetchWatchlistStocks(currentWatchlistId)
+            fetchWatchlistStocks(currentWatchlistId);
         }
-    }, [currentWatchlistId])
+    }, [currentWatchlistId]);
 
     const fetchAllUserWatchlists = async () => {
         try {
@@ -158,10 +164,11 @@ export default function Watchlist() {
                     const currentStillExists = data.watchlists.find((w: UserWatchlist) => w.watchlist_id === currentWatchlistId)
 
                     if (currentStillExists) {
-                        if (!currentWatchlistId) setCurrentWatchlistId(currentStillExists.watchlist_id)
+                        // If it exists and matches current, manually trigger refresh to ensure all data (prices/news) is fetched
                         if (currentWatchlistId === currentStillExists.watchlist_id) {
-                            setLoading(false)
-                            setDataLoaded(true)
+                            fetchWatchlistStocks(currentStillExists.watchlist_id)
+                        } else {
+                            setCurrentWatchlistId(currentStillExists.watchlist_id)
                         }
                     } else {
                         const defaultW = data.watchlists.find((w: UserWatchlist) => w.is_default)
@@ -180,6 +187,7 @@ export default function Watchlist() {
         } catch (error) {
             console.error('Error fetching watchlists:', error)
             setLoading(false)
+            setDataLoaded(true)
         }
     }
 
@@ -234,16 +242,18 @@ export default function Watchlist() {
                 }
 
                 setStocks(fetchedStocks)
-                setDataLoaded(true)
 
                 if (fetchedStocks.length === 0) {
                     setIsWelcomeOpen(true)
                 }
             }
+
+            // Critical: Only set these after ALL processing (including prices/news) is done
+            setDataLoaded(true)
+            setLoading(false)
         } catch (error) {
             console.error('Error fetching watchlist data:', error)
             setDataLoaded(true)
-        } finally {
             setLoading(false)
         }
     }
@@ -418,7 +428,7 @@ export default function Watchlist() {
     }
 
     // Show loading until data is fully loaded
-    if (loading && !dataLoaded) {
+    if ((loading || authLoading || portfolioLoading) && !dataLoaded) {
         return (
             <div className="flex-1 flex items-center justify-center min-h-screen bg-black">
                 <WatchlistLoader />
