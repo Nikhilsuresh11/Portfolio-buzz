@@ -398,8 +398,8 @@ export default function OverallPortfolioPage() {
                                     key={period}
                                     onClick={() => setSelectedPeriod(period)}
                                     className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${selectedPeriod === period
-                                            ? 'bg-blue-500 text-white'
-                                            : 'bg-zinc-800/50 text-zinc-400 hover:bg-zinc-800 hover:text-white'
+                                        ? 'bg-blue-500 text-white'
+                                        : 'bg-zinc-800/50 text-zinc-400 hover:bg-zinc-800 hover:text-white'
                                         }`}
                                 >
                                     {period}
@@ -463,32 +463,6 @@ export default function OverallPortfolioPage() {
                     </div>
                 </div>
             )}
-
-            {/* Holdings Breakdown */}
-            <div className="bg-zinc-900/40 border border-zinc-800/60 backdrop-blur-xl rounded-2xl p-6">
-                <h2 className="text-xl font-bold mb-4 flex items-center gap-2 text-white">
-                    <BarChart3 className="w-5 h-5 text-blue-400" />
-                    Holdings Breakdown
-                </h2>
-                <div className="max-h-80 overflow-y-auto custom-scrollbar">
-                    <table className="w-full">
-                        <thead className="sticky top-0 bg-zinc-900/80 backdrop-blur z-10">
-                            <tr className="border-b border-zinc-800">
-                                <th className="text-left py-3 px-2 text-zinc-400 font-medium text-sm">Symbol</th>
-                                <th className="text-right py-3 px-2 text-zinc-400 font-medium text-sm">Quantity</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {data.symbol_breakdown.map((item, idx) => (
-                                <tr key={idx} className="border-b border-zinc-800/50 hover:bg-zinc-800/30 transition-colors">
-                                    <td className="py-3 px-2 font-semibold text-white">{item.symbol}</td>
-                                    <td className="py-3 px-2 text-right text-zinc-300">{item.total_quantity?.toFixed(2) || '0.00'}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
         </div>
     );
 }

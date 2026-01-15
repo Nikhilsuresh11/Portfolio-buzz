@@ -54,10 +54,30 @@ class PerformanceService:
             return {}
     
     @staticmethod
+    def _get_closest_nifty_price(target_date: date, nifty_prices: dict, current_nifty: float) -> float:
+        """Get the closest available Nifty price for a given date"""
+        if target_date == date.today():
+            return current_nifty
+        
+        # Look back up to 7 days to find a trading day
+        check_date = target_date
+        for i in range(7):
+            if check_date in nifty_prices:
+                return nifty_prices[check_date]
+            check_date = check_date - timedelta(days=1)
+        
+        # If no price found, return current (fallback)
+        return current_nifty
+    
+    @staticmethod
     def get_performance_chart_data(user_email, portfolio_id=None):
         """
         Generate historical performance data showing actual portfolio value growth vs Nifty
-        This calculates the percentage returns at each point, not just invested amounts
+        
+        Key concept:
+        - For each transaction, we calculate how many Nifty units were bought at that time
+        - At any evaluation date, we calculate what those units are worth at that date's Nifty price
+        - This shows the TRUE performance comparison
         """
         positions = Position.get_positions(user_email, portfolio_id)
         
@@ -104,8 +124,12 @@ class PerformanceService:
             # Calculate portfolio value at this date
             portfolio_invested = 0
             portfolio_value = 0
-            nifty_invested = 0
-            nifty_units = 0
+            nifty_value = 0
+            
+            # Get Nifty price at this evaluation date
+            nifty_price_at_eval = PerformanceService._get_closest_nifty_price(
+                current_date, nifty_prices, current_nifty
+            )
             
             # Process all positions up to this date
             for p in positions:
@@ -115,7 +139,7 @@ class PerformanceService:
                         invested = p.get('invested_amount', 0)
                         qty = p.get('quantity', 0)
                         symbol = p.get('symbol')
-                        nifty_val = p.get('nifty_value', 0)
+                        nifty_at_purchase = p.get('nifty_value', 0)
                         
                         portfolio_invested += invested
                         
@@ -123,41 +147,23 @@ class PerformanceService:
                         if symbol in current_prices:
                             portfolio_value += qty * current_prices[symbol]
                         
-                        # Calculate Nifty units
-                        if nifty_val > 0:
-                            nifty_invested += invested
-                            nifty_units += invested / nifty_val
+                        # CORRECT Nifty calculation:
+                        # For this specific transaction, calculate:
+                        # 1. How many Nifty units were bought: invested / nifty_at_purchase
+                        # 2. What those units are worth at evaluation date: units × nifty_price_at_eval
+                        if nifty_at_purchase > 0 and nifty_price_at_eval > 0:
+                            nifty_units_for_this_transaction = invested / nifty_at_purchase
+                            value_at_eval_date = nifty_units_for_this_transaction * nifty_price_at_eval
+                            nifty_value += value_at_eval_date
                 except:
                     continue
             
             if portfolio_invested > 0:
-                # Calculate Nifty value at this date
-                # Find the closest Nifty price for this date
-                nifty_price_at_date = None
-                check_date = current_date
-                
-                # Look back up to 7 days to find a trading day
-                for i in range(7):
-                    if check_date in nifty_prices:
-                        nifty_price_at_date = nifty_prices[check_date]
-                        break
-                    check_date = check_date - timedelta(days=1)
-                
-                # If this is today or we couldn't find historical price, use current
-                if current_date == today or nifty_price_at_date is None:
-                    nifty_price_at_date = current_nifty
-                
-                # Calculate Nifty value based on units and price at this date
-                nifty_value = nifty_units * nifty_price_at_date if nifty_price_at_date else nifty_invested
-                
-                # For historical dates (not today), estimate portfolio value based on returns
+                # For historical dates (not today), use invested amount as portfolio baseline
+                # For today, use actual current value
                 if current_date < today and portfolio_value > 0:
-                    # Calculate the return ratio from then to now
-                    # Use invested amount as baseline for historical points
-                    # The actual growth will show in the most recent data
                     portfolio_display_value = portfolio_invested
                 else:
-                    # For today, use actual current value
                     portfolio_display_value = portfolio_value
                 
                 data_points.append({
@@ -173,7 +179,7 @@ class PerformanceService:
                 if not data_points or data_points[-1]["date"] != today.strftime("%Y-%m-%d"):
                     portfolio_invested = 0
                     portfolio_value = 0
-                    nifty_units = 0
+                    nifty_value = 0
                     
                     for p in positions:
                         try:
@@ -182,19 +188,18 @@ class PerformanceService:
                                 invested = p.get('invested_amount', 0)
                                 qty = p.get('quantity', 0)
                                 symbol = p.get('symbol')
-                                nifty_val = p.get('nifty_value', 0)
+                                nifty_at_purchase = p.get('nifty_value', 0)
                                 
                                 portfolio_invested += invested
                                 
                                 if symbol in current_prices:
                                     portfolio_value += qty * current_prices[symbol]
                                 
-                                if nifty_val > 0:
-                                    nifty_units += invested / nifty_val
+                                if nifty_at_purchase > 0 and current_nifty > 0:
+                                    nifty_units = invested / nifty_at_purchase
+                                    nifty_value += nifty_units * current_nifty
                         except:
                             continue
-                    
-                    nifty_value = nifty_units * current_nifty
                     
                     data_points.append({
                         "date": today.strftime("%Y-%m-%d"),

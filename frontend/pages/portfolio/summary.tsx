@@ -5,6 +5,7 @@ import { usePortfolio } from '../../lib/portfolio-context';
 import { buildApiUrl, getApiHeaders } from '../../lib/api-helpers';
 import { TrendingUp, TrendingDown, DollarSign, BarChart3, PieChart, Activity } from 'lucide-react';
 import { PageLoader } from '../../components/ui/page-loader';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
 export default function PortfolioSummaryPage() {
     const router = useRouter();
@@ -121,76 +122,103 @@ export default function PortfolioSummaryPage() {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Allocation */}
-                <div className="glass-strong bg-white/5 border border-white/10 rounded-xl p-6">
-                    <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
-                        <PieChart className="w-5 h-5 text-purple-400" />
-                        Allocation
-                    </h3>
-                    <div className="space-y-3 custom-scrollbar max-h-[400px] overflow-y-auto">
-                        {data.symbol_allocations.map((item: any, idx: number) => (
-                            <div key={idx}>
-                                <div className="flex justify-between text-sm mb-1">
-                                    <span className="font-semibold">{item.symbol}</span>
-                                    <span>{item.allocation_percent.toFixed(1)}%</span>
-                                </div>
-                                <div className="h-2 bg-white/10 rounded-full overflow-hidden">
-                                    <div
-                                        className="h-full bg-purple-500"
-                                        style={{ width: `${item.allocation_percent}%` }}
-                                    ></div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
 
-                {/* Positions Table */}
-                <div className="lg:col-span-2 glass-strong bg-white/5 border border-white/10 rounded-xl p-6 overflow-hidden">
-                    <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
-                        <BarChart3 className="w-5 h-5 text-blue-400" />
-                        Positions
-                    </h3>
-                    <div className="overflow-x-auto custom-scrollbar">
-                        <table className="w-full text-left">
-                            <thead className="bg-white/5 text-neutral-400 text-xs uppercase font-medium">
-                                <tr>
-                                    <th className="p-3">Symbol</th>
-                                    <th className="p-3 text-right">Qty</th>
-                                    <th className="p-3 text-right">Avg Price</th>
-                                    <th className="p-3 text-right">Invested</th>
-                                    <th className="p-3 text-right">Current</th>
-                                    <th className="p-3 text-right">P/L</th>
-                                    <th className="p-3 text-right">Ret %</th>
+            {/* Positions Table */}
+            <div className="glass-strong bg-white/5 border border-white/10 rounded-xl p-6 overflow-hidden mb-6">
+                <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+                    <BarChart3 className="w-5 h-5 text-blue-400" />
+                    Positions
+                </h3>
+                <div className="overflow-x-auto custom-scrollbar">
+                    <table className="w-full text-left">
+                        <thead className="bg-white/5 text-neutral-400 text-xs uppercase font-medium">
+                            <tr>
+                                <th className="p-3">Symbol</th>
+                                <th className="p-3 text-right">Qty</th>
+                                <th className="p-3 text-right">Avg Price</th>
+                                <th className="p-3 text-right">Invested</th>
+                                <th className="p-3 text-right">Current</th>
+                                <th className="p-3 text-right">P/L</th>
+                                <th className="p-3 text-right">Ret %</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-white/5">
+                            {data.symbol_allocations.map((pos: any, idx: number) => (
+                                <tr key={idx} className="hover:bg-white/5 transition-colors">
+                                    <td className="p-3 font-semibold">{pos.symbol}</td>
+                                    <td className="p-3 text-right text-neutral-300">{pos.quantity.toFixed(2)}</td>
+                                    <td className="p-3 text-right text-neutral-300">
+                                        {(pos.invested_amount / pos.quantity).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                                    </td>
+                                    <td className="p-3 text-right text-neutral-300">
+                                        {(pos.invested_amount / 1000).toFixed(1)}k
+                                    </td>
+                                    <td className="p-3 text-right text-white">
+                                        {(pos.current_value / 1000).toFixed(1)}k
+                                    </td>
+                                    <td className={`p-3 text-right ${pos.profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                        {(pos.profit / 1000).toFixed(1)}k
+                                    </td>
+                                    <td className={`p-3 text-right ${pos.return_percent >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                        {formatPercent(pos.return_percent)}
+                                    </td>
                                 </tr>
-                            </thead>
-                            <tbody className="divide-y divide-white/5">
-                                {data.symbol_allocations.map((pos: any, idx: number) => (
-                                    <tr key={idx} className="hover:bg-white/5 transition-colors">
-                                        <td className="p-3 font-semibold">{pos.symbol}</td>
-                                        <td className="p-3 text-right text-neutral-300">{pos.quantity.toFixed(2)}</td>
-                                        <td className="p-3 text-right text-neutral-300">
-                                            {(pos.invested_amount / pos.quantity).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
-                                        </td>
-                                        <td className="p-3 text-right text-neutral-300">
-                                            {(pos.invested_amount / 1000).toFixed(1)}k
-                                        </td>
-                                        <td className="p-3 text-right text-white">
-                                            {(pos.current_value / 1000).toFixed(1)}k
-                                        </td>
-                                        <td className={`p-3 text-right ${pos.profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                                            {(pos.profit / 1000).toFixed(1)}k
-                                        </td>
-                                        <td className={`p-3 text-right ${pos.return_percent >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                                            {formatPercent(pos.return_percent)}
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                            ))}
+                        </tbody>
+                    </table>
                 </div>
+            </div>
+
+            {/* Allocation Chart */}
+            <div className="glass-strong bg-white/5 border border-white/10 rounded-xl p-6">
+                <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+                    <PieChart className="w-5 h-5 text-purple-400" />
+                    Portfolio Allocation
+                </h3>
+                {data.symbol_allocations && data.symbol_allocations.length > 0 ? (
+                    <div className="h-[400px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={data.symbol_allocations}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
+                                <XAxis
+                                    dataKey="symbol"
+                                    stroke="#71717a"
+                                    fontSize={12}
+                                    tickLine={false}
+                                    axisLine={false}
+                                    angle={-45}
+                                    textAnchor="end"
+                                    height={80}
+                                />
+                                <YAxis
+                                    stroke="#71717a"
+                                    fontSize={12}
+                                    tickLine={false}
+                                    axisLine={false}
+                                    tickFormatter={(value) => `${value.toFixed(0)}%`}
+                                />
+                                <Tooltip
+                                    contentStyle={{
+                                        backgroundColor: '#18181b',
+                                        borderColor: '#27272a',
+                                        borderRadius: '8px',
+                                        color: '#fff'
+                                    }}
+                                    formatter={(value: any) => [`${value.toFixed(2)}%`, 'Allocation']}
+                                />
+                                <Bar
+                                    dataKey="allocation_percent"
+                                    fill="#3b82f6"
+                                    radius={[8, 8, 0, 0]}
+                                />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                ) : (
+                    <div className="h-[400px] flex items-center justify-center text-zinc-500">
+                        <p>No allocation data available</p>
+                    </div>
+                )}
             </div>
         </div>
     );
