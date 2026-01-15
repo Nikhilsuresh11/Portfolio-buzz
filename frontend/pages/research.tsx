@@ -203,10 +203,10 @@ export default function ResearchPage() {
 
 
     return (
-        <div className="flex-1 flex flex-col min-h-screen relative overflow-hidden">
-            <div className="flex-1 overflow-y-auto p-6 custom-scrollbar z-10 max-w-[1600px] mx-auto w-full">
+        <div className="flex flex-col h-screen relative overflow-hidden bg-black">
+            <div className="flex-none p-6 md:p-8 pb-0 z-10 max-w-[1600px] mx-auto w-full">
                 {/* Unified Header */}
-                <div className="mb-10 flex items-start justify-between">
+                <div className="mb-4 flex items-start justify-between">
                     <div className="flex justify-between items-center w-full">
                         <div>
                             <h1 className="text-2xl md:text-3xl font-bold mb-1.5 bg-gradient-to-r from-white via-blue-100 to-emerald-100 bg-clip-text text-transparent">
@@ -216,6 +216,10 @@ export default function ResearchPage() {
                         </div>
                     </div>
                 </div>
+            </div>
+
+            {/* Content Area */}
+            <div className="flex-1 px-6 md:px-8 pb-6 md:pb-8 overflow-y-auto scrollbar-hide max-w-[1600px] mx-auto w-full">
                 {!selectedStock ? (
                     // Search View
                     <div className="flex flex-col gap-10 max-w-3xl mx-auto mt-20 animate-in fade-in slide-in-from-bottom-5 duration-700">
@@ -452,6 +456,8 @@ export default function ResearchPage() {
             </div>
 
             {/* Background ambient light effects */}
+            <div className="absolute top-0 right-0 -mr-20 -mt-20 w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[120px] pointer-events-none z-0" />
+            <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-[400px] h-[400px] bg-emerald-500/10 rounded-full blur-[120px] pointer-events-none z-0" />
         </div>
     )
 }

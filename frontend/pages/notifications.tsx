@@ -76,16 +76,19 @@ export default function Notifications() {
     }
 
     return (
-        <div className="flex-1 flex flex-col min-h-screen relative overflow-hidden bg-[#09090B]">
-            <div className="flex-1 overflow-y-auto p-6 md:p-12 custom-scrollbar z-10 max-w-[1200px] mx-auto w-full">
+        <div className="flex flex-col h-screen relative overflow-hidden bg-black">
+            <div className="flex-none p-6 md:p-8 pb-0 z-10 max-w-[1200px] mx-auto w-full">
                 {/* Header */}
-                <div className="mb-10">
+                <div className="mb-4">
                     <h1 className="text-3xl font-bold mb-2 flex items-center gap-3">
                         <Bell className="text-blue-500" />
                         Notifications
                     </h1>
                     <p className="text-neutral-400">View recent alerts and email notifications sent to your inbox</p>
                 </div>
+            </div>
+
+            <div className="flex-1 px-6 md:px-8 pb-6 md:pb-8 overflow-y-auto scrollbar-hide max-w-[1200px] mx-auto w-full">
 
                 {notifications.length > 0 ? (
                     <div className="space-y-4">
@@ -157,8 +160,8 @@ export default function Notifications() {
             </div>
 
             {/* Background ambient light effects */}
-            <div className="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 bg-blue-500/10 rounded-full blur-[100px] pointer-events-none z-0" />
-            <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 bg-indigo-500/10 rounded-full blur-[100px] pointer-events-none z-0" />
+            <div className="absolute top-0 right-0 -mr-20 -mt-20 w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[120px] pointer-events-none z-0" />
+            <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-[400px] h-[400px] bg-emerald-500/10 rounded-full blur-[120px] pointer-events-none z-0" />
         </div>
     )
 }
