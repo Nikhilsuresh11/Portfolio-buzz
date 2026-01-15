@@ -4,14 +4,26 @@ import { OverallTransactionsResponse } from '../../lib/types';
 import { useAuth } from '../../lib/auth-context';
 import { usePortfolio } from '../../lib/portfolio-context';
 import { buildApiUrl, getApiHeaders } from '../../lib/api-helpers';
-import { TrendingUp, TrendingDown, DollarSign, BarChart3, Activity, Calendar } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, BarChart3, Activity } from 'lucide-react';
 import { PageLoader } from '../../components/ui/page-loader';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+
+interface ChartDataPoint {
+    date: string;
+    portfolio: number;
+    nifty: number;
+}
+
+type TimePeriod = '1M' | '6M' | 'YTD' | '1Y' | '3Y' | '5Y' | 'ALL';
 
 export default function OverallPortfolioPage() {
     const router = useRouter();
     const { userEmail, isLoading: isAuthLoading } = useAuth();
     const { currentPortfolio } = usePortfolio();
     const [data, setData] = useState<OverallTransactionsResponse | null>(null);
+    const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
+    const [filteredChartData, setFilteredChartData] = useState<ChartDataPoint[]>([]);
+    const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>('1Y');
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -19,7 +31,6 @@ export default function OverallPortfolioPage() {
         if (!isAuthLoading && !userEmail) {
             router.push('/');
         } else if (userEmail && !currentPortfolio && !isAuthLoading) {
-            // If we have a user but no portfolio, redirect to select
             router.push('/select-portfolio');
         }
     }, [userEmail, currentPortfolio, router, isAuthLoading]);
@@ -27,8 +38,15 @@ export default function OverallPortfolioPage() {
     useEffect(() => {
         if (userEmail && currentPortfolio) {
             fetchOverallData();
+            fetchChartData();
         }
     }, [userEmail, currentPortfolio]);
+
+    useEffect(() => {
+        if (chartData.length > 0) {
+            filterChartData(selectedPeriod);
+        }
+    }, [chartData, selectedPeriod]);
 
     const fetchOverallData = async () => {
         if (!currentPortfolio || !userEmail) return;
@@ -61,17 +79,81 @@ export default function OverallPortfolioPage() {
         }
     };
 
+    const fetchChartData = async () => {
+        if (!currentPortfolio || !userEmail) return;
+
+        try {
+            const url = buildApiUrl(userEmail, `portfolio/performance-chart?portfolio_id=${currentPortfolio.portfolio_id}`);
+            const response = await fetch(url, {
+                headers: getApiHeaders()
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                if (result.success && result.data) {
+                    setChartData(result.data);
+                }
+            }
+        } catch (err) {
+            console.error('Error fetching chart data:', err);
+        }
+    };
+
+    const filterChartData = (period: TimePeriod) => {
+        if (chartData.length === 0) return;
+
+        const now = new Date();
+        let startDate: Date;
+
+        switch (period) {
+            case '1M':
+                startDate = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
+                break;
+            case '6M':
+                startDate = new Date(now.getFullYear(), now.getMonth() - 6, now.getDate());
+                break;
+            case 'YTD':
+                startDate = new Date(now.getFullYear(), 0, 1);
+                break;
+            case '1Y':
+                startDate = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
+                break;
+            case '3Y':
+                startDate = new Date(now.getFullYear() - 3, now.getMonth(), now.getDate());
+                break;
+            case '5Y':
+                startDate = new Date(now.getFullYear() - 5, now.getMonth(), now.getDate());
+                break;
+            case 'ALL':
+                setFilteredChartData(chartData);
+                return;
+        }
+
+        const filtered = chartData.filter(point => {
+            const pointDate = new Date(point.date);
+            return pointDate >= startDate;
+        });
+
+        setFilteredChartData(filtered);
+    };
+
     const formatCurrency = (value: number) => {
         return new Intl.NumberFormat('en-IN', {
             style: 'currency',
             currency: 'INR',
-            minimumFractionDigits: 2,
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0,
         }).format(value);
     };
 
     const formatPercent = (value: number | null | undefined) => {
         if (value === null || value === undefined) return 'N/A';
         return `${value >= 0 ? '+' : ''}${value.toFixed(2)}%`;
+    };
+
+    const formatDate = (dateStr: string) => {
+        const date = new Date(dateStr);
+        return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
     };
 
     if (isAuthLoading || (loading && !data)) {
@@ -112,54 +194,47 @@ export default function OverallPortfolioPage() {
     const isProfit = data.profit >= 0;
     const isProfitVsNifty = data.outperformance !== null && data.outperformance > 0;
 
+    const timePeriods: TimePeriod[] = ['1M', '6M', 'YTD', '1Y', '3Y', '5Y', 'ALL'];
+
     return (
         <div className="p-6 max-w-[1600px] mx-auto">
             {/* Header */}
-            <div className="mb-6 flex items-start justify-between">
-                <div className="flex justify-between items-center w-full">
-                    <div>
-                        <h1 className="text-3xl font-bold mb-2">Overall Portfolio</h1>
-                        <p className="text-neutral-400">Comprehensive view of all your transactions and performance metrics</p>
-                    </div>
-                    <button
-                        onClick={() => router.push('/portfolio/metrics')}
-                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium text-sm"
-                    >
-                        <BarChart3 className="w-4 h-4" />
-                        View Risk Analysis
-                    </button>
-                </div>
+            <div className="mb-6">
+                <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-white via-blue-100 to-emerald-100 bg-clip-text text-transparent">
+                    Overall Portfolio
+                </h1>
+                <p className="text-zinc-400">Comprehensive view of your investment performance and metrics</p>
             </div>
 
             {/* Key Metrics Cards */}
             <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
                 {/* Total Invested */}
-                <div className="glass-strong rounded-xl p-5 border border-white/10 bg-white/5 backdrop-blur-md">
+                <div className="bg-zinc-900/40 border border-zinc-800/60 backdrop-blur-xl rounded-2xl p-5 hover:bg-zinc-900/60 hover:border-blue-500/30 transition-all">
                     <div className="flex items-center justify-between mb-2">
-                        <span className="text-neutral-400 text-xs uppercase tracking-wide">Total Invested</span>
+                        <span className="text-zinc-400 text-xs uppercase tracking-wide">Total Invested</span>
                         <DollarSign className="w-4 h-4 text-blue-400" />
                     </div>
-                    <div className="text-xl font-bold">{formatCurrency(data.total_invested)}</div>
-                    <div className="text-xs text-neutral-500 mt-1">{data.transaction_count} transactions</div>
+                    <div className="text-xl font-bold text-white">{formatCurrency(data.total_invested)}</div>
+                    <div className="text-xs text-zinc-500 mt-1">{data.transaction_count} transactions</div>
                 </div>
 
                 {/* Current Value */}
-                <div className="glass-strong rounded-xl p-5 border border-white/10 bg-white/5 backdrop-blur-md">
+                <div className="bg-zinc-900/40 border border-zinc-800/60 backdrop-blur-xl rounded-2xl p-5 hover:bg-zinc-900/60 hover:border-blue-500/30 transition-all">
                     <div className="flex items-center justify-between mb-2">
-                        <span className="text-neutral-400 text-xs uppercase tracking-wide">Current Value</span>
+                        <span className="text-zinc-400 text-xs uppercase tracking-wide">Current Value</span>
                         <BarChart3 className="w-4 h-4 text-purple-400" />
                     </div>
-                    <div className="text-xl font-bold">{formatCurrency(data.current_value)}</div>
+                    <div className="text-xl font-bold text-white">{formatCurrency(data.current_value)}</div>
                     <div className={`text-xs mt-1 font-semibold ${isProfit ? 'text-green-400' : 'text-red-400'}`}>
                         {formatPercent(data.return_percent)}
                     </div>
                 </div>
 
                 {/* Profit/Loss */}
-                <div className={`glass-strong rounded-xl p-5 border bg-white/5 backdrop-blur-md ${isProfit ? 'border-green-500/30' : 'border-red-500/30'
+                <div className={`bg-zinc-900/40 border backdrop-blur-xl rounded-2xl p-5 hover:bg-zinc-900/60 transition-all ${isProfit ? 'border-green-500/30' : 'border-red-500/30'
                     }`}>
                     <div className="flex items-center justify-between mb-2">
-                        <span className="text-neutral-400 text-xs uppercase tracking-wide">Profit/Loss</span>
+                        <span className="text-zinc-400 text-xs uppercase tracking-wide">Profit/Loss</span>
                         {isProfit ? (
                             <TrendingUp className="w-4 h-4 text-green-400" />
                         ) : (
@@ -169,13 +244,13 @@ export default function OverallPortfolioPage() {
                     <div className={`text-xl font-bold ${isProfit ? 'text-green-400' : 'text-red-400'}`}>
                         {formatCurrency(data.profit)}
                     </div>
-                    <div className="text-xs text-neutral-400 mt-1">Absolute return</div>
+                    <div className="text-xs text-zinc-400 mt-1">Absolute return</div>
                 </div>
 
                 {/* Portfolio XIRR */}
-                <div className="glass-strong rounded-xl p-5 border border-white/10 bg-white/5 backdrop-blur-md">
+                <div className="bg-zinc-900/40 border border-zinc-800/60 backdrop-blur-xl rounded-2xl p-5 hover:bg-zinc-900/60 hover:border-blue-500/30 transition-all">
                     <div className="flex items-center justify-between mb-2">
-                        <span className="text-neutral-400 text-xs uppercase tracking-wide">Portfolio XIRR</span>
+                        <span className="text-zinc-400 text-xs uppercase tracking-wide">Portfolio XIRR</span>
                         <Activity className="w-4 h-4 text-blue-400" />
                     </div>
                     <div className={`text-xl font-bold ${data.portfolio_xirr_percent !== null && data.portfolio_xirr_percent >= 0 ? 'text-green-400' : 'text-red-400'
@@ -184,15 +259,15 @@ export default function OverallPortfolioPage() {
                             ? formatPercent(data.portfolio_xirr_percent)
                             : 'N/A'}
                     </div>
-                    <div className="text-xs text-neutral-400 mt-1">Annualized return</div>
+                    <div className="text-xs text-zinc-400 mt-1">Annualized return</div>
                 </div>
 
                 {/* vs Nifty 50 */}
                 {data.outperformance !== null && (
-                    <div className={`glass-strong rounded-xl p-5 border bg-white/5 backdrop-blur-md ${isProfitVsNifty ? 'border-green-500/30' : 'border-red-500/30'
+                    <div className={`bg-zinc-900/40 border backdrop-blur-xl rounded-2xl p-5 hover:bg-zinc-900/60 transition-all ${isProfitVsNifty ? 'border-green-500/30' : 'border-red-500/30'
                         }`}>
                         <div className="flex items-center justify-between mb-2">
-                            <span className="text-neutral-400 text-xs uppercase tracking-wide">vs Nifty 50</span>
+                            <span className="text-zinc-400 text-xs uppercase tracking-wide">vs Nifty 50</span>
                             {isProfitVsNifty ? (
                                 <TrendingUp className="w-4 h-4 text-green-400" />
                             ) : (
@@ -202,14 +277,14 @@ export default function OverallPortfolioPage() {
                         <div className={`text-xl font-bold ${isProfitVsNifty ? 'text-green-400' : 'text-red-400'}`}>
                             {formatPercent(data.outperformance)}
                         </div>
-                        <div className="text-xs text-neutral-400 mt-1">Outperformance</div>
+                        <div className="text-xs text-zinc-400 mt-1">Outperformance</div>
                     </div>
                 )}
             </div>
 
-            {/* MAIN COMPARISON SECTION */}
-            <div className="glass-strong rounded-xl p-8 mb-6 border border-white/10 bg-white/5 backdrop-blur-md">
-                <h2 className="text-2xl font-bold mb-6 text-center">Performance Comparison</h2>
+            {/* Performance Comparison Section */}
+            <div className="bg-zinc-900/40 border border-zinc-800/60 backdrop-blur-xl rounded-2xl p-8 mb-6">
+                <h2 className="text-2xl font-bold mb-6 text-center text-white">Performance Comparison</h2>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     {/* Your Portfolio */}
@@ -312,60 +387,106 @@ export default function OverallPortfolioPage() {
                 </div>
             </div>
 
-            {/* Bottom Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Holdings Breakdown */}
-                <div className="glass-strong rounded-xl p-6 border border-white/10 bg-white/5 backdrop-blur-md">
-                    <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                        <BarChart3 className="w-5 h-5 text-blue-400" />
-                        Holdings Breakdown
-                    </h2>
-                    <div className="max-h-80 overflow-y-auto custom-scrollbar">
-                        <table className="w-full">
-                            <thead className="sticky top-0 bg-black/50 backdrop-blur z-10">
-                                <tr className="border-b border-white/10">
-                                    <th className="text-left py-3 px-2 text-neutral-400 font-medium text-sm">Symbol</th>
-                                    <th className="text-right py-3 px-2 text-neutral-400 font-medium text-sm">Quantity</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {data.symbol_breakdown.map((item, idx) => (
-                                    <tr key={idx} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                                        <td className="py-3 px-2 font-semibold">{item.symbol}</td>
-                                        <td className="py-3 px-2 text-right text-neutral-300">{item.total_quantity?.toFixed(2) || '0.00'}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+            {/* Performance Chart */}
+            {chartData.length > 0 && (
+                <div className="bg-zinc-900/40 border border-zinc-800/60 backdrop-blur-xl rounded-2xl p-6 mb-6">
+                    <div className="flex items-center justify-between mb-6">
+                        <h2 className="text-xl font-bold text-white">Historical Performance</h2>
+                        <div className="flex gap-2">
+                            {timePeriods.map((period) => (
+                                <button
+                                    key={period}
+                                    onClick={() => setSelectedPeriod(period)}
+                                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${selectedPeriod === period
+                                            ? 'bg-blue-500 text-white'
+                                            : 'bg-zinc-800/50 text-zinc-400 hover:bg-zinc-800 hover:text-white'
+                                        }`}
+                                >
+                                    {period}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                    <div className="h-[400px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <LineChart data={filteredChartData}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
+                                <XAxis
+                                    dataKey="date"
+                                    stroke="#71717a"
+                                    fontSize={12}
+                                    tickLine={false}
+                                    axisLine={false}
+                                    tickFormatter={formatDate}
+                                />
+                                <YAxis
+                                    stroke="#71717a"
+                                    fontSize={12}
+                                    tickLine={false}
+                                    axisLine={false}
+                                    tickFormatter={(value) => formatCurrency(value)}
+                                />
+                                <Tooltip
+                                    contentStyle={{
+                                        backgroundColor: '#18181b',
+                                        borderColor: '#27272a',
+                                        borderRadius: '8px',
+                                        color: '#fff'
+                                    }}
+                                    labelFormatter={(label) => formatDate(label)}
+                                    formatter={(value: any) => [formatCurrency(value), '']}
+                                />
+                                <Legend
+                                    wrapperStyle={{ fontSize: '14px' }}
+                                    iconType="line"
+                                />
+                                <Line
+                                    type="monotone"
+                                    dataKey="portfolio"
+                                    stroke="#3b82f6"
+                                    strokeWidth={3}
+                                    dot={false}
+                                    name="Your Portfolio"
+                                    activeDot={{ r: 6, fill: "#3b82f6" }}
+                                />
+                                <Line
+                                    type="monotone"
+                                    dataKey="nifty"
+                                    stroke="#71717a"
+                                    strokeWidth={2}
+                                    strokeDasharray="5 5"
+                                    dot={false}
+                                    name="Nifty 50"
+                                />
+                            </LineChart>
+                        </ResponsiveContainer>
                     </div>
                 </div>
+            )}
 
-                {/* Transaction History */}
-                <div className="glass-strong rounded-xl p-6 border border-white/10 bg-white/5 backdrop-blur-md">
-                    <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                        <Calendar className="w-5 h-5 text-green-400" />
-                        Transaction History
-                    </h2>
-                    <div className="space-y-2 max-h-80 overflow-y-auto custom-scrollbar">
-                        {data.transactions.map((txn, idx) => (
-                            <div key={idx} className="flex items-center justify-between p-3 bg-white/5 rounded-lg hover:bg-white/10 transition-colors">
-                                <div className="flex-1">
-                                    <div className="font-semibold text-white text-sm">{txn.symbol}</div>
-                                    <div className="text-xs text-neutral-400">
-                                        {new Date(txn.buy_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-                                    </div>
-                                </div>
-                                <div className="text-right mr-4">
-                                    <div className="text-neutral-300 text-sm">{txn.quantity} shares</div>
-                                    <div className="text-xs text-neutral-500">{formatCurrency(txn.invested_amount)}</div>
-                                </div>
-                                <div className="text-right min-w-[80px]">
-                                    <div className="text-xs text-neutral-500">Nifty @ {txn.nifty_value?.toFixed(0) || '0'}</div>
-                                    <div className="text-xs text-neutral-600">{txn.nifty_units_bought?.toFixed(3) || '0.000'} units</div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
+            {/* Holdings Breakdown */}
+            <div className="bg-zinc-900/40 border border-zinc-800/60 backdrop-blur-xl rounded-2xl p-6">
+                <h2 className="text-xl font-bold mb-4 flex items-center gap-2 text-white">
+                    <BarChart3 className="w-5 h-5 text-blue-400" />
+                    Holdings Breakdown
+                </h2>
+                <div className="max-h-80 overflow-y-auto custom-scrollbar">
+                    <table className="w-full">
+                        <thead className="sticky top-0 bg-zinc-900/80 backdrop-blur z-10">
+                            <tr className="border-b border-zinc-800">
+                                <th className="text-left py-3 px-2 text-zinc-400 font-medium text-sm">Symbol</th>
+                                <th className="text-right py-3 px-2 text-zinc-400 font-medium text-sm">Quantity</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {data.symbol_breakdown.map((item, idx) => (
+                                <tr key={idx} className="border-b border-zinc-800/50 hover:bg-zinc-800/30 transition-colors">
+                                    <td className="py-3 px-2 font-semibold text-white">{item.symbol}</td>
+                                    <td className="py-3 px-2 text-right text-zinc-300">{item.total_quantity?.toFixed(2) || '0.00'}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
