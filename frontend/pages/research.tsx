@@ -1,6 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/router'
-import Header from '../components/Header'
 import { useAuth } from '../lib/auth-context'
 import { usePortfolio } from '../lib/portfolio-context'
 import { buildPublicApiUrl, getApiHeaders } from '../lib/api-helpers'
@@ -161,39 +160,204 @@ export default function ResearchPage() {
     const hasMessages = messages.length > 0
 
     return (
-        <div className="min-h-screen bg-[#0a0a0a]">
-            <Header />
+        <div className="flex flex-col h-screen relative overflow-hidden bg-black">
+            {/* Standard Header */}
+            <div className="flex-none p-6 md:p-8 pb-0 z-10 max-w-[1600px] mx-auto w-full">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+                    <div>
+                        <h1 className="text-2xl md:text-3xl font-bold mb-1.5 bg-gradient-to-r from-white via-blue-100 to-emerald-100 bg-clip-text text-transparent">
+                            AI Copilot
+                        </h1>
+                        <p className="text-zinc-400 text-sm italic">Analyze stocks, evaluate fundamentals, and get portfolio insights powered by AI</p>
+                    </div>
+                </div>
+            </div>
 
-            {/* Center content when no messages */}
-            <div className={`transition-all duration-500 ${hasMessages ? 'pt-24 pb-32' : 'flex items-center justify-center min-h-screen'
-                }`}>
-                <div className="max-w-4xl mx-auto px-4 w-full">
-                    {/* Header - only show when no messages */}
-                    {!hasMessages && (
-                        <div className="text-center mb-12">
-                            <div className="flex items-center justify-center gap-2 mb-3">
-                                <Sparkles className="w-8 h-8 text-cyan-400" />
-                                <h1 className="text-4xl font-bold text-white">AI Copilot</h1>
+            {/* Main Content Area */}
+            <div className="flex-1 overflow-auto relative scrollbar-hide">
+                <div className={`transition-all duration-500 w-full ${hasMessages ? 'pt-4 pb-32' : 'h-full flex items-center justify-center -mt-20'}`}>
+                    <div className="max-w-4xl mx-auto px-4 w-full">
+
+                        {/* Input Box - Centered when no messages */}
+                        {!hasMessages && (
+                            <div className="max-w-2xl mx-auto">
+                                <form onSubmit={handleSubmit}>
+                                    <div className="relative bg-[#111111] border border-gray-800 rounded-2xl px-4 pb-4 pt-2 focus-within:border-cyan-500/50 transition-colors shadow-2xl">
+                                        <div className="flex items-start gap-3 mb-3">
+                                            <textarea
+                                                ref={inputRef}
+                                                value={input}
+                                                onChange={(e) => setInput(e.target.value)}
+                                                onKeyDown={handleKeyDown}
+                                                placeholder={classifications.find(c => c.id === selectedClassification)?.placeholder}
+                                                className="flex-1 bg-transparent text-white placeholder-gray-500 resize-none outline-none min-h-[24px] max-h-[120px] text-base py-1 overflow-hidden"
+                                                rows={1}
+                                                disabled={isLoading}
+                                                style={{
+                                                    height: 'auto',
+                                                    minHeight: '24px'
+                                                }}
+                                                onInput={(e) => {
+                                                    const target = e.target as HTMLTextAreaElement
+                                                    target.style.height = 'auto'
+                                                    target.style.height = target.scrollHeight + 'px'
+                                                }}
+                                            />
+
+                                            <Button
+                                                type="submit"
+                                                disabled={!input.trim() || isLoading}
+                                                className="flex-shrink-0 bg-cyan-500 hover:bg-cyan-600 text-white rounded-xl px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                            >
+                                                {isLoading ? (
+                                                    <Loader2 className="w-5 h-5 animate-spin" />
+                                                ) : (
+                                                    <Send className="w-5 h-5" />
+                                                )}
+                                            </Button>
+                                        </div>
+
+                                        {/* Sample Queries */}
+                                        <div className="flex flex-wrap gap-2 mb-4">
+                                            {(selectedClassification === 'generic_company_question' ? ['What is PE ratio?', 'How to evaluate a stock?'] :
+                                                selectedClassification === 'company_fundamental' ? ['Analyse Reliance', 'Is HDFC Bank a good buy?'] :
+                                                    ['How is my portfolio?', 'What are my top holdings?']).map((sample) => (
+                                                        <button
+                                                            key={sample}
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setInput(sample)
+                                                                if (inputRef.current) {
+                                                                    inputRef.current.style.height = 'auto'
+                                                                    inputRef.current.style.height = '32px'
+                                                                    inputRef.current.focus()
+                                                                }
+                                                            }}
+                                                            className="text-[11px] font-medium px-3 py-1 rounded-full bg-zinc-900 text-zinc-400 hover:text-cyan-400 hover:bg-cyan-500/10 transition-all border border-zinc-800 hover:border-cyan-500/30"
+                                                        >
+                                                            {sample}
+                                                        </button>
+                                                    ))}
+                                        </div>
+
+                                        {/* Classification Icons - Below textarea */}
+                                        <div className="flex gap-2">
+                                            {classifications.map((c) => {
+                                                const Icon = c.icon
+                                                const isSelected = selectedClassification === c.id
+                                                return (
+                                                    <button
+                                                        key={c.id}
+                                                        type="button"
+                                                        onClick={() => setSelectedClassification(c.id)}
+                                                        className={`p-2.5 rounded-xl transition-all ${isSelected
+                                                            ? 'bg-cyan-500/20 text-cyan-400'
+                                                            : 'bg-gray-800/50 text-gray-400 hover:bg-gray-800 hover:text-gray-300'
+                                                            }`}
+                                                        title={c.id === 'generic_company_question' ? 'General Query' : c.id === 'company_fundamental' ? 'Company Analysis' : 'My Portfolio'}
+                                                    >
+                                                        <Icon className="w-5 h-5" />
+                                                    </button>
+                                                )
+                                            })}
+                                        </div>
+                                    </div>
+                                </form>
                             </div>
-                            <p className="text-gray-400">
-                                Your intelligent assistant for market insights and portfolio analysis
-                            </p>
-                        </div>
-                    )}
+                        )}
 
-                    {/* Input Box - Centered when no messages */}
-                    {!hasMessages && (
-                        <div className="max-w-2xl mx-auto">
+                        {/* Messages */}
+                        {hasMessages && (
+                            <div className="space-y-6 mb-6">
+                                {messages.map((message) => (
+                                    <div
+                                        key={message.id}
+                                        className={`flex gap-4 ${message.type === 'user' ? 'justify-end' : 'justify-start'
+                                            }`}
+                                    >
+                                        {message.type === 'assistant' && (
+                                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center flex-shrink-0">
+                                                <Sparkles className="w-4 h-4 text-white" />
+                                            </div>
+                                        )}
+
+                                        <div
+                                            className={`max-w-[80%] rounded-2xl px-5 py-4 ${message.type === 'user'
+                                                ? 'bg-cyan-500/10 border border-cyan-500/30'
+                                                : 'bg-[#111111] border border-gray-800'
+                                                }`}
+                                        >
+                                            {message.format === 'html' ? (
+                                                <div
+                                                    className="prose prose-invert prose-sm max-w-none
+                                                    prose-headings:text-white prose-headings:font-semibold
+                                                    prose-h3:text-lg prose-h3:mb-3 prose-h3:mt-4 prose-h3:first:mt-0
+                                                    prose-h4:text-base prose-h4:mb-2 prose-h4:mt-3
+                                                    prose-p:text-gray-300 prose-p:leading-relaxed prose-p:mb-3
+                                                    prose-strong:text-cyan-400 prose-strong:font-semibold
+                                                    prose-ul:my-2 prose-li:text-gray-300 prose-li:my-1
+                                                    prose-table:border-collapse prose-table:w-full prose-table:my-4
+                                                    prose-th:bg-gray-800 prose-th:text-white prose-th:font-semibold prose-th:p-3 prose-th:text-left prose-th:border prose-th:border-gray-700
+                                                    prose-td:p-3 prose-td:border prose-td:border-gray-800 prose-td:text-gray-300"
+                                                    dangerouslySetInnerHTML={{ __html: message.content }}
+                                                />
+                                            ) : (
+                                                <p className="text-gray-200 whitespace-pre-wrap leading-relaxed">
+                                                    {message.content}
+                                                </p>
+                                            )}
+                                            <div className="text-xs text-gray-500 mt-2">
+                                                {message.timestamp.toLocaleTimeString()}
+                                            </div>
+                                        </div>
+
+                                        {message.type === 'user' && (
+                                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center flex-shrink-0">
+                                                <span className="text-white text-sm font-semibold">
+                                                    {userEmail?.[0]?.toUpperCase() || 'U'}
+                                                </span>
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+
+                                {isLoading && (
+                                    <div className="flex gap-4 justify-start">
+                                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center flex-shrink-0">
+                                            <Sparkles className="w-4 h-4 text-white" />
+                                        </div>
+                                        <div className="bg-[#111111] border border-gray-800 rounded-2xl px-5 py-4">
+                                            <div className="flex items-center gap-2">
+                                                <Loader2 className="w-4 h-4 animate-spin text-cyan-400" />
+                                                <span className="text-gray-400 text-sm">Thinking...</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                                <div ref={messagesEndRef} />
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Background ambient light effects */}
+                <div className="absolute top-0 right-0 -mr-20 -mt-20 w-[500px] h-[500px] bg-cyan-500/5 rounded-full blur-[120px] pointer-events-none z-0" />
+                <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-[400px] h-[400px] bg-blue-500/5 rounded-full blur-[120px] pointer-events-none z-0" />
+
+                {/* Fixed Input Bar - Only show when there are messages */}
+                {hasMessages && (
+                    <div className="fixed bottom-0 left-0 right-0 bg-[#0a0a0a]/95 backdrop-blur-xl border-t border-gray-800">
+                        <div className="max-w-4xl mx-auto px-4 py-4">
                             <form onSubmit={handleSubmit}>
-                                <div className="relative bg-[#111111] border border-gray-800 rounded-2xl px-4 pb-4 pt-2 focus-within:border-cyan-500/50 transition-colors shadow-2xl">
-                                    <div className="flex items-start gap-3 mb-3">
+                                <div className="relative bg-[#111111] border border-gray-800 rounded-2xl px-3 pb-3 pt-2 focus-within:border-cyan-500/50 transition-colors">
+                                    <div className="flex items-start gap-3 mb-2">
                                         <textarea
                                             ref={inputRef}
                                             value={input}
                                             onChange={(e) => setInput(e.target.value)}
                                             onKeyDown={handleKeyDown}
                                             placeholder={classifications.find(c => c.id === selectedClassification)?.placeholder}
-                                            className="flex-1 bg-transparent text-white placeholder-gray-500 resize-none outline-none min-h-[24px] max-h-[120px] text-base py-1 overflow-hidden"
+                                            className="flex-1 bg-transparent text-white placeholder-gray-500 resize-none outline-none min-h-[24px] max-h-[120px] py-1 overflow-hidden"
                                             rows={1}
                                             disabled={isLoading}
                                             style={{
@@ -221,7 +385,7 @@ export default function ResearchPage() {
                                     </div>
 
                                     {/* Sample Queries */}
-                                    <div className="flex flex-wrap gap-2 mb-4">
+                                    <div className="flex flex-wrap gap-2 mb-3">
                                         {(selectedClassification === 'generic_company_question' ? ['What is PE ratio?', 'How to evaluate a stock?'] :
                                             selectedClassification === 'company_fundamental' ? ['Analyse Reliance', 'Is HDFC Bank a good buy?'] :
                                                 ['How is my portfolio?', 'What are my top holdings?']).map((sample) => (
@@ -236,7 +400,7 @@ export default function ResearchPage() {
                                                                 inputRef.current.focus()
                                                             }
                                                         }}
-                                                        className="text-[11px] font-medium px-3 py-1 rounded-full bg-zinc-900 text-zinc-400 hover:text-cyan-400 hover:bg-cyan-500/10 transition-all border border-zinc-800 hover:border-cyan-500/30"
+                                                        className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-zinc-900 text-zinc-400 hover:text-cyan-400 hover:bg-cyan-500/10 transition-all border border-zinc-800 hover:border-cyan-500/30"
                                                     >
                                                         {sample}
                                                     </button>
@@ -253,13 +417,13 @@ export default function ResearchPage() {
                                                     key={c.id}
                                                     type="button"
                                                     onClick={() => setSelectedClassification(c.id)}
-                                                    className={`p-2.5 rounded-xl transition-all ${isSelected
+                                                    className={`p-2 rounded-lg transition-all ${isSelected
                                                         ? 'bg-cyan-500/20 text-cyan-400'
                                                         : 'bg-gray-800/50 text-gray-400 hover:bg-gray-800 hover:text-gray-300'
                                                         }`}
                                                     title={c.id === 'generic_company_question' ? 'General Query' : c.id === 'company_fundamental' ? 'Company Analysis' : 'My Portfolio'}
                                                 >
-                                                    <Icon className="w-5 h-5" />
+                                                    <Icon className="w-4 h-4" />
                                                 </button>
                                             )
                                         })}
@@ -267,171 +431,9 @@ export default function ResearchPage() {
                                 </div>
                             </form>
                         </div>
-                    )}
-
-                    {/* Messages */}
-                    {hasMessages && (
-                        <div className="space-y-6 mb-6">
-                            {messages.map((message) => (
-                                <div
-                                    key={message.id}
-                                    className={`flex gap-4 ${message.type === 'user' ? 'justify-end' : 'justify-start'
-                                        }`}
-                                >
-                                    {message.type === 'assistant' && (
-                                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center flex-shrink-0">
-                                            <Sparkles className="w-4 h-4 text-white" />
-                                        </div>
-                                    )}
-
-                                    <div
-                                        className={`max-w-[80%] rounded-2xl px-5 py-4 ${message.type === 'user'
-                                            ? 'bg-cyan-500/10 border border-cyan-500/30'
-                                            : 'bg-[#111111] border border-gray-800'
-                                            }`}
-                                    >
-                                        {message.format === 'html' ? (
-                                            <div
-                                                className="prose prose-invert prose-sm max-w-none
-                                                    prose-headings:text-white prose-headings:font-semibold
-                                                    prose-h3:text-lg prose-h3:mb-3 prose-h3:mt-4 prose-h3:first:mt-0
-                                                    prose-h4:text-base prose-h4:mb-2 prose-h4:mt-3
-                                                    prose-p:text-gray-300 prose-p:leading-relaxed prose-p:mb-3
-                                                    prose-strong:text-cyan-400 prose-strong:font-semibold
-                                                    prose-ul:my-2 prose-li:text-gray-300 prose-li:my-1
-                                                    prose-table:border-collapse prose-table:w-full prose-table:my-4
-                                                    prose-th:bg-gray-800 prose-th:text-white prose-th:font-semibold prose-th:p-3 prose-th:text-left prose-th:border prose-th:border-gray-700
-                                                    prose-td:p-3 prose-td:border prose-td:border-gray-800 prose-td:text-gray-300"
-                                                dangerouslySetInnerHTML={{ __html: message.content }}
-                                            />
-                                        ) : (
-                                            <p className="text-gray-200 whitespace-pre-wrap leading-relaxed">
-                                                {message.content}
-                                            </p>
-                                        )}
-                                        <div className="text-xs text-gray-500 mt-2">
-                                            {message.timestamp.toLocaleTimeString()}
-                                        </div>
-                                    </div>
-
-                                    {message.type === 'user' && (
-                                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center flex-shrink-0">
-                                            <span className="text-white text-sm font-semibold">
-                                                {userEmail?.[0]?.toUpperCase() || 'U'}
-                                            </span>
-                                        </div>
-                                    )}
-                                </div>
-                            ))}
-
-                            {isLoading && (
-                                <div className="flex gap-4 justify-start">
-                                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center flex-shrink-0">
-                                        <Sparkles className="w-4 h-4 text-white" />
-                                    </div>
-                                    <div className="bg-[#111111] border border-gray-800 rounded-2xl px-5 py-4">
-                                        <div className="flex items-center gap-2">
-                                            <Loader2 className="w-4 h-4 animate-spin text-cyan-400" />
-                                            <span className="text-gray-400 text-sm">Thinking...</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-                            <div ref={messagesEndRef} />
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            {/* Fixed Input Bar - Only show when there are messages */}
-            {hasMessages && (
-                <div className="fixed bottom-0 left-0 right-0 bg-[#0a0a0a]/95 backdrop-blur-xl border-t border-gray-800">
-                    <div className="max-w-4xl mx-auto px-4 py-4">
-                        <form onSubmit={handleSubmit}>
-                            <div className="relative bg-[#111111] border border-gray-800 rounded-2xl px-3 pb-3 pt-2 focus-within:border-cyan-500/50 transition-colors">
-                                <div className="flex items-start gap-3 mb-2">
-                                    <textarea
-                                        ref={inputRef}
-                                        value={input}
-                                        onChange={(e) => setInput(e.target.value)}
-                                        onKeyDown={handleKeyDown}
-                                        placeholder={classifications.find(c => c.id === selectedClassification)?.placeholder}
-                                        className="flex-1 bg-transparent text-white placeholder-gray-500 resize-none outline-none min-h-[24px] max-h-[120px] py-1 overflow-hidden"
-                                        rows={1}
-                                        disabled={isLoading}
-                                        style={{
-                                            height: 'auto',
-                                            minHeight: '24px'
-                                        }}
-                                        onInput={(e) => {
-                                            const target = e.target as HTMLTextAreaElement
-                                            target.style.height = 'auto'
-                                            target.style.height = target.scrollHeight + 'px'
-                                        }}
-                                    />
-
-                                    <Button
-                                        type="submit"
-                                        disabled={!input.trim() || isLoading}
-                                        className="flex-shrink-0 bg-cyan-500 hover:bg-cyan-600 text-white rounded-xl px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                    >
-                                        {isLoading ? (
-                                            <Loader2 className="w-5 h-5 animate-spin" />
-                                        ) : (
-                                            <Send className="w-5 h-5" />
-                                        )}
-                                    </Button>
-                                </div>
-
-                                {/* Sample Queries */}
-                                <div className="flex flex-wrap gap-2 mb-3">
-                                    {(selectedClassification === 'generic_company_question' ? ['What is PE ratio?', 'How to evaluate a stock?'] :
-                                        selectedClassification === 'company_fundamental' ? ['Analyse Reliance', 'Is HDFC Bank a good buy?'] :
-                                            ['How is my portfolio?', 'What are my top holdings?']).map((sample) => (
-                                                <button
-                                                    key={sample}
-                                                    type="button"
-                                                    onClick={() => {
-                                                        setInput(sample)
-                                                        if (inputRef.current) {
-                                                            inputRef.current.style.height = 'auto'
-                                                            inputRef.current.style.height = '32px'
-                                                            inputRef.current.focus()
-                                                        }
-                                                    }}
-                                                    className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-zinc-900 text-zinc-400 hover:text-cyan-400 hover:bg-cyan-500/10 transition-all border border-zinc-800 hover:border-cyan-500/30"
-                                                >
-                                                    {sample}
-                                                </button>
-                                            ))}
-                                </div>
-
-                                {/* Classification Icons - Below textarea */}
-                                <div className="flex gap-2">
-                                    {classifications.map((c) => {
-                                        const Icon = c.icon
-                                        const isSelected = selectedClassification === c.id
-                                        return (
-                                            <button
-                                                key={c.id}
-                                                type="button"
-                                                onClick={() => setSelectedClassification(c.id)}
-                                                className={`p-2 rounded-lg transition-all ${isSelected
-                                                    ? 'bg-cyan-500/20 text-cyan-400'
-                                                    : 'bg-gray-800/50 text-gray-400 hover:bg-gray-800 hover:text-gray-300'
-                                                    }`}
-                                                title={c.id === 'generic_company_question' ? 'General Query' : c.id === 'company_fundamental' ? 'Company Analysis' : 'My Portfolio'}
-                                            >
-                                                <Icon className="w-4 h-4" />
-                                            </button>
-                                        )
-                                    })}
-                                </div>
-                            </div>
-                        </form>
                     </div>
-                </div>
-            )}
+                )}
+            </div>
         </div>
     )
 }
