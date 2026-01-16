@@ -24,6 +24,7 @@ from routes.stock_research_routes import stock_research_bp
 from routes.email_alert_routes import email_alert_bp
 from routes.portfolio_analysis_routes import portfolio_analysis_bp
 from routes.notification_routes import notification_bp
+from routes.copilot_routes import copilot_bp
 
 
 def create_app(config_name='development'):
@@ -63,6 +64,7 @@ def create_app(config_name='development'):
     app.register_blueprint(email_alert_bp)
     app.register_blueprint(portfolio_analysis_bp)
     app.register_blueprint(notification_bp)
+    app.register_blueprint(copilot_bp)
     
     from routes.portfolio_routes import portfolio_bp
     app.register_blueprint(portfolio_bp)
