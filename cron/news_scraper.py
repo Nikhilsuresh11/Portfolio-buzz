@@ -88,13 +88,15 @@ class NewsScraperService:
         
         try:
             # 1. Get tickers from watchlists (actively tracked)
+            # Schema: Each document has user_email, watchlist_id, ticker, created_at, updated_at
             watchlist_collection = self.db[config.WATCHLIST_COLLECTION]
-            watchlists = watchlist_collection.find({}, {'watchlist': 1})
             
-            for watchlist in watchlists:
-                for ticker in watchlist.get('watchlist', []):
-                    if ticker not in tickers_map:
-                        tickers_map[ticker] = {'ticker': ticker, 'company_name': ticker}
+            # Get unique tickers from all watchlist entries
+            unique_tickers = watchlist_collection.distinct('ticker')
+            
+            for ticker in unique_tickers:
+                if ticker and ticker not in tickers_map:
+                    tickers_map[ticker] = {'ticker': ticker, 'company_name': ticker}
             
             logger.info(f"Found {len(tickers_map)} tickers from watchlists")
             
