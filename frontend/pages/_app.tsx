@@ -10,6 +10,7 @@ import { GoogleOAuthProvider } from '@react-oauth/google'
 import { config } from '../config'
 
 import Sidebar from '../components/Sidebar'
+import StockSearchModal from '../components/StockSearchModal'
 
 function Layout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
@@ -18,12 +19,28 @@ function Layout({ children }: { children: React.ReactNode }) {
 
   if (isStandalonePage) return <>{children}</>
 
+  const handleStockSelect = async (ticker: string) => {
+    // Close the search modal
+    setIsSearchOpen(false)
+    // Navigate to watchlist page (or you can customize this behavior)
+    router.push('/watchlist')
+    return Promise.resolve()
+  }
+
   return (
     <div className="flex h-screen bg-black text-white overflow-hidden">
       <Sidebar onSearchClick={() => setIsSearchOpen(true)} />
       <main className="flex-1 overflow-auto relative">
         {children}
       </main>
+
+      {/* Global Stock Search Modal */}
+      <StockSearchModal
+        isOpen={isSearchOpen}
+        onClose={() => setIsSearchOpen(false)}
+        onAddStock={handleStockSelect}
+        watchlist={[]}
+      />
     </div>
   )
 }
