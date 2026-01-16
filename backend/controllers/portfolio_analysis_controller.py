@@ -63,12 +63,20 @@ class PortfolioAnalysisController:
                 
             # 3. Get Sector Distribution
             sector_counts = {}
-            for item in source_data:
-                sec = item.get('sector', 'Unknown')
+            # Prefer sectors from metrics_data assets (dynamically fetched)
+            for asset in metrics_data.get('assets', []):
+                sec = asset.get('sector', 'Unknown')
                 if sec and sec != 'Unknown' and sec != 'N/A':
                     sector_counts[sec] = sector_counts.get(sec, 0) + 1
             
-            total_stocks = len(tickers) if tickers else 1
+            # Fallback to source_data if still empty
+            if not sector_counts:
+                for item in source_data:
+                    sec = item.get('sector', 'Unknown')
+                    if sec and sec != 'Unknown' and sec != 'N/A':
+                        sector_counts[sec] = sector_counts.get(sec, 0) + 1
+            
+            total_stocks = len(metrics_data.get('assets', [])) or len(tickers) or 1
             sector_allocation = []
             for sec, count in sector_counts.items():
                 sector_allocation.append({
@@ -78,12 +86,13 @@ class PortfolioAnalysisController:
                 })
             sector_allocation.sort(key=lambda x: x['value'], reverse=True)
             
-            # If metrics_data doesn't have sector info in assets, we can enrich it
+            # 4. Ensure assets have correct sector info (don't overwrite if already set)
             for asset in metrics_data['assets']:
-                # Find sector in source data
-                info_item = next((i for i in source_data if i['ticker'] == asset['ticker']), None)
-                if info_item:
-                    asset['sector'] = info_item.get('sector', 'Unknown')
+                if not asset.get('sector') or asset.get('sector') == 'Unknown':
+                    # Find sector in source data (from DB)
+                    info_item = next((i for i in source_data if i['ticker'] == asset['ticker']), None)
+                    if info_item and info_item.get('sector') and info_item.get('sector') != 'Unknown':
+                        asset['sector'] = info_item.get('sector')
 
             # Combine data
             response_data = {

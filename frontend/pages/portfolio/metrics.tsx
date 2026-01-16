@@ -118,6 +118,9 @@ export default function Analytics() {
     const [data, setData] = useState<AnalysisData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [selectedSector, setSelectedSector] = useState<string | null>(null);
+
+    // Effect to fetch portfolio analytics
 
     useEffect(() => {
         if (currentPortfolio && userEmail) {
@@ -313,7 +316,7 @@ export default function Analytics() {
                                 </div>
                             </div>
 
-                            <div className="bg-white/5 border border-white/10 p-6 rounded-2xl flex flex-col gap-6">
+                            <div className="bg-white/5 border border-white/10 p-6 rounded-2xl flex flex-col gap-6 max-h-[500px]">
                                 <div>
                                     <h2 className="text-lg font-bold text-white flex items-center gap-2 mb-4">
                                         <BarChart3 className="text-purple-400" size={20} /> Market Sentiment
@@ -336,11 +339,11 @@ export default function Analytics() {
                                     </div>
                                 </div>
 
-                                <div className="flex-1 overflow-hidden flex flex-col">
+                                <div className="flex-1 overflow-hidden flex flex-col min-h-0">
                                     <h2 className="text-lg font-bold text-white flex items-center gap-2 mb-3">
                                         <Zap className="text-yellow-400" size={20} /> Technical Alerts
                                     </h2>
-                                    <div className="flex-1 overflow-y-auto pr-2 space-y-2 custom-scrollbar">
+                                    <div className="flex-1 overflow-y-auto pr-2 space-y-2 scrollbar-hide">
                                         {data.technical_signals && data.technical_signals.length > 0 ? (
                                             data.technical_signals.map((signal, idx) => (
                                                 <div key={idx} className="bg-black/30 p-3 rounded-lg border border-white/5 flex items-start gap-3">
@@ -362,9 +365,19 @@ export default function Analytics() {
                         {/* THIRD ROW: Sector & Details */}
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                             <div className="bg-white/5 border border-white/10 p-6 rounded-2xl">
-                                <h2 className="text-lg font-bold text-white flex items-center gap-2 mb-2">
-                                    <PieIcon className="text-blue-400" size={20} /> Sector Allocation
-                                </h2>
+                                <div className="flex items-center justify-between mb-2">
+                                    <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                                        <PieIcon className="text-blue-400" size={20} /> Sector Allocation
+                                    </h2>
+                                    {selectedSector && (
+                                        <button
+                                            onClick={() => setSelectedSector(null)}
+                                            className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+                                        >
+                                            Clear Filter
+                                        </button>
+                                    )}
+                                </div>
                                 <div className="h-[300px] w-full relative">
                                     <ResponsiveContainer width="100%" height="100%">
                                         <PieChart>
@@ -377,9 +390,23 @@ export default function Analytics() {
                                                 paddingAngle={5}
                                                 dataKey="value"
                                                 stroke="none"
+                                                onClick={(clickedData) => {
+                                                    // Recharts passes the data object to the onClick handler
+                                                    const sectorName = clickedData?.name;
+                                                    if (sectorName) {
+                                                        setSelectedSector(prev => prev === sectorName ? null : sectorName);
+                                                    }
+                                                }}
+                                                className="cursor-pointer"
                                             >
                                                 {data.sector_allocation.map((entry, index) => (
-                                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                                    <Cell
+                                                        key={`cell-${index}`}
+                                                        fill={COLORS[index % COLORS.length]}
+                                                        opacity={selectedSector && selectedSector !== entry.name ? 0.3 : 1}
+                                                        stroke={selectedSector === entry.name ? '#fff' : 'none'}
+                                                        strokeWidth={2}
+                                                    />
                                                 ))}
                                             </Pie>
                                             <Tooltip
@@ -394,15 +421,22 @@ export default function Analytics() {
                                                 wrapperStyle={{ fontSize: '12px' }}
                                                 content={({ payload }) => (
                                                     <ul className="space-y-2 pl-4">
-                                                        {payload?.map((entry: any, index: number) => (
-                                                            <li key={`item-${index}`} className="flex items-center gap-3">
-                                                                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: entry.color }}></span>
-                                                                <span className="text-gray-300 truncate max-w-[120px]" title={entry.value}>{entry.value}</span>
-                                                                <span className="text-gray-500 ml-auto font-mono text-xs">
-                                                                    {data.sector_allocation[index]?.value || 0}%
-                                                                </span>
-                                                            </li>
-                                                        ))}
+                                                        {payload?.map((entry: any, index: number) => {
+                                                            const isSelected = selectedSector === entry.value;
+                                                            return (
+                                                                <li
+                                                                    key={`item-${index}`}
+                                                                    className={`flex items-center gap-3 cursor-pointer transition-opacity ${selectedSector && !isSelected ? 'opacity-30' : 'opacity-100'}`}
+                                                                    onClick={() => setSelectedSector(prev => prev === entry.value ? null : entry.value)}
+                                                                >
+                                                                    <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: entry.color }}></span>
+                                                                    <span className={`text-gray-300 truncate max-w-[120px] ${isSelected ? 'text-white font-bold' : ''}`} title={entry.value}>{entry.value}</span>
+                                                                    <span className="text-gray-500 ml-auto font-mono text-xs">
+                                                                        {data.sector_allocation[index]?.value || 0}%
+                                                                    </span>
+                                                                </li>
+                                                            );
+                                                        })}
                                                     </ul>
                                                 )}
                                             />
@@ -412,12 +446,18 @@ export default function Analytics() {
                             </div>
 
                             <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden flex flex-col h-[380px]">
-                                <div className="p-6 border-b border-white/10">
+                                <div className="p-6 border-b border-white/10 flex items-center justify-between">
                                     <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                                        <Layers className="text-gray-400" size={20} /> Asset Risk Profile
+                                        <Layers className="text-gray-400" size={20} />
+                                        {selectedSector ? `${selectedSector} Stocks` : 'Asset Risk Profile'}
                                     </h2>
+                                    {selectedSector && (
+                                        <span className="text-[10px] bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full uppercase tracking-wider font-bold">
+                                            Filtered
+                                        </span>
+                                    )}
                                 </div>
-                                <div className="overflow-x-auto flex-1 custom-scrollbar">
+                                <div className="overflow-x-auto flex-1 scrollbar-hide">
                                     <table className="w-full text-left text-sm">
                                         <thead>
                                             <tr className="bg-black/40 text-gray-400 border-b border-white/5">
@@ -428,24 +468,36 @@ export default function Analytics() {
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-white/5">
-                                            {data.assets.map((asset) => (
-                                                <tr key={asset.ticker} className="hover:bg-white/5 transition-colors">
-                                                    <td className="px-6 py-3 font-semibold text-white">{asset.ticker}</td>
-                                                    <td className="px-6 py-3">
-                                                        <span className={`font-medium ${asset.beta > 1.2 ? 'text-orange-400' : 'text-blue-400'}`}>
-                                                            {asset.beta.toFixed(2)}
-                                                        </span>
-                                                    </td>
-                                                    <td className="px-6 py-3">
-                                                        <span className={`font-medium ${asset.sharpe > 1 ? 'text-green-400' : asset.sharpe > 0 ? 'text-yellow-400' : 'text-red-400'}`}>
-                                                            {asset.sharpe.toFixed(2)}
-                                                        </span>
-                                                    </td>
-                                                    <td className="px-6 py-3 text-gray-400 text-xs">
-                                                        {asset.beta < 0.5 ? 'Defensive' : asset.beta > 1.2 ? 'Aggressive' : 'Moderate'}
+                                            {data.assets
+                                                .filter(asset => !selectedSector || asset.sector === selectedSector)
+                                                .map((asset) => (
+                                                    <tr key={asset.ticker} className="hover:bg-white/5 transition-colors">
+                                                        <td className="px-6 py-3 font-semibold text-white">
+                                                            <div>{asset.ticker}</div>
+                                                            <div className="text-[10px] text-gray-500 font-normal">{asset.sector}</div>
+                                                        </td>
+                                                        <td className="px-6 py-3">
+                                                            <span className={`font-medium ${asset.beta > 1.2 ? 'text-orange-400' : 'text-blue-400'}`}>
+                                                                {asset.beta.toFixed(2)}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-6 py-3">
+                                                            <span className={`font-medium ${asset.sharpe > 1 ? 'text-green-400' : asset.sharpe > 0 ? 'text-yellow-400' : 'text-red-400'}`}>
+                                                                {asset.sharpe.toFixed(2)}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-6 py-3 text-gray-400 text-xs">
+                                                            {asset.beta < 0.5 ? 'Defensive' : asset.beta > 1.2 ? 'Aggressive' : 'Moderate'}
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            {data.assets.filter(asset => !selectedSector || asset.sector === selectedSector).length === 0 && (
+                                                <tr>
+                                                    <td colSpan={4} className="px-6 py-10 text-center text-gray-500 italic">
+                                                        No stocks found in this sector
                                                     </td>
                                                 </tr>
-                                            ))}
+                                            )}
                                         </tbody>
                                     </table>
                                 </div>
