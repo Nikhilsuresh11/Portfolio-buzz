@@ -80,12 +80,13 @@ Response:"""
         return False, f"Error handling greeting: {str(e)}", None
 
 
-def handle_generic_question(query):
+def handle_generic_question(query, previous_conversation=None):
     """
     Handle generic company/market questions using Groq Llama
     
     Args:
         query: User's generic question
+        previous_conversation: List of previous Q&A pairs for context
     
     Returns:
         tuple: (success: bool, message: str, response: dict or None)
@@ -101,8 +102,21 @@ def handle_generic_question(query):
         # Initialize Groq client
         client = Groq(api_key=config.GROQ_API_KEY)
         
+        # Build conversation context
+        conversation_context = ""
+        has_previous_conversation = previous_conversation and len(previous_conversation) > 0
+        
+        if has_previous_conversation:
+            conversation_context = "\n\nPrevious Conversation:\n"
+            for i, conv in enumerate(previous_conversation[-3:], 1):
+                conversation_context += f"Q{i}: {conv.get('query', '')}\n"
+                conversation_context += f"A{i}: {conv.get('answer', '')[:200]}...\n\n"
+        
+        # Build guidelines - only mention follow-up if there's previous conversation
+        follow_up_instruction = "\n- If this is a follow-up question, refer to the previous conversation" if has_previous_conversation else ""
+        
         # Research prompt for generic questions
-        research_prompt = f"""You are a friendly financial advisor explaining concepts to beginners.
+        research_prompt = f"""You are a friendly financial advisor explaining concepts to beginners.{conversation_context}
 
 User Question: {query}
 
@@ -114,15 +128,18 @@ Guidelines:
 - If you must use technical terms, explain them simply
 - Give 1-2 practical examples
 - Keep it short and easy to understand
-- No lengthy explanations or over-explaining
+- No lengthy explanations or over-explaining{follow_up_instruction}
 
-IMPORTANT: Format your response in clean HTML:
+CRITICAL - HTML FORMATTING ONLY:
+- Use ONLY HTML tags - NO Markdown syntax like ** or __
+- Use <strong>text</strong> for bold (NOT **text**)
+- Use <em>text</em> for italics (NOT *text*)
 - Use <h2> for the main concept name
 - Use <p> for simple paragraphs
 - Use <ul> and <li> for key points (max 3-4 points)
-- Use <strong> for important terms
-- Use <table> only if comparing 2-3 items
+- Use <table>, <tr>, <td>, <th> for tables if needed
 - Do NOT include <html>, <head>, or <body> tags
+- Output PURE HTML only
 
 Keep your answer under 200 words. Be clear, simple, and helpful."""
 
@@ -133,7 +150,7 @@ Keep your answer under 200 words. Be clear, simple, and helpful."""
             messages=[
                 {
                     "role": "system",
-                    "content": "You are a friendly financial advisor who explains complex concepts in simple terms. Keep answers short, clear, and beginner-friendly. Use HTML formatting."
+                    "content": "You are a friendly financial advisor who explains complex concepts in simple terms. Keep answers short, clear, and beginner-friendly. Use PURE HTML formatting ONLY - use <strong> for bold, NOT **. Never use Markdown syntax."
                 },
                 {
                     "role": "user",
@@ -163,12 +180,13 @@ Keep your answer under 200 words. Be clear, simple, and helpful."""
         return False, f"Error answering question: {str(e)}", None
 
 
-def handle_fundamental_analysis(query, stock_name=None, ticker_name=None):
+def handle_fundamental_analysis(query, previous_conversation=None, stock_name=None, ticker_name=None):
     """
     Handle fundamental analysis requests using existing Perplexity research
     
     Args:
         query: User's query
+        previous_conversation: List of previous Q&A pairs for context
         stock_name: Company name (optional, extracted from query if not provided)
         ticker_name: Stock ticker (optional, extracted from query if not provided)
     
@@ -378,15 +396,17 @@ Guidelines:
 - Explain your reasoning clearly
 - If suggesting changes, explain why
 
-IMPORTANT: Format your response in clean HTML using these tags:
+CRITICAL - HTML FORMATTING ONLY:
+- Use ONLY HTML tags - NO Markdown syntax like ** or __ or *
+- Use <strong>text</strong> for bold (NOT **text**)
+- Use <em>text</em> for italics (NOT *text*)
 - Use <h3> for main headings (e.g., "Portfolio Analysis", "Recommendations")
 - Use <h4> for subheadings
 - Use <p> for paragraphs
 - Use <ul> and <li> for bullet points
-- Use <strong> for emphasis on stock names and numbers
 - Use <table>, <thead>, <tbody>, <tr>, <th>, <td> for comparison tables
 - Do NOT include <html>, <head>, or <body> tags - only the content
-- Make numbers stand out with <strong> tags
+- Output PURE HTML only - no Markdown mixed in
 
 Provide your answer in well-formatted HTML for easy reading."""
 
@@ -397,7 +417,7 @@ Provide your answer in well-formatted HTML for easy reading."""
             messages=[
                 {
                     "role": "system",
-                    "content": "You are an expert portfolio advisor. Provide personalized, data-driven advice in HTML format. Use proper HTML tags for structure, tables, and emphasis."
+                    "content": "You are an expert portfolio advisor. Provide personalized, data-driven advice in PURE HTML format ONLY. Use HTML tags like <strong>, <em>, <h3>, <p>, <ul>, <li>, <table>. NEVER use Markdown syntax like ** or *. Output must be valid HTML."
                 },
                 {
                     "role": "user",
@@ -475,10 +495,10 @@ def process_copilot_query(query, classification, user_email=None, portfolio_id=N
             return handle_greeting(query)
         
         elif classification == 'generic_company_question':
-            return handle_generic_question(query)
+            return handle_generic_question(query, previous_conversation)
         
         elif classification == 'company_fundamental':
-            return handle_fundamental_analysis(query)
+            return handle_fundamental_analysis(query, previous_conversation)
         
         elif classification == 'portfolio_queries':
             if not user_email:

@@ -72,7 +72,7 @@ export default function ResearchPage() {
             const portfolioId = currentPortfolio?.portfolio_id || 'default'
             console.log('portfolio_id will be:', portfolioId)
 
-            // Build conversation history - pair up user queries with assistant answers
+            // Build conversation history - ALL messages in chronological order
             const conversationHistory = []
             for (let i = 0; i < messages.length; i++) {
                 if (messages[i].type === 'user') {
@@ -91,7 +91,7 @@ export default function ResearchPage() {
                 classification: selectedClassification,
                 user_email: userEmail,
                 portfolio_id: portfolioId,
-                previous_conversation: conversationHistory.slice(-3) // Last 3 Q&A pairs
+                previous_conversation: conversationHistory // ALL conversation history in chronological order
             }
 
             console.log('Payload:', payload)
@@ -185,15 +185,15 @@ export default function ResearchPage() {
                     {!hasMessages && (
                         <div className="max-w-2xl mx-auto">
                             <form onSubmit={handleSubmit}>
-                                <div className="relative bg-[#111111] border border-gray-800 rounded-2xl p-4 focus-within:border-cyan-500/50 transition-colors shadow-2xl">
-                                    <div className="flex items-end gap-3 mb-3">
+                                <div className="relative bg-[#111111] border border-gray-800 rounded-2xl px-4 pb-4 pt-2 focus-within:border-cyan-500/50 transition-colors shadow-2xl">
+                                    <div className="flex items-start gap-3 mb-3">
                                         <textarea
                                             ref={inputRef}
                                             value={input}
                                             onChange={(e) => setInput(e.target.value)}
                                             onKeyDown={handleKeyDown}
                                             placeholder={classifications.find(c => c.id === selectedClassification)?.placeholder}
-                                            className="flex-1 bg-transparent text-white placeholder-gray-500 resize-none outline-none min-h-[24px] max-h-[120px] text-base"
+                                            className="flex-1 bg-transparent text-white placeholder-gray-500 resize-none outline-none min-h-[24px] max-h-[120px] text-base py-1 overflow-hidden"
                                             rows={1}
                                             disabled={isLoading}
                                             style={{
@@ -218,6 +218,29 @@ export default function ResearchPage() {
                                                 <Send className="w-5 h-5" />
                                             )}
                                         </Button>
+                                    </div>
+
+                                    {/* Sample Queries */}
+                                    <div className="flex flex-wrap gap-2 mb-4">
+                                        {(selectedClassification === 'generic_company_question' ? ['What is PE ratio?', 'How to evaluate a stock?'] :
+                                            selectedClassification === 'company_fundamental' ? ['Analyse Reliance', 'Is HDFC Bank a good buy?'] :
+                                                ['How is my portfolio?', 'What are my top holdings?']).map((sample) => (
+                                                    <button
+                                                        key={sample}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setInput(sample)
+                                                            if (inputRef.current) {
+                                                                inputRef.current.style.height = 'auto'
+                                                                inputRef.current.style.height = '32px'
+                                                                inputRef.current.focus()
+                                                            }
+                                                        }}
+                                                        className="text-[11px] font-medium px-3 py-1 rounded-full bg-zinc-900 text-zinc-400 hover:text-cyan-400 hover:bg-cyan-500/10 transition-all border border-zinc-800 hover:border-cyan-500/30"
+                                                    >
+                                                        {sample}
+                                                    </button>
+                                                ))}
                                     </div>
 
                                     {/* Classification Icons - Below textarea */}
@@ -325,15 +348,15 @@ export default function ResearchPage() {
                 <div className="fixed bottom-0 left-0 right-0 bg-[#0a0a0a]/95 backdrop-blur-xl border-t border-gray-800">
                     <div className="max-w-4xl mx-auto px-4 py-4">
                         <form onSubmit={handleSubmit}>
-                            <div className="relative bg-[#111111] border border-gray-800 rounded-2xl p-3 focus-within:border-cyan-500/50 transition-colors">
-                                <div className="flex items-end gap-3 mb-2">
+                            <div className="relative bg-[#111111] border border-gray-800 rounded-2xl px-3 pb-3 pt-2 focus-within:border-cyan-500/50 transition-colors">
+                                <div className="flex items-start gap-3 mb-2">
                                     <textarea
                                         ref={inputRef}
                                         value={input}
                                         onChange={(e) => setInput(e.target.value)}
                                         onKeyDown={handleKeyDown}
                                         placeholder={classifications.find(c => c.id === selectedClassification)?.placeholder}
-                                        className="flex-1 bg-transparent text-white placeholder-gray-500 resize-none outline-none min-h-[24px] max-h-[120px]"
+                                        className="flex-1 bg-transparent text-white placeholder-gray-500 resize-none outline-none min-h-[24px] max-h-[120px] py-1 overflow-hidden"
                                         rows={1}
                                         disabled={isLoading}
                                         style={{
@@ -358,6 +381,29 @@ export default function ResearchPage() {
                                             <Send className="w-5 h-5" />
                                         )}
                                     </Button>
+                                </div>
+
+                                {/* Sample Queries */}
+                                <div className="flex flex-wrap gap-2 mb-3">
+                                    {(selectedClassification === 'generic_company_question' ? ['What is PE ratio?', 'How to evaluate a stock?'] :
+                                        selectedClassification === 'company_fundamental' ? ['Analyse Reliance', 'Is HDFC Bank a good buy?'] :
+                                            ['How is my portfolio?', 'What are my top holdings?']).map((sample) => (
+                                                <button
+                                                    key={sample}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setInput(sample)
+                                                        if (inputRef.current) {
+                                                            inputRef.current.style.height = 'auto'
+                                                            inputRef.current.style.height = '32px'
+                                                            inputRef.current.focus()
+                                                        }
+                                                    }}
+                                                    className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-zinc-900 text-zinc-400 hover:text-cyan-400 hover:bg-cyan-500/10 transition-all border border-zinc-800 hover:border-cyan-500/30"
+                                                >
+                                                    {sample}
+                                                </button>
+                                            ))}
                                 </div>
 
                                 {/* Classification Icons - Below textarea */}
