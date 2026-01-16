@@ -23,13 +23,25 @@ class PortfolioAnalysisService:
                 return False, "No tickers provided", None
             
             # Clean and validate tickers
-            tickers = [str(t).strip().upper() for t in tickers if t and isinstance(t, (str, int))]
+            tickers = list(set([str(t).strip().upper() for t in tickers if t and isinstance(t, (str, int))]))
             if not tickers:
                 return False, "No valid tickers found in portfolio", None
                 
+            # Normalize tickers for Yahoo Finance (NSE stocks need .NS suffix)
+            normalized_tickers = []
+            ticker_map = {} # normalized -> original
+            for t in tickers:
+                if t != "^NSEI" and "." not in t:
+                    norm = f"{t}.NS"
+                    normalized_tickers.append(norm)
+                    ticker_map[norm] = t
+                else:
+                    normalized_tickers.append(t)
+                    ticker_map[t] = t
+            
             # Add benchmark (Nifty 50)
             benchmark_ticker = "^NSEI"
-            all_tickers = list(set(tickers + [benchmark_ticker]))
+            all_tickers = list(set(normalized_tickers + [benchmark_ticker]))
             
             # Fetch data for last 1 year (extended slightly for SMA200)
             end_date = datetime.now()
@@ -178,34 +190,35 @@ class PortfolioAnalysisService:
             if bench_col and bench_col in recent_returns.columns:
                 bench_rets = recent_returns[bench_col]
                 bench_var = np.var(bench_rets)
-                
-                for ticker in tickers:
-                    if ticker in recent_returns.columns:
+                for norm_ticker in normalized_tickers:
+                    if norm_ticker in recent_returns.columns:
                         try:
                             # Concat and dropna to align dates
-                            aligned = pd.concat([recent_returns[ticker], bench_rets], axis=1).dropna()
+                            aligned = pd.concat([recent_returns[norm_ticker], bench_rets], axis=1).dropna()
                             if len(aligned) > 10 and bench_var > 0:
                                 cov = np.cov(aligned.iloc[:, 0], aligned.iloc[:, 1])[0][1]
-                                betas[ticker] = float(round(cov / bench_var, 2))
+                                original_ticker = ticker_map.get(norm_ticker, norm_ticker)
+                                betas[original_ticker] = float(round(cov / bench_var, 2))
                             else:
-                                betas[ticker] = 1.0
+                                betas[ticker_map.get(norm_ticker, norm_ticker)] = 1.0
                         except:
-                            betas[ticker] = 1.0
+                            betas[ticker_map.get(norm_ticker, norm_ticker)] = 1.0
             
             avg_beta = float(np.mean(list(betas.values()))) if betas else 1.0
             
             # Sharpe
             risk_free_rate_daily = 0.07 / 252
             sharpe_ratios = {}
-            for ticker in tickers:
-                if ticker in recent_returns.columns:
-                    r = recent_returns[ticker]
+            for norm_ticker in normalized_tickers:
+                if norm_ticker in recent_returns.columns:
+                    r = recent_returns[norm_ticker]
                     std = r.std()
+                    original_ticker = ticker_map.get(norm_ticker, norm_ticker)
                     if std > 0:
                         sharpe = (r.mean() - risk_free_rate_daily) / std * np.sqrt(252)
-                        sharpe_ratios[ticker] = float(round(sharpe, 2))
+                        sharpe_ratios[original_ticker] = float(round(sharpe, 2))
                     else:
-                        sharpe_ratios[ticker] = 0.0
+                        sharpe_ratios[original_ticker] = 0.0
                         
             # Portfolio Aggr Stats
             if not portfolio_daily_ret.empty:
@@ -236,9 +249,10 @@ class PortfolioAnalysisService:
             # ---------------------------------------------------------
             technical_signals = []
             
-            for ticker in tickers:
-                if ticker in data.columns:
-                    price_series = data[ticker].dropna()
+            for norm_ticker in normalized_tickers:
+                if norm_ticker in data.columns:
+                    price_series = data[norm_ticker].dropna()
+                    original_ticker = ticker_map.get(norm_ticker, norm_ticker)
                     if len(price_series) > 14:
                         # RSI
                         delta = price_series.diff()
@@ -270,7 +284,7 @@ class PortfolioAnalysisService:
                         
                         if signal:
                             technical_signals.append({
-                                "ticker": ticker,
+                                "ticker": original_ticker,
                                 "signal": signal['msg'],
                                 "type": signal['type'],
                                 "value": float(round(curr_rsi, 1))
@@ -283,15 +297,21 @@ class PortfolioAnalysisService:
             avg_correlation = 0.0
             
             if len(asset_cols) > 1:
+                # Use normalized names for correlation then map back
                 corr_df = recent_returns[asset_cols].corr()
                 
                 # Format for heatmap (x, y, value)
-                for x in corr_df.columns:
-                    for y in corr_df.columns:
+                for x_norm in corr_df.columns:
+                    for y_norm in corr_df.columns:
+                        if x_norm == bench_col or y_norm == bench_col: continue
+                        
+                        x_orig = ticker_map.get(x_norm, x_norm).replace('.NS', '')
+                        y_orig = ticker_map.get(y_norm, y_norm).replace('.NS', '')
+                        
                         correlation_matrix.append({
-                            "x": x.replace('.NS', ''), # Clean names
-                            "y": y.replace('.NS', ''),
-                            "value": float(round(corr_df.loc[x, y], 2))
+                            "x": x_orig,
+                            "y": y_orig,
+                            "value": float(round(corr_df.loc[x_norm, y_norm], 2))
                         })
                 
                 # Calculate avg correlation
@@ -314,7 +334,26 @@ class PortfolioAnalysisService:
                     rsi_series = 100 - (100 / (1 + rs))
                     nifty_rsi = float(rsi_series.iloc[-1])
 
-            # Compile result
+            # Fetch sectors for assets (optional enrichment)
+            asset_data = []
+            for ticker in tickers:
+                # Try to get sector from yf info (slow but needed if not in DB)
+                sector = "Unknown"
+                try:
+                    norm_t = next((nt for nt, ot in ticker_map.items() if ot == ticker), f"{ticker}.NS")
+                    stock = yf.Ticker(norm_t)
+                    # We only fetch info if we really need it, but for analysis it's okay
+                    sector = stock.info.get('sector', 'Unknown')
+                except:
+                    pass
+                
+                asset_data.append({
+                    "ticker": ticker,
+                    "beta": float(betas.get(ticker, 1.0)),
+                    "sharpe": float(sharpe_ratios.get(ticker, 0.0)),
+                    "sector": sector
+                })
+                
             analysis_data = {
                 "portfolio_health": {
                     "beta": float(round(avg_beta, 2)),
@@ -329,19 +368,12 @@ class PortfolioAnalysisService:
                     "fear_greed_index": int(50 + (nifty_rsi - 50) + (avg_beta * 5)), 
                     "market_sentiment": "Neutral" if 40 < nifty_rsi < 60 else ("Bullish" if nifty_rsi >= 60 else "Bearish")
                 },
-                "assets": [],
+                "assets": asset_data,
                 "performance_chart": performance_chart,
                 "technical_signals": technical_signals,
                 "correlation_matrix": correlation_matrix
             }
             
-            for ticker in tickers:
-                analysis_data["assets"].append({
-                    "ticker": ticker,
-                    "beta": float(betas.get(ticker, 1.0)),
-                    "sharpe": float(sharpe_ratios.get(ticker, 0.0)),
-                })
-                
             return True, "Analysis successful", analysis_data
 
         except Exception as e:
