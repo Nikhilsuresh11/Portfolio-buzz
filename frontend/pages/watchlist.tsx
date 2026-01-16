@@ -132,7 +132,7 @@ export default function Watchlist() {
                     // Remove duplicates by watchlist_id
                     const uniqueWatchlists = Array.from(
                         new Map(data.watchlists.map((w: UserWatchlist) => [w.watchlist_id, w])).values()
-                    )
+                    ) as UserWatchlist[]
                     setWatchlists(uniqueWatchlists)
 
                     const currentStillExists = uniqueWatchlists.find((w: UserWatchlist) => w.watchlist_id === currentWatchlistId)
