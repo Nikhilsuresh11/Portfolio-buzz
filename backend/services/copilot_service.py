@@ -82,7 +82,7 @@ Response:"""
 
 def handle_generic_question(query):
     """
-    Handle generic company/market questions using Perplexity Sonar
+    Handle generic company/market questions using Groq Llama
     
     Args:
         query: User's generic question
@@ -94,15 +94,12 @@ def handle_generic_question(query):
         logger.info("=== HANDLING GENERIC QUESTION ===")
         logger.info(f"Query: {query}")
         
-        if not config.PERPLEXITY_API_KEY:
-            logger.error("Perplexity API key not configured")
-            return False, "Perplexity API key not configured", None
+        if not config.GROQ_API_KEY:
+            logger.error("Groq API key not configured")
+            return False, "Groq API key not configured", None
         
-        # Initialize Perplexity client
-        client = OpenAI(
-            api_key=config.PERPLEXITY_API_KEY,
-            base_url="https://api.perplexity.ai"
-        )
+        # Initialize Groq client
+        client = Groq(api_key=config.GROQ_API_KEY)
         
         # Research prompt for generic questions
         research_prompt = f"""You are an expert stock market advisor and consultant with 30+ years of experience.
@@ -130,10 +127,10 @@ IMPORTANT: Format your response in clean HTML using these tags:
 
 Provide your answer in well-formatted HTML."""
 
-        logger.info("Sending generic question to Perplexity Sonar...")
+        logger.info("Sending generic question to Groq Llama...")
         
         response = client.chat.completions.create(
-            model="sonar",
+            model="llama-3.3-70b-versatile",
             messages=[
                 {
                     "role": "system",
