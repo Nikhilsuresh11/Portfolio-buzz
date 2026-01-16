@@ -102,30 +102,29 @@ def handle_generic_question(query):
         client = Groq(api_key=config.GROQ_API_KEY)
         
         # Research prompt for generic questions
-        research_prompt = f"""You are an expert stock market advisor and consultant with 30+ years of experience.
+        research_prompt = f"""You are a friendly financial advisor explaining concepts to beginners.
 
 User Question: {query}
 
-Provide a comprehensive, well-researched answer based on reliable sources. 
+Provide a CONCISE, STRAIGHTFORWARD answer that gets straight to the point.
 
 Guidelines:
-- Be factual and accurate
-- Use reliable financial sources
-- Explain concepts clearly
-- Provide practical insights
-- Include examples where relevant
-- Keep the response structured and easy to read
+- Start with a simple 1-2 sentence definition
+- Use everyday language, avoid jargon
+- If you must use technical terms, explain them simply
+- Give 1-2 practical examples
+- Keep it short and easy to understand
+- No lengthy explanations or over-explaining
 
-IMPORTANT: Format your response in clean HTML using these tags:
-- Use <h3> for main headings
-- Use <h4> for subheadings
-- Use <p> for paragraphs
-- Use <ul> and <li> for bullet points
-- Use <strong> for emphasis
-- Use <table>, <thead>, <tbody>, <tr>, <th>, <td> for tables if needed
-- Do NOT include <html>, <head>, or <body> tags - only the content
+IMPORTANT: Format your response in clean HTML:
+- Use <h2> for the main concept name
+- Use <p> for simple paragraphs
+- Use <ul> and <li> for key points (max 3-4 points)
+- Use <strong> for important terms
+- Use <table> only if comparing 2-3 items
+- Do NOT include <html>, <head>, or <body> tags
 
-Provide your answer in well-formatted HTML."""
+Keep your answer under 200 words. Be clear, simple, and helpful."""
 
         logger.info("Sending generic question to Groq Llama...")
         
@@ -134,7 +133,7 @@ Provide your answer in well-formatted HTML."""
             messages=[
                 {
                     "role": "system",
-                    "content": "You are an expert stock market advisor. Provide accurate, well-researched answers in HTML format. Use proper HTML tags for structure."
+                    "content": "You are a friendly financial advisor who explains complex concepts in simple terms. Keep answers short, clear, and beginner-friendly. Use HTML formatting."
                 },
                 {
                     "role": "user",
@@ -142,7 +141,7 @@ Provide your answer in well-formatted HTML."""
                 }
             ],
             temperature=0.3,
-            max_tokens=2000,
+            max_tokens=800,  # Reduced to enforce conciseness
             top_p=0.9
         )
         

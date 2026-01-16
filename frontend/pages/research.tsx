@@ -72,15 +72,26 @@ export default function ResearchPage() {
             const portfolioId = currentPortfolio?.portfolio_id || 'default'
             console.log('portfolio_id will be:', portfolioId)
 
+            // Build conversation history - pair up user queries with assistant answers
+            const conversationHistory = []
+            for (let i = 0; i < messages.length; i++) {
+                if (messages[i].type === 'user') {
+                    const userMsg = messages[i]
+                    const assistantMsg = messages[i + 1]
+
+                    conversationHistory.push({
+                        query: userMsg.content,
+                        answer: assistantMsg?.type === 'assistant' ? assistantMsg.content : ''
+                    })
+                }
+            }
+
             const payload = {
                 query: userMessage.content,
                 classification: selectedClassification,
                 user_email: userEmail,
                 portfolio_id: portfolioId,
-                previous_conversation: messages.slice(-5).map(m => ({
-                    query: m.type === 'user' ? m.content : '',
-                    answer: m.type === 'assistant' ? m.content : ''
-                })).filter(c => c.query || c.answer)
+                previous_conversation: conversationHistory.slice(-3) // Last 3 Q&A pairs
             }
 
             console.log('Payload:', payload)
