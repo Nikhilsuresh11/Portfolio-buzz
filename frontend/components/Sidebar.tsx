@@ -12,10 +12,9 @@ import {
     Search as SearchIcon,
     Notification as NotificationIcon,
     Portfolio as PortfolioIcon,
-    Logout,
+    UserRole as UserRoleIcon,
 } from "@carbon/icons-react";
 import { useRouter } from 'next/router';
-import { logout } from '@/lib/auth';
 import { cn } from "@/lib/utils";
 
 const softSpringEasing = "cubic-bezier(0.4, 0, 0.2, 1)";
@@ -107,10 +106,11 @@ export default function Sidebar({ onSearchClick }: { onSearchClick?: () => void 
             { id: 'research', icon: Report, label: 'Deep Research', href: '/research' },
         ],
         portfolio: [
-            { id: 'overview', icon: Folder, label: 'Overview', href: '/portfolio' },
+            { id: 'portfolios', icon: Folder, label: 'Portfolios', href: '/portfolios' },
+            { id: 'positions', icon: UserRoleIcon, label: 'My Positions', href: '/positions' },
+            { id: 'overview', icon: PortfolioIcon, label: 'Overview', href: '/portfolio' },
             { id: 'summary', icon: ChartBar, label: 'Summary', href: '/portfolio/summary' },
             { id: 'metrics', icon: Analytics, label: 'Risk Metrics', href: '/portfolio/metrics' },
-            { id: 'positions', icon: PortfolioIcon, label: 'My Positions', href: '/positions' },
         ],
         bottom: [
             { id: 'notifications', icon: NotificationIcon, label: 'Notifications', href: '/notifications' },
@@ -118,10 +118,6 @@ export default function Sidebar({ onSearchClick }: { onSearchClick?: () => void 
         ]
     };
 
-    const handleLogout = () => {
-        logout();
-        router.push('/');
-    };
 
     const handleNavigate = (path: string) => {
         router.push(path);
@@ -167,7 +163,7 @@ export default function Sidebar({ onSearchClick }: { onSearchClick?: () => void 
             </div>
 
             {/* Navigation Sections */}
-            <div className="flex-1 overflow-hidden px-3 space-y-4 z-10">
+            <div className="flex-1 overflow-y-auto scrollbar-hide px-3 space-y-4 z-10">
                 {/* Main Overview */}
                 <div>
                     <div className={cn(
@@ -225,27 +221,6 @@ export default function Sidebar({ onSearchClick }: { onSearchClick?: () => void 
                         isCollapsed={isCollapsed}
                     />
                 ))}
-
-                <button
-                    onClick={handleLogout}
-                    className={cn(
-                        "group relative flex items-center w-full h-10 rounded-xl transition-all duration-300 text-red-500/60 hover:text-red-400 hover:bg-red-500/10",
-                        isCollapsed ? "px-3 justify-center" : "px-3"
-                    )}
-                >
-                    <Logout size={20} className="shrink-0" />
-                    <span className={cn(
-                        "ml-3 text-sm font-medium transition-all duration-300 overflow-hidden whitespace-nowrap",
-                        isCollapsed ? "w-0 opacity-0" : "w-auto opacity-100"
-                    )}>
-                        Log Out
-                    </span>
-                    {isCollapsed && (
-                        <div className="absolute left-16 px-3 py-2 bg-red-950/20 border border-red-500/20 text-red-400 text-xs font-medium rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-[110]">
-                            Log Out
-                        </div>
-                    )}
-                </button>
 
                 <div className={cn(
                     "flex items-center h-10 rounded-xl bg-white/[0.02] transition-all duration-300 overflow-hidden border border-white/5",

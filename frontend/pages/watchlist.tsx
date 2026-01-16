@@ -97,13 +97,8 @@ export default function Watchlist() {
         window.addEventListener('keydown', handleKeyDown);
 
         // 4. Fetch initial data once auth is confirmed
-        // We fetch watchlists based on whether we have a portfolio yet
-        if (currentPortfolio) {
+        if (!portfolioLoading) {
             fetchWatchlists();
-        } else if (!portfolioLoading) {
-            // If portfolio context finished loading and still no portfolio, 
-            // try fetching all user watchlists as a fallback
-            fetchAllUserWatchlists();
         }
 
         return () => window.removeEventListener('keydown', handleKeyDown);
@@ -115,31 +110,6 @@ export default function Watchlist() {
             fetchWatchlistStocks(currentWatchlistId);
         }
     }, [currentWatchlistId]);
-
-    const fetchAllUserWatchlists = async () => {
-        try {
-            if (!userEmail) return
-
-            const url = buildApiUrl(userEmail, 'portfolio-management/watchlists')
-            const res = await fetch(url, {
-                headers: getApiHeaders()
-            })
-            const data = await res.json()
-            if (data.success && data.watchlists.length > 0) {
-                setWatchlists(data.watchlists)
-                const defaultW = data.watchlists.find((w: UserWatchlist) => w.is_default)
-                setCurrentWatchlistId(defaultW ? defaultW.watchlist_id : data.watchlists[0].watchlist_id)
-            } else {
-                setWatchlists([])
-                setStocks([])
-                setLoading(false)
-                setDataLoaded(true)
-            }
-        } catch (error) {
-            console.error('Error fetching user watchlists:', error)
-            setLoading(false)
-        }
-    }
 
     const fetchWatchlists = async () => {
         try {
@@ -159,9 +129,13 @@ export default function Watchlist() {
 
             if (data.success) {
                 if (data.watchlists.length > 0) {
-                    setWatchlists(data.watchlists)
+                    // Remove duplicates by watchlist_id
+                    const uniqueWatchlists = Array.from(
+                        new Map(data.watchlists.map((w: UserWatchlist) => [w.watchlist_id, w])).values()
+                    )
+                    setWatchlists(uniqueWatchlists)
 
-                    const currentStillExists = data.watchlists.find((w: UserWatchlist) => w.watchlist_id === currentWatchlistId)
+                    const currentStillExists = uniqueWatchlists.find((w: UserWatchlist) => w.watchlist_id === currentWatchlistId)
 
                     if (currentStillExists) {
                         // If it exists and matches current, manually trigger refresh to ensure all data (prices/news) is fetched
@@ -171,8 +145,8 @@ export default function Watchlist() {
                             setCurrentWatchlistId(currentStillExists.watchlist_id)
                         }
                     } else {
-                        const defaultW = data.watchlists.find((w: UserWatchlist) => w.is_default)
-                        setCurrentWatchlistId(defaultW ? defaultW.watchlist_id : data.watchlists[0].watchlist_id)
+                        const defaultW = uniqueWatchlists.find((w: UserWatchlist) => w.is_default)
+                        setCurrentWatchlistId(defaultW ? defaultW.watchlist_id : uniqueWatchlists[0].watchlist_id)
                     }
                 } else {
                     setWatchlists([])
@@ -472,13 +446,9 @@ export default function Watchlist() {
                         />
                         <div className="flex items-center gap-1 border-l border-white/10 pl-2 ml-2">
                             <button
-                                onClick={() => currentPortfolio && setIsCreateModalOpen(true)}
-                                disabled={!currentPortfolio}
-                                className={`w-8 h-8 flex items-center justify-center rounded-lg transition-all ${!currentPortfolio
-                                    ? 'text-zinc-600 cursor-not-allowed opacity-50'
-                                    : 'text-zinc-400 hover:text-white hover:bg-white/5'
-                                    }`}
-                                title={currentPortfolio ? "New Watchlist" : "Please create a portfolio first"}
+                                onClick={() => setIsCreateModalOpen(true)}
+                                className="w-8 h-8 flex items-center justify-center rounded-lg transition-all text-zinc-400 hover:text-white hover:bg-white/5"
+                                title="New Watchlist"
                             >
                                 <Plus size={18} />
                             </button>
@@ -537,42 +507,24 @@ export default function Watchlist() {
                                 {watchlists.length === 0 ? (
                                     <>
                                         <div className="w-16 h-16 mb-4 rounded-xl bg-gradient-to-br from-blue-500/10 to-purple-500/10 flex items-center justify-center border border-white/5 shadow-2xl shadow-blue-500/20">
-                                            {currentPortfolio ? (
-                                                <LayoutGrid className="w-8 h-8 text-blue-400" />
-                                            ) : (
-                                                <Folder className="w-8 h-8 text-purple-400" />
-                                            )}
+                                            <LayoutGrid className="w-8 h-8 text-blue-400" />
                                         </div>
                                         <h3 className="text-xl font-bold text-white mb-2">
-                                            {currentPortfolio ? "Create your first Watchlist" : "Welcome to Portfolio Buzz"}
+                                            Create your first Watchlist
                                         </h3>
                                         <p className="text-sm text-neutral-400 max-w-xs mx-auto mb-8 leading-relaxed">
-                                            {currentPortfolio
-                                                ? "Create a watchlist to start tracking stocks, analyzing trends, and getting AI insights."
-                                                : "To get started, please go to the Settings to create your first Portfolio."}
+                                            Create a watchlist to start tracking stocks, analyzing trends, and getting AI insights.
                                         </p>
 
-                                        {currentPortfolio ? (
-                                            <div className="bg-gradient-to-r from-blue-500 to-emerald-500 rounded-xl p-0.5">
-                                                <Button
-                                                    onClick={() => setIsCreateModalOpen(true)}
-                                                    className="bg-black hover:bg-zinc-900 text-white rounded-[11px] h-10 px-6 font-semibold"
-                                                >
-                                                    <Plus className="w-4 h-4 mr-2" />
-                                                    Create Watchlist
-                                                </Button>
-                                            </div>
-                                        ) : (
-                                            <div className="bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl p-0.5">
-                                                <Button
-                                                    onClick={() => router.push('/settings')}
-                                                    className="bg-black hover:bg-zinc-900 text-white rounded-[11px] h-10 px-6 font-semibold"
-                                                >
-                                                    <Folder className="w-4 h-4 mr-2" />
-                                                    Create Portfolio
-                                                </Button>
-                                            </div>
-                                        )}
+                                        <div className="bg-gradient-to-r from-blue-500 to-emerald-500 rounded-xl p-0.5">
+                                            <Button
+                                                onClick={() => setIsCreateModalOpen(true)}
+                                                className="bg-black hover:bg-zinc-900 text-white rounded-[11px] h-10 px-6 font-semibold"
+                                            >
+                                                <Plus className="w-4 h-4 mr-2" />
+                                                Create Watchlist
+                                            </Button>
+                                        </div>
                                     </>
                                 ) : (
                                     <>

@@ -201,7 +201,7 @@ export default function OverallPortfolioPage() {
             <div className="flex-none p-6 md:p-8 pb-0 z-10 max-w-[1600px] mx-auto w-full">
                 <div className="mb-6">
                     <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-white via-blue-100 to-emerald-100 bg-clip-text text-transparent">
-                        Overall Portfolio
+                        Holdings
                     </h1>
                     <p className="text-zinc-400">Comprehensive view of your investment performance and metrics</p>
                 </div>
