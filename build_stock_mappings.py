@@ -169,14 +169,24 @@ def get_stocks_data():
             "common_misspellings": ["maruti motors", "maruti.ns"],
             "synonyms": ["automotive", "car manufacturer"]
         },
+
         {
-            "ticker": "TATAMOTORS.NS",
-            "company_name": "Tata Motors Limited",
+            "ticker": "TMPV.NS",
+            "company_name": "Tata Motors Passenger Vehicles",
             "exchange": "IN",
             "sector": "Automotive",
-            "search_terms": ["tata motors", "tatamotors", "tatamotors.ns"],
-            "common_misspellings": ["tata motors ltd", "tata motrs"],
-            "synonyms": ["automotive", "car manufacturer", "tata group"]
+            "search_terms": ["tata motors pv", "tmpv", "tata passenger", "tmpv.ns", "tata motors passenger"],
+            "common_misspellings": ["tata motors passenger vehicles", "tata pv", "tmpv.ns"],
+            "synonyms": ["automotive", "passenger vehicles", "tata group", "tata pv", "car manufacturer"]
+        },
+        {
+            "ticker": "TMCV.NS",
+            "company_name": "Tata Motors Commercial Vehicles",
+            "exchange": "IN",
+            "sector": "Automotive",
+            "search_terms": ["tata motors cv", "tmcv", "tata commercial", "tmcv.ns", "tata motors commercial"],
+            "common_misspellings": ["tata motors commercial vehicles", "tata cv", "tmcv.ns"],
+            "synonyms": ["automotive", "commercial vehicles", "tata group", "tata cv", "truck manufacturer"]
         },
         {
             "ticker": "BAJAJFINSV.NS",
