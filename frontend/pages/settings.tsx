@@ -1,6 +1,5 @@
 import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
-import Header from '../components/Header';
 import { useAuth } from '../lib/auth-context';
 import { usePortfolio } from '../lib/portfolio-context';
 import { Button } from "@/components/ui/button";
@@ -84,7 +83,13 @@ export default function SettingsPage() {
     return (
         <div className="flex flex-col h-screen relative overflow-hidden bg-black">
             <div className="flex-none p-6 md:p-8 pb-0 z-10 max-w-[1600px] mx-auto w-full">
-                <Header user={userEmail?.split('@')[0] || 'User'} />
+                {/* Manual Header for Consistency */}
+                <div className="mb-8">
+                    <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-white via-blue-100 to-emerald-100 bg-clip-text text-transparent">
+                        Settings
+                    </h1>
+                    <p className="text-zinc-400">Manage your account preferences and investment portfolios</p>
+                </div>
             </div>
 
             <div className="flex-1 px-6 md:px-8 pb-6 md:pb-8 overflow-y-auto scrollbar-hide max-w-[1600px] mx-auto w-full">
@@ -131,13 +136,15 @@ export default function SettingsPage() {
                                 <p className="text-neutral-400">Add, edit, or switch between your investment portfolios</p>
                             </div>
                         </div>
-                        <Button
-                            onClick={() => setShowCreatePortfolio(!showCreatePortfolio)}
-                            className="bg-blue-600 hover:bg-blue-700 text-white gap-2"
-                        >
-                            <Plus size={16} />
-                            New Portfolio
-                        </Button>
+                        <div className="bg-gradient-to-r from-blue-500 to-emerald-500 rounded-xl p-0.5">
+                            <Button
+                                onClick={() => setShowCreatePortfolio(!showCreatePortfolio)}
+                                className="bg-black hover:bg-zinc-900 text-white gap-2 font-semibold text-sm h-9 px-5 rounded-[11px]"
+                            >
+                                <Plus size={16} />
+                                New Portfolio
+                            </Button>
+                        </div>
                     </div>
 
                     {showCreatePortfolio && (
@@ -173,11 +180,22 @@ export default function SettingsPage() {
                                 />
                                 <Label htmlFor="isDefault" className="text-neutral-300 cursor-pointer">Set as default portfolio</Label>
                             </div>
-                            <div className="flex gap-3">
-                                <Button type="submit" disabled={submitting} className="bg-blue-600 hover:bg-blue-700 text-white">
-                                    {submitting ? 'Creating...' : 'Create Portfolio'}
-                                </Button>
-                                <Button type="button" variant="ghost" onClick={() => setShowCreatePortfolio(false)} className="text-neutral-400">
+                            <div className="flex gap-4 pt-2">
+                                <div className="bg-gradient-to-r from-blue-500 to-emerald-500 rounded-xl p-0.5">
+                                    <Button
+                                        type="submit"
+                                        disabled={submitting}
+                                        className="bg-black hover:bg-zinc-900 text-white gap-2 font-semibold text-sm h-10 px-6 rounded-[11px]"
+                                    >
+                                        {submitting ? 'Creating...' : 'Create Portfolio'}
+                                    </Button>
+                                </div>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    onClick={() => setShowCreatePortfolio(false)}
+                                    className="text-neutral-500 hover:text-white hover:bg-white/5 h-11 px-6 font-medium"
+                                >
                                     Cancel
                                 </Button>
                             </div>

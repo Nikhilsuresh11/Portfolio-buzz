@@ -149,12 +149,15 @@ export default function Notifications() {
                         <p className="text-neutral-500 text-center max-w-sm mb-6">
                             When your watchlist stocks experience significant price changes, you'll find the alerts here.
                         </p>
-                        <Button
-                            onClick={() => router.push('/watchlist')}
-                            className="bg-blue-600 hover:bg-blue-700 text-white"
-                        >
-                            Go to Watchlist
-                        </Button>
+                        <div className="bg-gradient-to-r from-blue-500 to-emerald-500 rounded-xl p-0.5">
+                            <Button
+                                onClick={() => router.push('/watchlist')}
+                                className="bg-black hover:bg-zinc-900 text-white gap-2 font-semibold text-sm h-10 px-6 rounded-[11px]"
+                            >
+                                <ArrowRight size={18} />
+                                Go to Watchlist
+                            </Button>
+                        </div>
                     </div>
                 )}
             </div>
