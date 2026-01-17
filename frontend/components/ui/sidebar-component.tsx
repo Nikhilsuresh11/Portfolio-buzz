@@ -51,16 +51,8 @@ const softSpringEasing = "cubic-bezier(0.25, 1.1, 0.4, 1)";
 
 function InterfacesLogoSquare() {
     return (
-        <div className="aspect-[24/24] grow min-h-px min-w-px overflow-clip relative shrink-0">
-            <div className="absolute aspect-[24/16] left-0 right-0 top-1/2 -translate-y-1/2">
-                <svg className="block size-full" fill="none" viewBox="0 0 24 16">
-                    <g>
-                        <path d={svgPaths.p36880f80} fill="#FAFAFA" />
-                        <path d={svgPaths.p355df480} fill="#FAFAFA" />
-                        <path d={svgPaths.pfa0d600} fill="#FAFAFA" />
-                    </g>
-                </svg>
-            </div>
+        <div className="aspect-square w-full h-full overflow-clip relative shrink-0 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+            <span className="text-white font-bold text-lg">B</span>
         </div>
     );
 }
