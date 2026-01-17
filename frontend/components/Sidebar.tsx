@@ -107,7 +107,10 @@ export default function Sidebar({ onSearchClick }: { onSearchClick?: () => void 
             { id: 'research', icon: Report, label: 'Deep Research', href: '/research' },
         ],
         mutualFunds: [
-            { id: 'mf-watchlist', icon: ChartBar, label: 'MF Watchlist', href: '/mf-watchlist' },
+            { id: 'mf-positions', icon: UserRoleIcon, label: 'My Positions', href: '/mf-positions' },
+            { id: 'mf-overview', icon: PortfolioIcon, label: 'Overview', href: '/mf-portfolio' },
+            { id: 'mf-summary', icon: ChartBar, label: 'Summary', href: '/mf-portfolio/summary' },
+            { id: 'mf-watchlist', icon: Dashboard, label: 'Watchlist', href: '/mf-watchlist' },
         ],
         portfolio: [
             { id: 'portfolios', icon: Folder, label: 'Portfolios', href: '/portfolios' },

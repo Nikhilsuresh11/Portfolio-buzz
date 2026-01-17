@@ -13,6 +13,7 @@ mf_bp = Blueprint('mf', __name__, url_prefix='/api')
 mf_bp.route('/mf/search', methods=['GET'])(MFController.search_funds)
 mf_bp.route('/mf/popular', methods=['GET'])(MFController.get_popular_funds)
 mf_bp.route('/mf/<scheme_code>/nav', methods=['GET'])(MFController.get_fund_nav)
+mf_bp.route('/mf/<scheme_code>/nav-on-date', methods=['GET'])(MFController.get_nav_on_date)
 mf_bp.route('/mf/<scheme_code>/performance', methods=['GET'])(MFController.get_fund_performance)
 
 # Watchlist routes

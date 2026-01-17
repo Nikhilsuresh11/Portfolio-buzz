@@ -149,6 +149,68 @@ class MutualFundPriceService:
         except Exception as e:
             logger.error(f"Error fetching historical NAV for {scheme_code}: {str(e)}")
             return None
+
+    @staticmethod
+    def get_nav_on_date(scheme_code: str, target_date: str) -> Optional[float]:
+        """
+        Get NAV on a specific date (DD-MM-YYYY format or YYYY-MM-DD or ISO)
+        
+        Args:
+            scheme_code: MF scheme code
+            target_date: Target date string
+            
+        Returns:
+            float: NAV on or closest before that date, or None
+        """
+        try:
+            # Normalize target_date to datetime object
+            if '-' in target_date:
+                parts = target_date.split('-')
+                if len(parts[0]) == 4: # YYYY-MM-DD
+                    dt_target = datetime.strptime(target_date[:10], "%Y-%m-%d")
+                else: # DD-MM-YYYY
+                    dt_target = datetime.strptime(target_date, "%d-%m-%Y")
+            else:
+                dt_target = datetime.fromisoformat(target_date.replace('Z', '+00:00'))
+
+            url = f"https://api.mfapi.in/mf/{scheme_code}"
+            response = requests.get(url, timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                
+                if data and 'data' in data:
+                    historical_data = data['data']
+                    
+                    # Search for the date
+                    # Data is usually sorted latest first (descending)
+                    # format in API is "15-01-2024"
+                    
+                    closest_nav = None
+                    min_diff = timedelta(days=365*100) # Large number
+                    
+                    for entry in historical_data:
+                        try:
+                            entry_date = datetime.strptime(entry['date'], "%d-%m-%Y")
+                            diff = (dt_target - entry_date).total_seconds()
+                            
+                            # We want the NAV on that date, or the latest one BEFORE that date 
+                            # (since markets might be closed on target_date)
+                            if diff >= 0 and diff < (min_diff.total_seconds() if isinstance(min_diff, timedelta) else min_diff):
+                                min_diff = diff
+                                closest_nav = float(entry['nav'])
+                                
+                            if diff == 0: # Exact match
+                                break
+                        except:
+                            continue
+                    
+                    return closest_nav
+            
+            return None
+        except Exception as e:
+            logger.error(f"Error getting NAV on date for {scheme_code}: {str(e)}")
+            return None
     
     def get_fund_details(self, scheme_code: str) -> Optional[Dict]:
         """

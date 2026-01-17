@@ -79,6 +79,9 @@ def create_app(config_name='development'):
     
     app.register_blueprint(mf_portfolio_management_bp)
     
+    from routes.mf_portfolio_routes import mf_portfolio_bp
+    app.register_blueprint(mf_portfolio_bp)
+    
     # Request timing and memory logging for Render free tier monitoring
     import time
     import gc

@@ -37,6 +37,42 @@ class MFController:
             return error_response(f"Error searching funds: {str(e)}", 500)
     
     @staticmethod
+    def get_popular_funds():
+        """
+        GET /api/mf/popular
+        Get a list of popular mutual funds for discovery
+        """
+        try:
+            # List of some popular mutual fund scheme codes in India
+            popular_codes = [
+                '120465',  # SBI Bluechip Fund - Direct Plan - Growth
+                '118834',  # Mirae Asset Large Cap Fund - Direct Plan - Growth
+                '148918',  # Canara Robeco Bluechip Equity Fund - Direct Plan - Growth
+                '102885',  # HDFC Top 100 Fund - Direct Plan - Growth
+                '145238',  # Axis Bluechip Fund - Direct Plan - Growth
+                '120844',  # ICICI Prudential Bluechip Fund - Direct Plan - Growth
+                '119551',  # Parag Parikh Flexi Cap Fund - Direct Plan - Growth
+            ]
+            
+            results = []
+            for code in popular_codes:
+                nav_data = MutualFundPriceService.get_fund_nav(code)
+                if nav_data:
+                    results.append({
+                        'scheme_code': code,
+                        'scheme_name': nav_data.get('scheme_name'),
+                        'nav': nav_data.get('nav'),
+                        'return_1y': nav_data.get('return_1y'),
+                        'return_3y': nav_data.get('return_3y'),
+                        'return_5y': nav_data.get('return_5y'),
+                    })
+            
+            return success_response(results, 'Popular funds retrieved successfully', 200)
+            
+        except Exception as e:
+            return error_response(f"Error fetching popular funds: {str(e)}", 500)
+    
+    @staticmethod
     def get_fund_nav(scheme_code):
         """
         GET /api/mf/<scheme_code>/nav
@@ -69,24 +105,28 @@ class MFController:
             
         except Exception as e:
             return error_response(f"Error fetching performance: {str(e)}", 500)
-    
+
     @staticmethod
-    def get_popular_funds():
+    def get_nav_on_date(scheme_code):
         """
-        GET /api/mf/popular
-        Get popular mutual funds
+        GET /api/mf/<scheme_code>/nav-on-date?date=<YYYY-MM-DD>
+        Get NAV for a specific date
         """
         try:
-            funds = MutualFundSearchService.get_popular_funds(limit=10)
+            date_str = request.args.get('date')
+            if not date_str:
+                return error_response("date parameter is required", 400)
+                
+            nav = MutualFundPriceService.get_nav_on_date(scheme_code, date_str)
             
-            return success_response(
-                {'funds': funds},
-                f'Retrieved {len(funds)} popular funds',
-                200
-            )
+            if nav is None:
+                return error_response(f"NAV not found for {scheme_code} on {date_str}", 404)
+                
+            return success_response({'nav': nav}, 'NAV retrieved successfully', 200)
             
         except Exception as e:
-            return error_response(f"Error fetching popular funds: {str(e)}", 500)
+            return error_response(f"Error fetching NAV for date: {str(e)}", 500)
+    
 
 
 class MFWatchlistController:
