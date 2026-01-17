@@ -26,6 +26,8 @@ from routes.portfolio_analysis_routes import portfolio_analysis_bp
 from routes.notification_routes import notification_bp
 from routes.copilot_routes import copilot_bp
 from routes.stock_search_routes import stock_search_bp
+from routes.mf_routes import mf_bp
+from routes.mf_portfolio_management_routes import mf_portfolio_management_bp
 
 
 def create_app(config_name='development'):
@@ -61,6 +63,7 @@ def create_app(config_name='development'):
     app.register_blueprint(watchlist_bp)
     app.register_blueprint(search_bp)
     app.register_blueprint(stock_search_bp)
+    app.register_blueprint(mf_bp)
     app.register_blueprint(analysis_bp)
     app.register_blueprint(stock_research_bp)
     app.register_blueprint(email_alert_bp)
@@ -73,6 +76,8 @@ def create_app(config_name='development'):
     
     from routes.portfolio_management_routes import portfolio_management_bp
     app.register_blueprint(portfolio_management_bp)
+    
+    app.register_blueprint(mf_portfolio_management_bp)
     
     # Request timing and memory logging for Render free tier monitoring
     import time
