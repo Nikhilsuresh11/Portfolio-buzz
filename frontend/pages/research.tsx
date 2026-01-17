@@ -265,7 +265,7 @@ export default function ResearchPage() {
                 ) : (
                     <>
                         {/* Messages - Scrollable */}
-                        <div className="flex-1 overflow-y-auto px-4">
+                        <div className="flex-1 overflow-y-auto px-4 scrollbar-hide">
                             <div className="max-w-4xl mx-auto py-6 space-y-6">
                                 {messages.map((message) => (
                                     <div
