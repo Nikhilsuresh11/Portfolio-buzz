@@ -111,7 +111,7 @@ class SearchService:
     @staticmethod
     def validate_stock(ticker):
         """
-        Validate if a stock ticker exists
+        Validate if a stock ticker exists using Yahoo Finance
         
         Args:
             ticker: Stock ticker symbol
@@ -120,7 +120,9 @@ class SearchService:
             tuple: (success: bool, message: str, is_valid: bool)
         """
         try:
-            is_valid = Stock.validate_ticker(ticker)
+            from services.price_service import PriceService
+            price_data = PriceService.get_stock_price(ticker)
+            is_valid = price_data is not None and price_data.get('price') is not None
             
             if is_valid:
                 return True, f"Stock '{ticker}' is valid", True

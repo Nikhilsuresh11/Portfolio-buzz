@@ -110,9 +110,11 @@ class WatchlistService:
         try:
             ticker = ticker.upper().strip()
             
-            # Validate ticker exists
-            if not Stock.validate_ticker(ticker):
-                return False, f"Stock ticker '{ticker}' not found", None
+            # Validate ticker exists by checking if we can fetch price data
+            from services.price_service import PriceService
+            price_data = PriceService.get_stock_price(ticker)
+            if not price_data or not price_data.get('price'):
+                return False, f"Stock ticker '{ticker}' not found or invalid", None
             
             from models.user_portfolio import UserWatchlist
             
