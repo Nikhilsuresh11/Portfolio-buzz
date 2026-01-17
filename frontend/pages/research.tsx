@@ -288,15 +288,14 @@ export default function ResearchPage() {
                                             {message.format === 'html' ? (
                                                 <div
                                                     className="prose prose-invert prose-sm max-w-none
-                                                    prose-headings:text-white prose-headings:font-semibold
-                                                    prose-h3:text-lg prose-h3:mb-3 prose-h3:mt-4 prose-h3:first:mt-0
-                                                    prose-h4:text-base prose-h4:mb-2 prose-h4:mt-3
+                                                    prose-headings:text-white prose-headings:font-bold
+                                                    prose-h2:text-lg prose-h2:mb-3 prose-h2:mt-5 prose-h2:first:mt-0
                                                     prose-p:text-gray-300 prose-p:leading-relaxed prose-p:mb-3
                                                     prose-strong:text-cyan-400 prose-strong:font-semibold
-                                                    prose-ul:my-2 prose-li:text-gray-300 prose-li:my-1
+                                                    prose-ul:my-3 prose-ul:space-y-2 prose-li:text-gray-300
                                                     prose-table:border-collapse prose-table:w-full prose-table:my-4
-                                                    prose-th:bg-gray-800 prose-th:text-white prose-th:font-semibold prose-th:p-3 prose-th:text-left prose-th:border prose-th:border-gray-700
-                                                    prose-td:p-3 prose-td:border prose-td:border-gray-800 prose-td:text-gray-300"
+                                                    prose-th:bg-zinc-800 prose-th:text-white prose-th:font-semibold prose-th:p-3 prose-th:text-left prose-th:border prose-th:border-zinc-700
+                                                    prose-td:p-3 prose-td:border prose-td:border-zinc-800 prose-td:text-gray-300"
                                                     dangerouslySetInnerHTML={{ __html: message.content }}
                                                 />
                                             ) : (

@@ -130,16 +130,27 @@ Guidelines:
 - Keep it short and easy to understand
 - No lengthy explanations or over-explaining{follow_up_instruction}
 
-CRITICAL - HTML FORMATTING ONLY:
-- Use ONLY HTML tags - NO Markdown syntax like ** or __
-- Use <strong>text</strong> for bold (NOT **text**)
+CRITICAL - HTML FORMATTING REQUIREMENTS:
+- Use ONLY HTML tags - NO Markdown syntax like ** or __ or *
+- Use <h2>Main Topic</h2> for headings ONLY (do NOT use h3, h4, or any other heading levels)
+- Add <br><br> after each </h2> tag for spacing
+- Use <strong>text</strong> for bold emphasis (NOT **text**)
 - Use <em>text</em> for italics (NOT *text*)
-- Use <h2> for the main concept name
-- Use <p> for simple paragraphs
-- Use <ul> and <li> for key points (max 3-4 points)
-- Use <table>, <tr>, <td>, <th> for tables if needed
+- PREFER LISTS: Structure most content as bullet points using <ul> and <li>
+- Use <p> only for brief introductory sentences
+- Use <table>, <thead>, <tbody>, <tr>, <th>, <td> for tabular data
 - Do NOT include <html>, <head>, or <body> tags
-- Output PURE HTML only
+- Do NOT include citation numbers like [1], [2], [3] - NO citations at all
+- Output PURE HTML only - no Markdown
+
+STRUCTURE EXAMPLE:
+<h2>Concept Name</h2><br><br>
+<p>Brief 1-2 sentence introduction.</p>
+<ul>
+  <li><strong>Key Point 1:</strong> Explanation</li>
+  <li><strong>Key Point 2:</strong> Explanation</li>
+  <li><strong>Example:</strong> Practical example</li>
+</ul>
 
 Keep your answer under 200 words. Be clear, simple, and helpful."""
 
@@ -150,7 +161,7 @@ Keep your answer under 200 words. Be clear, simple, and helpful."""
             messages=[
                 {
                     "role": "system",
-                    "content": "You are a friendly financial advisor who explains complex concepts in simple terms. Keep answers short, clear, and beginner-friendly. Use PURE HTML formatting ONLY - use <strong> for bold, NOT **. Never use Markdown syntax."
+                    "content": "You are a friendly financial advisor who explains complex concepts in simple terms. Keep answers short, clear, and beginner-friendly. Use PURE HTML formatting ONLY - use <h2> for headings (NO h3 or h4), structure content as bullet lists with <ul> and <li>, use <strong> for bold. Add <br><br> after headings for spacing. NEVER use Markdown syntax or citation numbers like [1] [2]."
                 },
                 {
                     "role": "user",
@@ -288,36 +299,56 @@ If you cannot identify a specific company, respond with:
 
 Provide a comprehensive fundamental analysis for {stock_name} ({ticker_name}) covering:
 
-1. **Business Model** - B2B, B2C, core focus, key strengths, export presence
-2. **Financial Performance** - Revenue/profit growth, profit margins (10 years)
-3. **Financial Health** - Debt levels, cash flow (10 years)
-4. **Profitability Metrics** - ROE, ROCE
-5. **Valuation** - PE, PB ratios vs industry and historical medians (1, 3, 5, 10 years)
-6. **Dividends** - Dividend history (10 years)
-7. **Price Movement** - Recent price rise/fall reasons
-8. **Competition** - Main competitors, positioning, advantages/disadvantages
-9. **Capital Expenditure** - Capex trends
-10. **Investment Case** - Pros and cons
-11. **Future Outlook** - Business and stock prospects
-12. **Analyst Opinion** - Current analyst views
-13. **Recent News** - Breaking news and developments
-14. **Legal/Patents** - Cases, patents, regulatory matters
+1. Business Model - B2B, B2C, core focus, key strengths, export presence
+2. Financial Performance - Revenue/profit growth, profit margins (10 years)
+3. Financial Health - Debt levels, cash flow (10 years)
+4. Profitability Metrics - ROE, ROCE
+5. Valuation - PE, PB ratios vs industry and historical medians (1, 3, 5, 10 years)
+6. Dividends - Dividend history (10 years)
+7. Price Movement - Recent price rise/fall reasons
+8. Competition - Main competitors, positioning, advantages/disadvantages
+9. Capital Expenditure - Capex trends
+10. Investment Case - Pros and cons
+11. Future Outlook - Business and stock prospects
+12. Analyst Opinion - Current analyst views
+13. Recent News - Breaking news and developments
+14. Legal/Patents - Cases, patents, regulatory matters
 
 Provide detailed, accurate, unbiased analysis based on reliable sources (screener.in, company filings, etc.).
 
-CRITICAL - HTML FORMATTING ONLY:
+CRITICAL - HTML FORMATTING REQUIREMENTS:
 - Use ONLY HTML tags - NO Markdown syntax like ** or __ or *
-- Use <strong>text</strong> for bold (NOT **text**)
+- Use <h2>Section Name</h2> for each major section ONLY (do NOT use h3, h4, or any other heading levels)
+- Add <br><br> after each </h2> tag for spacing between sections
+- Use <strong>text</strong> for bold emphasis (NOT **text**)
 - Use <em>text</em> for italics (NOT *text*)
-- Use <h3> for main section headings (e.g., "Business Model", "Financial Performance")
-- Use <h4> for subsection headings
-- Use <p> for paragraphs
-- Use <ul> and <li> for bullet points
-- Use <table>, <thead>, <tbody>, <tr>, <th>, <td> for financial data tables
+- PREFER LISTS: Structure each section's content as bullet points using <ul> and <li>
+- Use <p> only for brief section introductions
+- Use <table>, <thead>, <tbody>, <tr>, <th>, <td> for financial data (ratios, metrics, comparisons)
 - Do NOT include <html>, <head>, or <body> tags - only the content
+- Do NOT include citation numbers like [1], [2], [3] - NO citations at all
 - Output PURE HTML only - no Markdown mixed in
 
-Structure your response with clear sections using HTML headings and organize financial data in tables where appropriate."""
+STRUCTURE EXAMPLE:
+<h2>Business Model</h2><br><br>
+<ul>
+  <li><strong>Type:</strong> B2B/B2C description</li>
+  <li><strong>Core Focus:</strong> Main business areas</li>
+  <li><strong>Key Strengths:</strong> Competitive advantages</li>
+</ul>
+
+<h2>Financial Performance</h2><br><br>
+<table>
+  <thead><tr><th>Metric</th><th>Value</th><th>Trend</th></tr></thead>
+  <tbody>
+    <tr><td>Revenue Growth</td><td>X%</td><td>Increasing/Stable</td></tr>
+  </tbody>
+</table>
+<ul>
+  <li>Additional insights as bullets</li>
+</ul>
+
+Structure ALL sections this way with clear h2 headings, spacing, lists, and tables."""
 
         logger.info(f"Sending fundamental analysis request for {stock_name} to Perplexity...")
         
@@ -326,7 +357,7 @@ Structure your response with clear sections using HTML headings and organize fin
             messages=[
                 {
                     "role": "system",
-                    "content": "You are an expert SEBI-certified stock market advisor. Provide comprehensive fundamental analysis in PURE HTML format ONLY. Use HTML tags like <strong>, <em>, <h3>, <h4>, <p>, <ul>, <li>, <table>. NEVER use Markdown syntax like ** or *. Output must be valid HTML."
+                    "content": "You are an expert SEBI-certified stock market advisor. Provide comprehensive fundamental analysis in PURE HTML format ONLY. Use <h2> for section headings ONLY (NO h3 or h4), structure content as bullet lists with <ul> and <li>, use <table> for financial data. Add <br><br> after headings for spacing. NEVER use Markdown syntax or citation numbers like [1] [2]."
                 },
                 {
                     "role": "user",
@@ -472,19 +503,42 @@ Guidelines:
 - Explain your reasoning clearly
 - If suggesting changes, explain why
 
-CRITICAL - HTML FORMATTING ONLY:
+CRITICAL - HTML FORMATTING REQUIREMENTS:
 - Use ONLY HTML tags - NO Markdown syntax like ** or __ or *
-- Use <strong>text</strong> for bold (NOT **text**)
+- Use <h2>Section Name</h2> for major sections ONLY (do NOT use h3, h4, or any other heading levels)
+- Add <br><br> after each </h2> tag for spacing between sections
+- Use <strong>text</strong> for bold emphasis (NOT **text**)
 - Use <em>text</em> for italics (NOT *text*)
-- Use <h3> for main headings (e.g., "Portfolio Analysis", "Recommendations")
-- Use <h4> for subheadings
-- Use <p> for paragraphs
-- Use <ul> and <li> for bullet points
-- Use <table>, <thead>, <tbody>, <tr>, <th>, <td> for comparison tables
+- PREFER LISTS: Structure most content as bullet points using <ul> and <li>
+- Use <p> only for brief section introductions
+- Use <table>, <thead>, <tbody>, <tr>, <th>, <td> for portfolio comparisons and metrics
 - Do NOT include <html>, <head>, or <body> tags - only the content
+- Do NOT include citation numbers like [1], [2], [3] - NO citations at all
 - Output PURE HTML only - no Markdown mixed in
 
-Provide your answer in well-formatted HTML for easy reading."""
+STRUCTURE EXAMPLE:
+<h2>Performance Overview</h2><br><br>
+<ul>
+  <li><strong>Total Return:</strong> ₹X,XXX (Y%)</li>
+  <li><strong>XIRR:</strong> Z% vs Nifty 50's A%</li>
+  <li><strong>Outperformance:</strong> B%</li>
+</ul>
+
+<h2>Top Holdings</h2><br><br>
+<table>
+  <thead><tr><th>Stock</th><th>Allocation</th><th>Return</th></tr></thead>
+  <tbody>
+    <tr><td>STOCK1</td><td>X%</td><td>Y%</td></tr>
+  </tbody>
+</table>
+
+<h2>Recommendations</h2><br><br>
+<ul>
+  <li><strong>Action 1:</strong> Specific recommendation with reasoning</li>
+  <li><strong>Action 2:</strong> Another recommendation</li>
+</ul>
+
+Structure your entire response this way with clear h2 headings, spacing, lists, and tables."""
 
         logger.info("Sending portfolio query to Perplexity Sonar...")
         
@@ -493,7 +547,7 @@ Provide your answer in well-formatted HTML for easy reading."""
             messages=[
                 {
                     "role": "system",
-                    "content": "You are an expert portfolio advisor. Provide personalized, data-driven advice in PURE HTML format ONLY. Use HTML tags like <strong>, <em>, <h3>, <p>, <ul>, <li>, <table>. NEVER use Markdown syntax like ** or *. Output must be valid HTML."
+                    "content": "You are an expert portfolio advisor. Provide personalized, data-driven advice in PURE HTML format ONLY. Use <h2> for section headings ONLY (NO h3 or h4), structure content as bullet lists with <ul> and <li>, use <table> for metrics. Add <br><br> after headings for spacing. NEVER use Markdown syntax or citation numbers like [1] [2]."
                 },
                 {
                     "role": "user",
