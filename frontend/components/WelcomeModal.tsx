@@ -65,10 +65,10 @@ export default function WelcomeModal({ isOpen, onClose, onAddStock, watchlist }:
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-[60] flex items-center justify-center p-4 animate-in fade-in duration-500">
-      <div className="w-[600px] max-w-full bg-gradient-to-br from-[#1e293b] to-[#0f172a] rounded-3xl shadow-2xl border border-white/10 overflow-hidden relative animate-in zoom-in-95 duration-300">
+    <div className="fixed inset-0 bg-black/95 backdrop-blur-xl z-[60] flex items-center justify-center p-4 animate-in fade-in duration-500">
+      <div className="w-[600px] max-w-full bg-zinc-950 rounded-3xl shadow-2xl border border-white/5 overflow-hidden relative animate-in zoom-in-95 duration-300">
         {/* Glow effect */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-32 bg-blue-500/20 blur-[60px] pointer-events-none" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-80 h-40 bg-blue-500/10 blur-[80px] pointer-events-none" />
 
         <div className="p-10 relative z-10">
           <div className="text-center mb-8">
