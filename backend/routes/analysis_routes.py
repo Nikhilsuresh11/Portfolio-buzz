@@ -5,6 +5,7 @@ from controllers.analysis_controller import AnalysisController
 analysis_bp = Blueprint('analysis', __name__, url_prefix='/api')
 
 # Register routes
+analysis_bp.route('/ai-insight', methods=['POST'])(AnalysisController.generate_ai_insight)
 analysis_bp.route('/key-insights', methods=['POST'])(AnalysisController.generate_key_insights)
 analysis_bp.route('/<string:user_email>/key-insights/watchlist', methods=['POST'])(AnalysisController.generate_watchlist_insights)
 
