@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import { useAuth } from '../lib/auth-context'
 import { buildApiUrl, getApiHeaders } from '../lib/api-helpers'
-import { Plus, TrendingUp, TrendingDown, RefreshCw, Trash2, Edit2, MoreVertical, Folder } from 'lucide-react'
+import { Plus, TrendingUp, TrendingDown, RefreshCw, Trash2, MoreVertical, Folder } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import DeleteConfirmModal from '../components/DeleteConfirmModal'
@@ -15,6 +15,7 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { WatchlistLoader } from '@/components/ui/watchlist-loader'
 
 type MutualFund = {
     scheme_code: string
@@ -151,13 +152,6 @@ export default function MFWatchlistPage() {
         try {
             setIsCreating(true)
             const url = buildApiUrl(userEmail, 'mf-portfolio-management/watchlists')
-            console.log('Creating watchlist at:', url)
-            console.log('Payload:', {
-                portfolio_id: currentPortfolio.portfolio_id,
-                watchlist_name: newWatchlistName,
-                is_default: watchlists.length === 0
-            })
-
             const res = await fetch(url, {
                 method: 'POST',
                 headers: getApiHeaders(),
@@ -169,15 +163,12 @@ export default function MFWatchlistPage() {
             })
 
             const data = await res.json()
-            console.log('Response:', data)
-
             if (data.success) {
                 setNewWatchlistName('')
                 setIsCreateModalOpen(false)
                 await fetchWatchlists()
             } else {
-                console.error('Failed to create watchlist:', data.message || data.error)
-                alert(data.message || data.error || 'Failed to create watchlist')
+                alert(data.message || 'Failed to create watchlist')
             }
         } catch (error) {
             console.error('Error creating watchlist:', error)
@@ -263,251 +254,195 @@ export default function MFWatchlistPage() {
         label: w.watchlist_name
     }))
 
-    console.log('[MF Watchlist] Watchlists:', watchlists)
-    console.log('[MF Watchlist] Tabs:', tabs)
-    console.log('[MF Watchlist] Current watchlist ID:', currentWatchlistId)
-
     const currentWatchlist = watchlists.find(w => w.watchlist_id === currentWatchlistId)
 
+    if (authLoading || (loading && watchlists.length === 0)) {
+        return <WatchlistLoader />
+    }
+
     return (
-        <div className="flex flex-col h-screen relative overflow-hidden bg-black">
+        <div className="flex flex-col h-screen relative overflow-hidden bg-black text-white">
             {/* Background effects */}
-            <div className="absolute top-0 right-0 -mr-20 -mt-20 w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[120px] pointer-events-none z-0" />
-            <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-[400px] h-[400px] bg-emerald-500/10 rounded-full blur-[120px] pointer-events-none z-0" />
+            <div className="absolute top-0 right-0 -mr-20 -mt-20 w-[600px] h-[600px] bg-blue-500/5 rounded-full blur-[120px] pointer-events-none z-0" />
+            <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-[500px] h-[500px] bg-emerald-500/5 rounded-full blur-[120px] pointer-events-none z-0" />
 
             <div className="flex-none p-6 md:p-8 pb-0 z-10 max-w-[1600px] mx-auto w-full">
                 {/* Header */}
-                <div className="mb-6 flex items-start justify-between">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                     <div>
-                        <h1 className="text-2xl md:text-3xl font-bold mb-1.5 bg-gradient-to-r from-white via-blue-100 to-emerald-100 bg-clip-text text-transparent">
-                            Mutual Funds Watchlist
+                        <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-white via-blue-100 to-emerald-100 bg-clip-text text-transparent">
+                            MF Watchlist
                         </h1>
-                        <p className="text-zinc-400 text-sm">Track your favorite mutual funds with real-time NAV updates</p>
+                        <p className="text-zinc-400">Track and monitor your favorite mutual funds</p>
                     </div>
-                    <div className="flex gap-3">
+                    <div className="flex items-center gap-3">
                         <Button
                             onClick={handleRefresh}
-                            disabled={isRefreshing || !currentWatchlistId}
-                            className="bg-zinc-900 hover:bg-zinc-800 text-white gap-2 font-medium text-sm h-9 px-4 border border-zinc-800 rounded-xl"
+                            variant="outline"
+                            className="bg-zinc-900/50 border-zinc-800 text-zinc-300 hover:bg-zinc-800 transition-all h-10 w-10 p-0 rounded-xl"
+                            disabled={isRefreshing}
                         >
-                            <RefreshCw size={16} className={isRefreshing ? 'animate-spin' : ''} />
-                            {isRefreshing ? 'Refreshing...' : 'Refresh'}
+                            <RefreshCw size={18} className={isRefreshing ? 'animate-spin' : ''} />
                         </Button>
-                        <div className="bg-gradient-to-r from-blue-500 to-emerald-500 rounded-xl p-0.5">
-                            <Button
-                                onClick={() => setIsSearchOpen(true)}
-                                disabled={!currentWatchlistId}
-                                className="bg-black hover:bg-zinc-900 text-white gap-2 font-semibold text-sm h-9 px-5 rounded-[11px]"
-                            >
-                                <Plus size={16} />
-                                Add Fund
-                            </Button>
-                        </div>
+                        <Button
+                            onClick={() => setIsSearchOpen(true)}
+                            className="bg-blue-600 hover:bg-blue-500 text-white font-semibold transition-all h-10 px-6 rounded-xl shadow-lg shadow-blue-500/20 flex items-center gap-2"
+                        >
+                            <Plus size={18} />
+                            Add Fund
+                        </Button>
                     </div>
                 </div>
 
                 {/* Watchlist Tabs */}
                 {watchlists.length > 0 && (
-                    <div className="flex items-center gap-3 mb-4">
-                        <Tabs
-                            tabs={tabs}
-                            activeTab={currentWatchlistId || ''}
-                            onTabChange={(value) => setCurrentWatchlistId(value)}
-                        />
-
-                        {/* Watchlist Actions */}
-                        {currentWatchlist && (
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-8 w-8 text-zinc-400 hover:text-white hover:bg-zinc-800"
-                                    >
-                                        <MoreVertical size={16} />
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="bg-zinc-900 border-zinc-800">
-                                    <DropdownMenuItem
-                                        onClick={() => setWatchlistToDelete(currentWatchlist)}
-                                        className="text-red-400 focus:text-red-400 focus:bg-red-500/10"
-                                    >
-                                        <Trash2 size={14} className="mr-2" />
-                                        Delete Watchlist
-                                    </DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                        )}
-
-                        {/* Create New Watchlist Button */}
-                        <Button
-                            onClick={() => setIsCreateModalOpen(true)}
-                            variant="ghost"
-                            size="sm"
-                            className="text-zinc-400 hover:text-white hover:bg-zinc-800 gap-2"
-                        >
-                            <Plus size={14} />
-                            New Watchlist
-                        </Button>
+                    <div className="border-b border-zinc-800/50 mb-6 flex items-center justify-between">
+                        <div className="flex-1 overflow-x-auto no-scrollbar">
+                            <Tabs
+                                tabs={tabs}
+                                activeTab={currentWatchlistId || ''}
+                                onChange={setCurrentWatchlistId}
+                            />
+                        </div>
+                        <div className="flex items-center gap-2 ml-4">
+                            <Button
+                                onClick={() => setIsCreateModalOpen(true)}
+                                variant="ghost"
+                                size="icon"
+                                className="h-9 w-9 text-zinc-400 hover:text-white hover:bg-zinc-800/50 rounded-lg"
+                            >
+                                <Plus size={18} />
+                            </Button>
+                            {currentWatchlistId && (
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-9 w-9 text-zinc-400 hover:text-white hover:bg-zinc-800/50 rounded-lg"
+                                        >
+                                            <MoreVertical size={18} />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" className="bg-zinc-900 border-zinc-800 text-zinc-300">
+                                        <DropdownMenuItem
+                                            onClick={() => {
+                                                const wl = watchlists.find(w => w.watchlist_id === currentWatchlistId)
+                                                if (wl) setWatchlistToDelete(wl)
+                                            }}
+                                            className="text-red-400 focus:text-red-400 focus:bg-red-400/10 cursor-pointer"
+                                        >
+                                            <Trash2 size={14} className="mr-2" />
+                                            Delete Watchlist
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            )}
+                        </div>
                     </div>
                 )}
             </div>
 
-            <div className="flex-1 px-6 md:p-8 pb-6 md:pb-8 overflow-y-auto scrollbar-hide max-w-[1600px] mx-auto w-full">
-                {loading || portfolioLoading ? (
-                    <div className="flex flex-col items-center justify-center h-64 gap-4">
-                        <div className="relative">
-                            <div className="w-16 h-16 border-4 border-zinc-800 border-t-blue-500 rounded-full animate-spin"></div>
+            {/* Scrollable Content Area */}
+            <div className="flex-1 px-6 md:px-8 pb-8 overflow-y-auto scrollbar-hide max-w-[1600px] mx-auto w-full relative z-10">
+                {loadingFunds ? (
+                    <div className="flex flex-col items-center justify-center py-24 animate-pulse">
+                        <div className="bg-zinc-900/50 p-6 rounded-full mb-6">
+                            <RefreshCw size={48} className="text-zinc-700 animate-spin" />
                         </div>
-                        <div className="text-zinc-400 text-sm">Loading mutual fund data...</div>
+                        <p className="text-zinc-500 text-sm font-medium">Fetching fund data...</p>
                     </div>
                 ) : watchlists.length === 0 ? (
-                    // No watchlists - show create prompt
-                    <div className="flex flex-col items-center justify-center py-20">
-                        <div className="w-20 h-20 mb-6 rounded-2xl bg-gradient-to-br from-blue-500/10 to-emerald-500/10 flex items-center justify-center border border-white/5">
-                            <Folder className="w-10 h-10 text-blue-400" />
+                    <div className="flex flex-col items-center justify-center py-24 bg-zinc-900/20 border border-zinc-800/50 border-dashed rounded-[2rem] text-center">
+                        <div className="bg-zinc-900/50 p-8 rounded-full mb-8">
+                            <Plus size={48} className="text-zinc-700" />
                         </div>
-                        <h3 className="text-2xl font-bold text-white mb-2">No MF Watchlists Yet</h3>
-                        <p className="text-zinc-400 text-center mb-8 max-w-md">
-                            Create your first mutual fund watchlist to start tracking funds
-                        </p>
-                        <div className="bg-gradient-to-r from-blue-500 to-emerald-500 rounded-xl p-0.5">
-                            <Button
-                                onClick={() => setIsCreateModalOpen(true)}
-                                className="bg-black hover:bg-zinc-900 text-white gap-2 font-semibold text-sm h-10 px-6 rounded-[11px]"
-                            >
-                                <Plus size={16} />
-                                Create Watchlist
-                            </Button>
-                        </div>
+                        <h3 className="text-2xl font-bold text-white mb-3">Create a Watchlist First</h3>
+                        <p className="text-zinc-400 mb-10 max-w-sm">Start by creating a mutual fund watchlist to organize and track your investments.</p>
+                        <Button
+                            onClick={() => setIsCreateModalOpen(true)}
+                            className="bg-white hover:bg-zinc-200 text-black font-bold h-12 px-10 rounded-2xl shadow-xl shadow-white/5 transition-all"
+                        >
+                            Create Watchlist
+                        </Button>
                     </div>
-                ) : loadingFunds ? (
-                    // Loading funds
-                    <div className="flex flex-col items-center justify-center py-20">
-                        <div className="relative mb-4">
-                            <div className="w-12 h-12 border-4 border-zinc-800 border-t-blue-500 rounded-full animate-spin"></div>
+                ) : funds.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-24 bg-zinc-900/20 border border-zinc-800/50 border-dashed rounded-[2rem] text-center">
+                        <div className="bg-zinc-900/50 p-8 rounded-full mb-8">
+                            <Folder size={48} className="text-zinc-700" />
                         </div>
-                        <div className="text-zinc-400 text-sm">Loading fund data...</div>
+                        <h3 className="text-2xl font-bold text-white mb-3">Watchlist is Empty</h3>
+                        <p className="text-zinc-400 mb-10 max-w-sm">Search and add mutual funds to this watchlist to track their performance.</p>
+                        <Button
+                            onClick={() => setIsSearchOpen(true)}
+                            className="bg-white hover:bg-zinc-200 text-black font-bold h-12 px-10 rounded-2xl shadow-xl shadow-white/5 transition-all"
+                        >
+                            Add Your First Fund
+                        </Button>
                     </div>
-                ) : funds.length > 0 ? (
-                    // Show funds table
-                    <div className="bg-zinc-900/30 border border-zinc-800/50 backdrop-blur-xl rounded-2xl shadow-2xl shadow-black/20 overflow-hidden">
+                ) : (
+                    <div className="bg-zinc-900/40 border border-zinc-800/60 backdrop-blur-xl rounded-[1.5rem] overflow-hidden shadow-2xl shadow-black/40">
                         <div className="overflow-x-auto">
-                            <table className="w-full">
-                                <thead className="bg-zinc-900/50 border-b border-zinc-800/50">
-                                    <tr>
-                                        <th className="text-left p-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Fund Name</th>
-                                        <th className="text-left p-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Category</th>
-                                        <th className="text-right p-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Prev NAV</th>
-                                        <th className="text-right p-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Current NAV</th>
-                                        <th className="text-right p-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Day Change</th>
-                                        <th className="text-right p-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">1Y CAGR</th>
-                                        <th className="text-right p-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">3Y CAGR</th>
-                                        <th className="text-right p-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">5Y CAGR</th>
-                                        <th className="text-right p-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">10Y CAGR</th>
-                                        <th className="text-right p-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Actions</th>
+                            <table className="w-full text-left border-collapse">
+                                <thead>
+                                    <tr className="border-b border-zinc-800/50 bg-zinc-900/30">
+                                        <th className="p-5 text-zinc-500 font-bold text-[10px] uppercase tracking-[0.15em]">Fund House / Name</th>
+                                        <th className="p-5 text-zinc-500 font-bold text-[10px] uppercase tracking-[0.15em] text-right">Current NAV</th>
+                                        <th className="p-5 text-zinc-500 font-bold text-[10px] uppercase tracking-[0.15em] text-right">Day Change (%)</th>
+                                        <th className="p-5 text-zinc-500 font-bold text-[10px] uppercase tracking-[0.15em] text-right">1Y CAGR</th>
+                                        <th className="p-5 text-zinc-500 font-bold text-[10px] uppercase tracking-[0.15em] text-right">3Y CAGR</th>
+                                        <th className="p-5 text-zinc-500 font-bold text-[10px] uppercase tracking-[0.15em] text-right">5Y CAGR</th>
+                                        <th className="p-5 text-zinc-500 font-bold text-[10px] uppercase tracking-[0.15em] text-right">Actions</th>
                                     </tr>
                                 </thead>
-                                <tbody>
+                                <tbody className="divide-y divide-zinc-800/30">
                                     {funds.map((fund) => (
-                                        <tr key={fund.scheme_code} className="border-b border-zinc-800/30 hover:bg-zinc-800/20 transition-colors">
-                                            <td className="p-4">
-                                                <div>
-                                                    <div className="font-semibold text-white text-sm">{fund.scheme_name}</div>
-                                                    <div className="text-xs text-zinc-500">{fund.fund_house}</div>
+                                        <tr key={fund.scheme_code} className="group hover:bg-zinc-800/40 transition-all">
+                                            <td className="p-5">
+                                                <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-1">{fund.fund_house}</div>
+                                                <div className="font-bold text-white truncate max-w-[300px] uppercase tracking-tight group-hover:text-blue-400 transition-colors">{fund.scheme_name}</div>
+                                            </td>
+                                            <td className="p-5 text-right tabular-nums">
+                                                <div className="font-bold text-white tracking-tight">₹{fund.nav.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
+                                            </td>
+                                            <td className="p-5 text-right tabular-nums">
+                                                <div className={`flex items-center justify-end gap-1 font-bold ${fund.change >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                                    {fund.change >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
+                                                    {Math.abs(fund.change_percent).toFixed(2)}%
+                                                </div>
+                                                <div className="text-[10px] text-zinc-500 mt-1 uppercase font-bold tracking-widest">
+                                                    {fund.change >= 0 ? '+' : ''}{fund.change.toFixed(2)}
                                                 </div>
                                             </td>
-                                            <td className="p-4">
-                                                <span className="text-sm text-zinc-400">{fund.scheme_category || 'N/A'}</span>
+                                            <td className="p-5 text-right tabular-nums">
+                                                <span className={`text-sm font-bold ${fund.return_1y && fund.return_1y > 0 ? 'text-emerald-400' : 'text-zinc-600'}`}>
+                                                    {fund.return_1y ? `${fund.return_1y.toFixed(2)}%` : '--'}
+                                                </span>
                                             </td>
-                                            <td className="p-4 text-right">
-                                                <span className="text-zinc-400 text-sm">₹{fund.prev_nav ? fund.prev_nav.toFixed(2) : '-'}</span>
+                                            <td className="p-5 text-right tabular-nums">
+                                                <span className={`text-sm font-bold ${fund.return_3y && fund.return_3y > 0 ? 'text-emerald-400' : 'text-zinc-600'}`}>
+                                                    {fund.return_3y ? `${fund.return_3y.toFixed(2)}%` : '--'}
+                                                </span>
                                             </td>
-                                            <td className="p-4 text-right">
-                                                <span className="text-white font-semibold">₹{fund.nav.toFixed(2)}</span>
+                                            <td className="p-5 text-right tabular-nums">
+                                                <span className={`text-sm font-bold ${fund.return_5y && fund.return_5y > 0 ? 'text-emerald-400' : 'text-zinc-600'}`}>
+                                                    {fund.return_5y ? `${fund.return_5y.toFixed(2)}%` : '--'}
+                                                </span>
                                             </td>
-                                            <td className="p-4 text-right">
-                                                <div className="flex items-center justify-end gap-1">
-                                                    {fund.change_percent >= 0 ? (
-                                                        <TrendingUp size={14} className="text-green-500" />
-                                                    ) : (
-                                                        <TrendingDown size={14} className="text-red-500" />
-                                                    )}
-                                                    <span className={fund.change_percent >= 0 ? 'text-green-500 text-sm font-medium' : 'text-red-500 text-sm font-medium'}>
-                                                        {fund.change_percent.toFixed(2)}%
-                                                    </span>
-                                                </div>
-                                            </td>
-                                            <td className="p-4 text-right">
-                                                {fund.return_1y !== null && fund.return_1y !== undefined ? (
-                                                    <span className={fund.return_1y >= 0 ? 'text-green-500 text-sm font-medium' : 'text-red-500 text-sm font-medium'}>
-                                                        {fund.return_1y.toFixed(2)}%
-                                                    </span>
-                                                ) : (
-                                                    <span className="text-zinc-600 text-sm">-</span>
-                                                )}
-                                            </td>
-                                            <td className="p-4 text-right">
-                                                {fund.return_3y !== null && fund.return_3y !== undefined ? (
-                                                    <span className={fund.return_3y >= 0 ? 'text-green-500 text-sm font-medium' : 'text-red-500 text-sm font-medium'}>
-                                                        {fund.return_3y.toFixed(2)}%
-                                                    </span>
-                                                ) : (
-                                                    <span className="text-zinc-600 text-sm">-</span>
-                                                )}
-                                            </td>
-                                            <td className="p-4 text-right">
-                                                {fund.return_5y !== null && fund.return_5y !== undefined ? (
-                                                    <span className={fund.return_5y >= 0 ? 'text-green-500 text-sm font-medium' : 'text-red-500 text-sm font-medium'}>
-                                                        {fund.return_5y.toFixed(2)}%
-                                                    </span>
-                                                ) : (
-                                                    <span className="text-zinc-600 text-sm">-</span>
-                                                )}
-                                            </td>
-                                            <td className="p-4 text-right">
-                                                {fund.return_10y !== null && fund.return_10y !== undefined ? (
-                                                    <span className={fund.return_10y >= 0 ? 'text-green-500 text-sm font-medium' : 'text-red-500 text-sm font-medium'}>
-                                                        {fund.return_10y.toFixed(2)}%
-                                                    </span>
-                                                ) : (
-                                                    <span className="text-zinc-600 text-sm">-</span>
-                                                )}
-                                            </td>
-                                            <td className="p-4 text-right">
+                                            <td className="p-5 text-right">
                                                 <Button
+                                                    onClick={() => setFundToDelete(fund.scheme_code)}
                                                     variant="ghost"
                                                     size="icon"
-                                                    className="h-8 w-8 text-zinc-500 hover:text-red-400 hover:bg-red-500/10"
-                                                    onClick={() => setFundToDelete(fund.scheme_code)}
+                                                    className="h-8 w-8 text-zinc-500 hover:text-rose-400 hover:bg-rose-400/10 rounded-lg group/btn"
                                                 >
-                                                    <Trash2 size={14} />
+                                                    <Trash2 size={16} />
                                                 </Button>
                                             </td>
                                         </tr>
                                     ))}
                                 </tbody>
                             </table>
-                        </div>
-                    </div>
-                ) : (
-                    // Empty watchlist
-                    <div className="flex flex-col items-center justify-center py-20">
-                        <div className="w-20 h-20 mb-6 rounded-2xl bg-gradient-to-br from-blue-500/10 to-emerald-500/10 flex items-center justify-center border border-white/5">
-                            <TrendingUp className="w-10 h-10 text-blue-400" />
-                        </div>
-                        <h3 className="text-2xl font-bold text-white mb-2">No Funds in this Watchlist</h3>
-                        <p className="text-zinc-400 text-center mb-8 max-w-md">
-                            Add mutual funds to track their performance
-                        </p>
-                        <div className="bg-gradient-to-r from-blue-500 to-emerald-500 rounded-xl p-0.5">
-                            <Button
-                                onClick={() => setIsSearchOpen(true)}
-                                className="bg-black hover:bg-zinc-900 text-white gap-2 font-semibold text-sm h-10 px-6 rounded-[11px]"
-                            >
-                                <Plus size={16} />
-                                Add Your First Fund
-                            </Button>
                         </div>
                     </div>
                 )}
@@ -532,20 +467,18 @@ export default function MFWatchlistPage() {
                                     />
                                 </div>
                                 <div className="flex gap-3 pt-2">
-                                    <div className="bg-gradient-to-r from-blue-500 to-emerald-500 rounded-xl p-0.5 flex-1">
-                                        <Button
-                                            type="submit"
-                                            disabled={isCreating}
-                                            className="w-full bg-black hover:bg-zinc-900 text-white font-semibold text-sm h-10 rounded-[11px]"
-                                        >
-                                            {isCreating ? 'Creating...' : 'Create Watchlist'}
-                                        </Button>
-                                    </div>
+                                    <Button
+                                        type="submit"
+                                        disabled={isCreating}
+                                        className="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-bold h-11 rounded-xl"
+                                    >
+                                        {isCreating ? 'Creating...' : 'Create Watchlist'}
+                                    </Button>
                                     <Button
                                         type="button"
-                                        variant="ghost"
+                                        variant="outline"
                                         onClick={() => setIsCreateModalOpen(false)}
-                                        className="text-zinc-400 hover:text-white hover:bg-zinc-800"
+                                        className="flex-1 border-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-800"
                                     >
                                         Cancel
                                     </Button>
