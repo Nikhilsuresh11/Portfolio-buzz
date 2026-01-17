@@ -11,7 +11,7 @@ import DeleteConfirmModal from '../components/DeleteConfirmModal'
 import { useAuth } from '../lib/auth-context'
 import { buildApiUrl, getApiHeaders } from '../lib/api-helpers'
 import { WatchlistLoader } from '@/components/ui/watchlist-loader'
-import { Plus, Trash2, Edit2, MoreVertical, LayoutGrid, Folder, Loader2 } from 'lucide-react'
+import { Plus, Trash2, Edit2, MoreVertical, LayoutGrid, Folder, Loader2, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -84,6 +84,7 @@ export default function Watchlist() {
 
     // Track if we just created a watchlist to avoid showing welcome modal
     const [justCreatedWatchlist, setJustCreatedWatchlist] = useState(false)
+    const [isRefreshing, setIsRefreshing] = useState(false)
 
     // Unified initialization and fetching
     useEffect(() => {
@@ -126,6 +127,52 @@ export default function Watchlist() {
             fetchWatchlistStocks(currentWatchlistId);
         }
     }, [currentWatchlistId]);
+
+    // Real-time price updates - refresh every 30 seconds
+    useEffect(() => {
+        if (!currentWatchlistId || !userEmail) return;
+
+        // Set up interval for price updates
+        const priceRefreshInterval = setInterval(async () => {
+            try {
+                const headers = getApiHeaders();
+                const pricesRes = await fetch(
+                    buildApiUrl(userEmail, `watchlist/price?watchlist_id=${currentWatchlistId}`),
+                    { headers }
+                );
+                const pricesData = await pricesRes.json();
+
+                if (pricesData.success && pricesData.data) {
+                    setStocks(prevStocks =>
+                        prevStocks.map(stock => {
+                            const priceInfo = pricesData.data[stock.ticker] || pricesData.data[stock.ticker.toUpperCase()];
+                            if (priceInfo) {
+                                return {
+                                    ...stock,
+                                    price: priceInfo.price,
+                                    change: priceInfo.change,
+                                    changePercent: priceInfo.change_percent,
+                                    currency: priceInfo.currency,
+                                    volume: priceInfo.volume,
+                                    high: priceInfo.high,
+                                    low: priceInfo.low,
+                                    open: priceInfo.open,
+                                    prev_close: priceInfo.prev_close,
+                                    historical_returns: priceInfo.historical_returns
+                                };
+                            }
+                            return stock;
+                        })
+                    );
+                }
+            } catch (error) {
+                console.error('Error refreshing prices:', error);
+            }
+        }, 30000); // Refresh every 30 seconds
+
+        // Cleanup interval on unmount or when watchlist changes
+        return () => clearInterval(priceRefreshInterval);
+    }, [currentWatchlistId, userEmail]);
 
     const fetchWatchlists = async () => {
         try {
@@ -365,6 +412,17 @@ export default function Watchlist() {
         }
     }
 
+    const handleManualRefresh = async () => {
+        if (!currentWatchlistId || !userEmail || isRefreshing) return;
+
+        setIsRefreshing(true);
+        try {
+            await refreshWatchlistData(currentWatchlistId);
+        } finally {
+            setIsRefreshing(false);
+        }
+    }
+
     const addStock = async (ticker: string) => {
         try {
             if (!userEmail) throw new Error("Please log in first.")
@@ -469,9 +527,18 @@ export default function Watchlist() {
                             <h1 className="text-2xl md:text-3xl font-bold mb-1.5 bg-gradient-to-r from-white via-blue-100 to-emerald-100 bg-clip-text text-transparent">
                                 My Watchlist
                             </h1>
-                            <p className="text-zinc-400 text-sm">Track and monitor your favorite assets with real-time insights</p>
+                            <p className="text-zinc-400 text-sm">Track stocks with real-time price updates every 30 seconds</p>
                         </div>
                         <div className="flex gap-3">
+                            <Button
+                                onClick={handleManualRefresh}
+                                disabled={isRefreshing || !currentWatchlistId}
+                                className="bg-zinc-900 hover:bg-zinc-800 text-white gap-2 font-medium text-sm h-9 px-4 border border-zinc-800 rounded-xl"
+                                title="Refresh prices"
+                            >
+                                <RefreshCw size={16} className={isRefreshing ? 'animate-spin' : ''} />
+                                {isRefreshing ? 'Refreshing...' : 'Refresh'}
+                            </Button>
                             <div className="bg-gradient-to-r from-blue-500 to-emerald-500 rounded-xl p-0.5">
                                 <Button
                                     onClick={() => setIsSearchOpen(true)}
