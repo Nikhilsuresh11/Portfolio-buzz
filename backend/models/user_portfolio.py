@@ -267,3 +267,10 @@ class UserWatchlist:
             })
             return watchlist
         return None
+    
+    @staticmethod
+    def get_user_mf_watchlists(user_email):
+        """Get all MF watchlists for a user (same as stock watchlists for now)"""
+        # For now, MF watchlists use the same structure as stock watchlists
+        # In the future, we can separate them if needed
+        return UserWatchlist.get_user_watchlists(user_email)

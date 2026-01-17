@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { useRouter } from "next/router";
 import {
     Search as SearchIcon,
     Dashboard,
@@ -31,6 +32,7 @@ import {
     Security,
     Notification,
     Integration,
+    Package,
 } from "@carbon/icons-react";
 
 /** ======================= Local SVG paths (inline) ======================= */
@@ -151,6 +153,7 @@ interface MenuItemT {
     label: string;
     hasDropdown?: boolean;
     isActive?: boolean;
+    path?: string;
     children?: MenuItemT[];
 }
 interface MenuSectionT {
@@ -170,22 +173,40 @@ function getSidebarContent(activeSection: string): SidebarContent {
                 {
                     title: "Overview",
                     items: [
-                        { icon: <View size={16} className="text-neutral-50" />, label: "Market Overview", isActive: true },
-                        { icon: <Dashboard size={16} className="text-neutral-50" />, label: "Portfolio Summary" },
-                        { icon: <Analytics size={16} className="text-neutral-50" />, label: "AI Insights" },
+                        { icon: <View size={16} className="text-neutral-50" />, label: "Market Overview", isActive: true, path: "/dashboard" },
+                        { icon: <Dashboard size={16} className="text-neutral-50" />, label: "Portfolio Summary", path: "/portfolios" },
+                        { icon: <Analytics size={16} className="text-neutral-50" />, label: "AI Insights", path: "/deep-research" },
                     ],
                 },
                 {
                     title: "Lists",
                     items: [
-                        { icon: <StarFilled size={16} className="text-neutral-50" />, label: "Watchlist" },
-                        { icon: <Report size={16} className="text-neutral-50" />, label: "Alerts" },
+                        { icon: <StarFilled size={16} className="text-neutral-50" />, label: "Watchlist", path: "/watchlist" },
+                        { icon: <Report size={16} className="text-neutral-50" />, label: "Alerts", path: "/alerts" },
                     ],
                 },
             ],
         },
-        // We can keep the other sections as provided or customize them for Portfolio Buzz. 
-        // For now, keeping the provided structure as per instructions to "copy-paste".
+        mutualfunds: {
+            title: "Mutual Funds",
+            sections: [
+                {
+                    title: "Investment",
+                    items: [
+                        { icon: <Dashboard size={16} className="text-neutral-50" />, label: "MF Overview", path: "/mf-portfolio" },
+                        { icon: <ChartBar size={16} className="text-neutral-50" />, label: "MF Summary", path: "/mf-portfolio/summary" },
+                        { icon: <Package size={16} className="text-neutral-50" />, label: "MF Positions", path: "/mf-positions" },
+                    ],
+                },
+                {
+                    title: "Discovery",
+                    items: [
+                        { icon: <StarFilled size={16} className="text-neutral-50" />, label: "MF Watchlist", path: "/mf-watchlist" },
+                        { icon: <Analytics size={16} className="text-neutral-50" />, label: "Fund Performance", path: "/mf-performance" },
+                    ],
+                },
+            ],
+        },
         tasks: {
             title: "Tasks",
             sections: [
@@ -326,6 +347,7 @@ function IconNavigation({
 }) {
     const navItems = [
         { id: "dashboard", icon: <Dashboard size={16} />, label: "Dashboard" },
+        { id: "mutualfunds", icon: <ChartBar size={16} />, label: "Mutual Funds" },
         { id: "tasks", icon: <Task size={16} />, label: "Tasks" },
         { id: "projects", icon: <Folder size={16} />, label: "Projects" },
         { id: "calendar", icon: <CalendarIcon size={16} />, label: "Calendar" },
@@ -427,6 +449,7 @@ function SectionTitle({
 }
 
 function DetailSidebar({ activeSection }: { activeSection: string }) {
+    const router = useRouter();
     const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
     const [isCollapsed, setIsCollapsed] = useState(false);
     const content = getSidebarContent(activeSection);
@@ -586,6 +609,7 @@ function MenuSection({
     onToggleExpanded: (itemKey: string) => void;
     isCollapsed?: boolean;
 }) {
+    const router = useRouter();
     return (
         <div className="flex flex-col w-full">
             <div
@@ -609,7 +633,7 @@ function MenuSection({
                             item={item}
                             isExpanded={isExpanded}
                             onToggle={() => onToggleExpanded(itemKey)}
-                            onItemClick={() => console.log(`Clicked ${item.label}`)}
+                            onItemClick={() => item.path && router.push(item.path)}
                             isCollapsed={isCollapsed}
                         />
                         {isExpanded && item.children && !isCollapsed && (
@@ -618,7 +642,7 @@ function MenuSection({
                                     <SubMenuItem
                                         key={`${itemKey}-${childIndex}`}
                                         item={child}
-                                        onItemClick={() => console.log(`Clicked ${child.label}`)}
+                                        onItemClick={() => child.path && router.push(child.path)}
                                     />
                                 ))}
                             </div>

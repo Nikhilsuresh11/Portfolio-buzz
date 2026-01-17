@@ -106,6 +106,12 @@ export default function Sidebar({ onSearchClick }: { onSearchClick?: () => void 
             { id: 'watchlist', icon: Dashboard, label: 'Watchlist', href: '/watchlist' },
             { id: 'research', icon: Report, label: 'Deep Research', href: '/research' },
         ],
+        mutualFunds: [
+            { id: 'mf-positions', icon: UserRoleIcon, label: 'My Positions', href: '/mf-positions' },
+            { id: 'mf-overview', icon: PortfolioIcon, label: 'Overview', href: '/mf-portfolio' },
+            { id: 'mf-summary', icon: ChartBar, label: 'Summary', href: '/mf-portfolio/summary' },
+            { id: 'mf-watchlist', icon: Dashboard, label: 'Watchlist', href: '/mf-watchlist' },
+        ],
         portfolio: [
             { id: 'portfolios', icon: Folder, label: 'Portfolios', href: '/portfolios' },
             { id: 'positions', icon: UserRoleIcon, label: 'My Positions', href: '/positions' },
@@ -175,6 +181,28 @@ export default function Sidebar({ onSearchClick }: { onSearchClick?: () => void 
                     </div>
                     <div className="space-y-1">
                         {menuItems.main.map((item) => (
+                            <NavItem
+                                key={item.id}
+                                icon={item.icon}
+                                label={item.label}
+                                isActive={currentPath === item.href}
+                                onClick={() => handleNavigate(item.href)}
+                                isCollapsed={isCollapsed}
+                            />
+                        ))}
+                    </div>
+                </div>
+
+                {/* Mutual Funds */}
+                <div>
+                    <div className={cn(
+                        "px-3 mb-2 text-[9px] font-bold text-neutral-600 uppercase tracking-[0.2em] transition-all duration-300 h-3 overflow-hidden",
+                        isCollapsed ? "opacity-0" : "opacity-100"
+                    )}>
+                        Mutual Funds
+                    </div>
+                    <div className="space-y-1">
+                        {menuItems.mutualFunds.map((item) => (
                             <NavItem
                                 key={item.id}
                                 icon={item.icon}

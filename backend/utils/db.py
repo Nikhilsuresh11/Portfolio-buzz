@@ -83,3 +83,8 @@ def get_notifications_collection():
     """Get notifications collection"""
     return Database.get_collection(config.NOTIFICATIONS_COLLECTION)
 
+
+def get_mf_watchlist_collection():
+    """Get mutual fund watchlist collection"""
+    return Database.get_collection('mf_watchlist')
+
