@@ -4,8 +4,8 @@ import Header from '../../components/Header'
 import { useAuth } from '../../lib/auth-context'
 import { usePortfolio } from '../../lib/portfolio-context'
 import { buildApiUrl, getApiHeaders } from '../../lib/api-helpers'
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from 'recharts'
-import { TrendingUp, Award, BarChart3, Target, Trophy, TrendingDown, DollarSign, ArrowLeft, ChevronRight, Activity } from 'lucide-react'
+import { PieChart as RechartsPieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from 'recharts'
+import { TrendingUp, Award, BarChart3, Target, Trophy, TrendingDown, DollarSign, ArrowLeft, ChevronRight, Activity, PieChart } from 'lucide-react'
 import { PageLoader } from '../../components/ui/page-loader'
 import { Button } from '@/components/ui/button'
 
@@ -175,7 +175,7 @@ export default function MFSummaryPage() {
                         </h3>
                         <div className="h-[350px] w-full relative z-10">
                             <ResponsiveContainer width="100%" height="100%">
-                                <PieChart>
+                                <RechartsPieChart>
                                     <Pie
                                         data={positions.map(p => ({ name: p.scheme_name, value: p.current_value }))}
                                         cx="50%"
@@ -204,7 +204,7 @@ export default function MFSummaryPage() {
                                             return null;
                                         }}
                                     />
-                                </PieChart>
+                                </RechartsPieChart>
                             </ResponsiveContainer>
                             {/* Center labels for Donut */}
                             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">

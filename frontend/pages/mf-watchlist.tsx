@@ -301,7 +301,7 @@ export default function MFWatchlistPage() {
                             <Tabs
                                 tabs={tabs}
                                 activeTab={currentWatchlistId || ''}
-                                onChange={setCurrentWatchlistId}
+                                onTabChange={setCurrentWatchlistId}
                             />
                         </div>
                         <div className="flex items-center gap-2 ml-4">
