@@ -7,6 +7,7 @@ import { Plus, Trash2, Calendar, Package, X } from 'lucide-react';
 import { PageLoader } from '../components/ui/page-loader';
 import { Button } from '@/components/ui/button';
 import StockSearchModal from '../components/StockSearchModal';
+import DeleteConfirmModal from '../components/DeleteConfirmModal';
 
 interface Position {
     position_id: string;
@@ -51,6 +52,8 @@ export default function MyPositionsPage() {
     });
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [positionToDelete, setPositionToDelete] = useState<{ id: string, symbol: string } | null>(null);
+    const [isDeletingPosition, setIsDeletingPosition] = useState(false);
 
     useEffect(() => {
         if (!isAuthLoading && !userEmail) {
@@ -176,20 +179,24 @@ export default function MyPositionsPage() {
         }
     };
 
-    const handleDeletePosition = async (positionId: string) => {
-        if (!userEmail || !confirm('Are you sure you want to delete this position?')) return;
+    const handleDeletePosition = async () => {
+        if (!userEmail || !positionToDelete) return;
 
         try {
-            const url = buildApiUrl(userEmail, `portfolio/positions/${positionId}`);
+            setIsDeletingPosition(true);
+            const url = buildApiUrl(userEmail, `portfolio/positions/${positionToDelete.id}`);
             const response = await fetch(url, {
                 method: 'DELETE',
                 headers: getApiHeaders(),
             });
 
             if (!response.ok) throw new Error('Failed to delete position');
+            setPositionToDelete(null);
             fetchPositions();
         } catch (error) {
             console.error('Error deleting position:', error);
+        } finally {
+            setIsDeletingPosition(false);
         }
     };
 
@@ -466,7 +473,7 @@ export default function MyPositionsPage() {
                                                     <button
                                                         onClick={(e) => {
                                                             e.stopPropagation();
-                                                            handleDeletePosition(transaction.position_id);
+                                                            setPositionToDelete({ id: transaction.position_id, symbol: selectedGroup.symbol });
                                                         }}
                                                         className="w-8 h-8 rounded-lg bg-red-500/10 hover:bg-red-500/20 flex items-center justify-center transition-colors ml-auto"
                                                     >
@@ -588,6 +595,16 @@ export default function MyPositionsPage() {
                     </div>
                 </div>
             )}
+
+            {/* Delete Position Confirmation Modal */}
+            <DeleteConfirmModal
+                isOpen={!!positionToDelete}
+                onClose={() => setPositionToDelete(null)}
+                onConfirm={handleDeletePosition}
+                title="Delete Transaction"
+                description={`Are you sure you want to delete this ${positionToDelete?.symbol} transaction? This action cannot be undone.`}
+                isLoading={isDeletingPosition}
+            />
         </div>
     );
 }
