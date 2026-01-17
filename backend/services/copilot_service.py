@@ -182,7 +182,7 @@ Keep your answer under 200 words. Be clear, simple, and helpful."""
 
 def handle_fundamental_analysis(query, previous_conversation=None, stock_name=None, ticker_name=None):
     """
-    Handle fundamental analysis requests using existing Perplexity research
+    Handle fundamental analysis requests using Perplexity with HTML formatting
     
     Args:
         query: User's query
@@ -197,9 +197,6 @@ def handle_fundamental_analysis(query, previous_conversation=None, stock_name=No
         logger.info("=== HANDLING FUNDAMENTAL ANALYSIS ===")
         logger.info(f"Query: {query}")
         logger.info(f"Stock Name: {stock_name}, Ticker: {ticker_name}")
-        
-        # Import here to avoid circular dependency
-        from services.stock_research_service import get_fundamental_research
         
         # If stock details not provided, try to extract from query
         if not stock_name or not ticker_name:
@@ -264,18 +261,97 @@ If you cannot identify a specific company, respond with:
             logger.error("Could not identify company from query")
             return False, "Could not identify a specific company from your query. Please specify the company name or ticker symbol.", None
         
-        # Call existing fundamental research service
-        logger.info(f"Calling fundamental research for {stock_name} ({ticker_name})...")
-        success, message, research_data = get_fundamental_research(stock_name, ticker_name)
+        # Check if Perplexity API key is configured
+        if not config.PERPLEXITY_API_KEY:
+            logger.error("Perplexity API key not configured")
+            return False, "Perplexity API key not configured", None
         
-        if success:
-            # Add type identifier
-            research_data['type'] = 'fundamental_analysis'
-            logger.info("✓ Fundamental analysis completed successfully")
-            return True, message, research_data
-        else:
-            logger.error(f"Fundamental analysis failed: {message}")
-            return False, message, None
+        # Initialize Perplexity client
+        client = OpenAI(
+            api_key=config.PERPLEXITY_API_KEY,
+            base_url="https://api.perplexity.ai"
+        )
+        
+        # Build conversation context
+        conversation_context = ""
+        if previous_conversation and len(previous_conversation) > 0:
+            logger.info(f"Adding conversation context ({len(previous_conversation)} previous exchanges)")
+            conversation_context = "\n\nPREVIOUS CONVERSATION:\n"
+            for conv in previous_conversation[-3:]:  # Last 3 exchanges
+                conversation_context += f"User: {conv.get('query', '')}\n"
+                conversation_context += f"Assistant: {conv.get('answer', '')}[:200]...\n\n"
+        
+        # Comprehensive fundamental analysis prompt with HTML formatting
+        research_prompt = f"""You are an expert SEBI-certified stock market advisor with 30+ years of experience in analyzing stocks for long-term investment (5+ years).
+
+{conversation_context}
+
+Provide a comprehensive fundamental analysis for {stock_name} ({ticker_name}) covering:
+
+1. **Business Model** - B2B, B2C, core focus, key strengths, export presence
+2. **Financial Performance** - Revenue/profit growth, profit margins (10 years)
+3. **Financial Health** - Debt levels, cash flow (10 years)
+4. **Profitability Metrics** - ROE, ROCE
+5. **Valuation** - PE, PB ratios vs industry and historical medians (1, 3, 5, 10 years)
+6. **Dividends** - Dividend history (10 years)
+7. **Price Movement** - Recent price rise/fall reasons
+8. **Competition** - Main competitors, positioning, advantages/disadvantages
+9. **Capital Expenditure** - Capex trends
+10. **Investment Case** - Pros and cons
+11. **Future Outlook** - Business and stock prospects
+12. **Analyst Opinion** - Current analyst views
+13. **Recent News** - Breaking news and developments
+14. **Legal/Patents** - Cases, patents, regulatory matters
+
+Provide detailed, accurate, unbiased analysis based on reliable sources (screener.in, company filings, etc.).
+
+CRITICAL - HTML FORMATTING ONLY:
+- Use ONLY HTML tags - NO Markdown syntax like ** or __ or *
+- Use <strong>text</strong> for bold (NOT **text**)
+- Use <em>text</em> for italics (NOT *text*)
+- Use <h3> for main section headings (e.g., "Business Model", "Financial Performance")
+- Use <h4> for subsection headings
+- Use <p> for paragraphs
+- Use <ul> and <li> for bullet points
+- Use <table>, <thead>, <tbody>, <tr>, <th>, <td> for financial data tables
+- Do NOT include <html>, <head>, or <body> tags - only the content
+- Output PURE HTML only - no Markdown mixed in
+
+Structure your response with clear sections using HTML headings and organize financial data in tables where appropriate."""
+
+        logger.info(f"Sending fundamental analysis request for {stock_name} to Perplexity...")
+        
+        response = client.chat.completions.create(
+            model="sonar",
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are an expert SEBI-certified stock market advisor. Provide comprehensive fundamental analysis in PURE HTML format ONLY. Use HTML tags like <strong>, <em>, <h3>, <h4>, <p>, <ul>, <li>, <table>. NEVER use Markdown syntax like ** or *. Output must be valid HTML."
+                },
+                {
+                    "role": "user",
+                    "content": research_prompt
+                }
+            ],
+            temperature=0.2,
+            max_tokens=4000,
+            top_p=0.9
+        )
+        
+        answer = response.choices[0].message.content.strip()
+        
+        result = {
+            'type': 'fundamental_analysis',
+            'query': query,
+            'stock_name': stock_name,
+            'ticker': ticker_name,
+            'answer': answer,
+            'format': 'html',
+            'generated_at': datetime.now().isoformat()
+        }
+        
+        logger.info("✓ Fundamental analysis completed successfully")
+        return True, "Fundamental analysis completed successfully", result
     
     except Exception as e:
         logger.error(f"✗ Error handling fundamental analysis: {type(e).__name__}: {e}", exc_info=True)
