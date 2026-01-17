@@ -27,6 +27,14 @@ class AlertScheduler:
             print(f"🔔 Running scheduled alert check at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
             print(f"{'='*60}")
             
+            # Skip weekends (Saturday=5, Sunday=6)
+            current_day = datetime.now().weekday()
+            if current_day >= 5:  # 5 = Saturday, 6 = Sunday
+                day_name = "Saturday" if current_day == 5 else "Sunday"
+                print(f"⏸️  Skipping alerts - Today is {day_name} (markets closed)")
+                print(f"{'='*60}\n")
+                return
+            
             # Get all users
             users = User.get_all_users()
             
@@ -159,6 +167,7 @@ class AlertScheduler:
         print("⏰ Running every 30 minutes")
         print("📧 Will check all users per cycle") 
         print("🎯 Alert threshold: -3% or more")
+        print("📅 Skips weekends (Saturday & Sunday)")
         print("="*60 + "\n")
     
     def stop(self):
