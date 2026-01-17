@@ -25,6 +25,7 @@ from routes.email_alert_routes import email_alert_bp
 from routes.portfolio_analysis_routes import portfolio_analysis_bp
 from routes.notification_routes import notification_bp
 from routes.copilot_routes import copilot_bp
+from routes.stock_search_routes import stock_search_bp
 
 
 def create_app(config_name='development'):
@@ -59,6 +60,7 @@ def create_app(config_name='development'):
     app.register_blueprint(auth_bp)
     app.register_blueprint(watchlist_bp)
     app.register_blueprint(search_bp)
+    app.register_blueprint(stock_search_bp)
     app.register_blueprint(analysis_bp)
     app.register_blueprint(stock_research_bp)
     app.register_blueprint(email_alert_bp)
@@ -142,7 +144,8 @@ def create_app(config_name='development'):
                 'search': {
                     'GET /api/search?q=<query>': 'Search stocks',
                     'GET /api/search/default': 'Get popular stocks',
-                    'GET /api/search/autocomplete?q=<query>': 'Autocomplete suggestions'
+                    'GET /api/search/autocomplete?q=<query>': 'Autocomplete suggestions',
+                    'GET /api/search-stock?q=<query>': 'Search stocks using Yahoo Finance API'
                 },
                 'analysis': {
                     'POST /api/ai-insight': 'Generate AI stock analysis',

@@ -59,24 +59,39 @@ export default function StockSearchModal({ isOpen, onClose, onAddStock, watchlis
 
     useEffect(() => {
         const searchStocks = async () => {
-            if (query.trim().length < 1) {
+            if (query.trim().length < 2) {
                 setResults([])
                 return
             }
 
             setLoading(true)
+            setError(null)
             try {
-                const url = buildPublicApiUrl(`search/autocomplete?q=${encodeURIComponent(query)}&limit=10`);
+                const url = buildPublicApiUrl(`search-stock?q=${encodeURIComponent(query)}`);
                 const res = await fetch(url, {
                     headers: getApiHeaders()
                 })
 
                 const data = await res.json()
-                if (data.success) {
-                    setResults(data.data)
+                if (data.success && data.data.results) {
+                    // Map the Yahoo Finance API response to our Stock interface
+                    const mappedResults: Stock[] = data.data.results.map((item: any) => ({
+                        ticker: item.symbol,
+                        name: item.name,
+                        exchange: item.exchange,
+                        sector: item.type
+                    }))
+                    setResults(mappedResults)
+                } else {
+                    setResults([])
+                    if (data.error) {
+                        setError(data.error)
+                    }
                 }
             } catch (error) {
                 console.error('Search error:', error)
+                setError('Failed to search stocks. Please try again.')
+                setResults([])
             } finally {
                 setLoading(false)
             }
