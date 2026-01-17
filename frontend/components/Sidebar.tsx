@@ -24,15 +24,16 @@ const softSpringEasing = "cubic-bezier(0.4, 0, 0.2, 1)";
 function BrandLogo({ isCollapsed }: { isCollapsed: boolean }) {
     return (
         <div className="flex items-center gap-3 px-2">
-            <div className="flex items-center justify-center size-10 rounded-xl bg-gradient-to-br from-blue-600 to-emerald-500 shadow-lg shadow-blue-500/20 shrink-0">
-                <div className="text-white font-black text-xl italic tracking-tighter">B</div>
+            <div className="flex items-center justify-center size-10 rounded-lg bg-gradient-to-br from-cyan-500 to-cyan-600 shadow-lg shadow-cyan-500/20 shrink-0">
+                <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                </svg>
             </div>
             <div className={cn(
                 "flex flex-col transition-all duration-300 overflow-hidden",
                 isCollapsed ? "w-0 opacity-0" : "w-auto opacity-100"
             )}>
-                <span className="text-white font-bold tracking-tight leading-none text-lg whitespace-nowrap">Portfolio</span>
-                <span className="text-blue-500 font-bold tracking-widest text-[10px] uppercase whitespace-nowrap text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400">Buzz</span>
+                <span className="text-white font-bold tracking-tight leading-none text-lg whitespace-nowrap">Portfolio Buzz</span>
             </div>
         </div>
     );

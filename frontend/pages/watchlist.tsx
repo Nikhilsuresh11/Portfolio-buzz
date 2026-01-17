@@ -7,10 +7,11 @@ import StockSearchModal from '../components/StockSearchModal'
 import StockResearchModal from '../components/StockResearchModal'
 import WelcomeModal from '../components/WelcomeModal'
 import AnalysisModal from '../components/AnalysisModal'
+import DeleteConfirmModal from '../components/DeleteConfirmModal'
 import { useAuth } from '../lib/auth-context'
 import { buildApiUrl, getApiHeaders } from '../lib/api-helpers'
 import { WatchlistLoader } from '@/components/ui/watchlist-loader'
-import { Plus, Trash2, Edit2, MoreVertical, LayoutGrid, Folder } from 'lucide-react'
+import { Plus, Trash2, Edit2, MoreVertical, LayoutGrid, Folder, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -70,10 +71,19 @@ export default function Watchlist() {
     // Create Watchlist Modal State
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
     const [newWatchlistName, setNewWatchlistName] = useState('')
+    const [isCreating, setIsCreating] = useState(false)
 
     // Data
     const [newsData, setNewsData] = useState<Record<string, any[]>>({})
     const [deletingTicker, setDeletingTicker] = useState<string | null>(null)
+    const [isDeletingWatchlist, setIsDeletingWatchlist] = useState(false)
+    const [watchlistToDelete, setWatchlistToDelete] = useState<UserWatchlist | null>(null)
+    const [stockToDelete, setStockToDelete] = useState<string | null>(null)
+    const [isDeletingStock, setIsDeletingStock] = useState(false)
+    const [hasSeenWelcome, setHasSeenWelcome] = useState(true) // Default to true to prevent flash
+
+    // Track if we just created a watchlist to avoid showing welcome modal
+    const [justCreatedWatchlist, setJustCreatedWatchlist] = useState(false)
 
     // Unified initialization and fetching
     useEffect(() => {
@@ -99,6 +109,12 @@ export default function Watchlist() {
         // 4. Fetch initial data once auth is confirmed
         if (!portfolioLoading) {
             fetchWatchlists();
+        }
+
+        // Check welcome status
+        const seenWelcome = localStorage.getItem('hasSeenWelcome');
+        if (!seenWelcome) {
+            setHasSeenWelcome(false);
         }
 
         return () => window.removeEventListener('keydown', handleKeyDown);
@@ -153,6 +169,11 @@ export default function Watchlist() {
                     setStocks([])
                     setLoading(false)
                     setDataLoaded(true)
+
+                    // Show welcome modal ONLY for truly first-time users with no watchlists
+                    if (!hasSeenWelcome) {
+                        setIsWelcomeOpen(true)
+                    }
                 }
             } else {
                 setLoading(false)
@@ -168,7 +189,6 @@ export default function Watchlist() {
     const fetchWatchlistStocks = async (watchlistId: string) => {
         try {
             setLoading(true)
-            setDataLoaded(false)
             if (!userEmail) return
 
             const headers = getApiHeaders()
@@ -216,10 +236,6 @@ export default function Watchlist() {
                 }
 
                 setStocks(fetchedStocks)
-
-                if (fetchedStocks.length === 0) {
-                    setIsWelcomeOpen(true)
-                }
             }
 
             // Critical: Only set these after ALL processing (including prices/news) is done
@@ -235,6 +251,7 @@ export default function Watchlist() {
     const handleCreateWatchlist = async () => {
         if (!newWatchlistName.trim() || !userEmail) return
 
+        setIsCreating(true)
         try {
             const url = buildApiUrl(userEmail, 'portfolio-management/watchlists')
             const res = await fetch(url, {
@@ -252,22 +269,25 @@ export default function Watchlist() {
             if (data.success) {
                 setNewWatchlistName('')
                 setIsCreateModalOpen(false)
+                setJustCreatedWatchlist(true) // Set flag to prevent welcome modal
+                localStorage.setItem('hasSeenWelcome', 'true')
+                setHasSeenWelcome(true)
                 await fetchWatchlists()
                 setCurrentWatchlistId(data.watchlist.watchlist_id)
             }
         } catch (error) {
             console.error('Error creating watchlist:', error)
+        } finally {
+            setIsCreating(false)
         }
     }
 
-    const handleDeleteWatchlist = async (id: string) => {
-        const watchlistToDelete = watchlists.find(w => w.watchlist_id === id)
+    const handleDeleteWatchlist = async () => {
         if (!watchlistToDelete || !userEmail) return
 
-        if (!confirm(`Are you sure you want to delete the watchlist "${watchlistToDelete.watchlist_name}"?`)) return
-
+        setIsDeletingWatchlist(true)
         try {
-            const url = buildApiUrl(userEmail, `portfolio-management/watchlists/${id}`)
+            const url = buildApiUrl(userEmail, `portfolio-management/watchlists/${watchlistToDelete.watchlist_id}`)
             const res = await fetch(url, {
                 method: 'DELETE',
                 headers: getApiHeaders()
@@ -276,14 +296,17 @@ export default function Watchlist() {
             const data = await res.json()
             if (data.success) {
                 fetchWatchlists()
-                if (currentWatchlistId === id) {
+                if (currentWatchlistId === watchlistToDelete.watchlist_id) {
                     setCurrentWatchlistId(null)
                 }
+                setWatchlistToDelete(null)
             } else {
                 alert(data.message || "Could not delete watchlist")
             }
         } catch (error) {
             console.error('Error deleting watchlist:', error)
+        } finally {
+            setIsDeletingWatchlist(false)
         }
     }
 
@@ -344,7 +367,32 @@ export default function Watchlist() {
 
     const addStock = async (ticker: string) => {
         try {
-            if (!userEmail || !currentWatchlistId) throw new Error("Please log in and select a watchlist first.")
+            if (!userEmail) throw new Error("Please log in first.")
+
+            let watchlistId = currentWatchlistId
+
+            // If no watchlist exists, create a default one first
+            if (!watchlistId) {
+                const createUrl = buildApiUrl(userEmail, 'portfolio-management/watchlists')
+                const createRes = await fetch(createUrl, {
+                    method: 'POST',
+                    headers: getApiHeaders(),
+                    body: JSON.stringify({
+                        watchlist_name: 'My Watchlist',
+                        portfolio_id: currentPortfolio?.portfolio_id || 'default',
+                        description: 'Created during onboarding',
+                        is_default: true
+                    })
+                })
+                const createData = await createRes.json()
+                if (createData.success) {
+                    watchlistId = createData.watchlist.watchlist_id
+                    setCurrentWatchlistId(watchlistId)
+                    await fetchWatchlists()
+                } else {
+                    throw new Error("Could not create default watchlist")
+                }
+            }
 
             const url = buildApiUrl(userEmail, 'watchlist')
             const res = await fetch(url, {
@@ -352,13 +400,13 @@ export default function Watchlist() {
                 headers: getApiHeaders(),
                 body: JSON.stringify({
                     ticker,
-                    watchlist_id: currentWatchlistId
+                    watchlist_id: watchlistId
                 })
             })
 
             const data = await res.json()
             if (data.success) {
-                await refreshWatchlistData(currentWatchlistId)
+                if (watchlistId) await refreshWatchlistData(watchlistId)
                 setSelectedTicker(ticker)
                 setIsSearchOpen(false)
                 return true
@@ -371,12 +419,12 @@ export default function Watchlist() {
         }
     }
 
-    const removeStock = async (ticker: string) => {
-        try {
-            setDeletingTicker(ticker)
-            if (!userEmail || !currentWatchlistId) return
+    const handleRemoveStock = async () => {
+        if (!stockToDelete || !userEmail || !currentWatchlistId) return
 
-            const url = buildApiUrl(userEmail, `watchlist/${ticker}?watchlist_id=${currentWatchlistId}`)
+        setIsDeletingStock(true)
+        try {
+            const url = buildApiUrl(userEmail, `watchlist/${stockToDelete}?watchlist_id=${currentWatchlistId}`)
             const res = await fetch(url, {
                 method: 'DELETE',
                 headers: getApiHeaders()
@@ -384,15 +432,16 @@ export default function Watchlist() {
 
             const data = await res.json()
             if (data.success) {
-                setStocks(prev => prev.filter(s => s.ticker !== ticker))
-                if (selectedTicker === ticker) {
+                setStocks(prev => prev.filter(s => s.ticker !== stockToDelete))
+                if (selectedTicker === stockToDelete) {
                     setSelectedTicker(null)
                 }
+                setStockToDelete(null)
             }
         } catch (error) {
             console.error('Error removing stock:', error)
         } finally {
-            setDeletingTicker(null)
+            setIsDeletingStock(false)
         }
     }
 
@@ -471,7 +520,7 @@ export default function Watchlist() {
                                                 <DropdownMenuItem
                                                     key={w.watchlist_id}
                                                     className="flex items-center justify-between focus:bg-red-500/10 focus:text-red-400 cursor-pointer rounded-md px-3 py-2.5 transition-colors group"
-                                                    onClick={() => handleDeleteWatchlist(w.watchlist_id)}
+                                                    onClick={() => setWatchlistToDelete(w)}
                                                 >
                                                     <span className="text-sm font-medium truncate pr-4">{w.watchlist_name}</span>
                                                     <Trash2 size={12} className="text-zinc-600 group-hover:text-red-500/60 transition-colors" />
@@ -491,32 +540,41 @@ export default function Watchlist() {
                 <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-8 h-full">
                     {/* Stock Table - Scrollable with sticky header */}
                     <div className="bg-zinc-900/30 border border-zinc-800/50 backdrop-blur-xl rounded-2xl shadow-2xl shadow-black/20 overflow-hidden flex flex-col">
-                        {stocks.length > 0 ? (
+                        {loading ? (
+                            <div className="flex-1 flex items-center justify-center min-h-[400px]">
+                                <div className="scale-75">
+                                    <WatchlistLoader />
+                                </div>
+                            </div>
+                        ) : stocks.length > 0 ? (
                             <div className="flex flex-col h-full overflow-hidden">
                                 <StockTable
                                     rows={stocks}
                                     onSelect={setSelectedTicker}
                                     onAnalyze={handleAnalyze}
-                                    onRemove={removeStock}
+                                    onRemove={setStockToDelete}
                                     selectedTicker={selectedTicker}
                                     deletingTicker={deletingTicker}
+                                    isLoading={loading}
                                 />
                             </div>
                         ) : (
                             <div className="flex flex-col items-center justify-center h-full text-neutral-400 p-8 text-center bg-black/60 backdrop-blur-md">
                                 {watchlists.length === 0 ? (
                                     <>
-                                        <div className="w-16 h-16 mb-4 rounded-xl bg-gradient-to-br from-blue-500/10 to-purple-500/10 flex items-center justify-center border border-white/5 shadow-2xl shadow-blue-500/20">
+                                        <div className="w-16 h-16 mb-4 rounded-xl bg-gradient-to-br from-blue-500/10 to-emerald-500/10 flex items-center justify-center border border-white/5 shadow-2xl shadow-blue-500/20">
                                             <LayoutGrid className="w-8 h-8 text-blue-400" />
                                         </div>
                                         <h3 className="text-xl font-bold text-white mb-2">
-                                            Create your first Watchlist
+                                            {hasSeenWelcome ? "No Watchlists Found" : "Create your first Watchlist"}
                                         </h3>
                                         <p className="text-sm text-neutral-400 max-w-xs mx-auto mb-8 leading-relaxed">
-                                            Create a watchlist to start tracking stocks, analyzing trends, and getting AI insights.
+                                            {hasSeenWelcome
+                                                ? "It looks like you don't have any watchlists. Create one to get started."
+                                                : "Create a watchlist to start tracking stocks, analyzing trends, and getting AI insights."}
                                         </p>
 
-                                        <div className="bg-gradient-to-r from-blue-500 to-emerald-500 rounded-xl p-0.5">
+                                        <div className="bg-gradient-to-r from-blue-500 to-emerald-500 rounded-xl p-0.5 transition-transform hover:scale-105">
                                             <Button
                                                 onClick={() => setIsCreateModalOpen(true)}
                                                 className="bg-black hover:bg-zinc-900 text-white rounded-[11px] h-10 px-6 font-semibold"
@@ -528,12 +586,14 @@ export default function Watchlist() {
                                     </>
                                 ) : (
                                     <>
-                                        <LayoutGrid className="w-16 h-16 mb-4 opacity-20" />
+                                        <div className="w-16 h-16 mb-4 rounded-xl bg-gradient-to-br from-blue-500/10 to-emerald-500/10 flex items-center justify-center border border-white/5 opacity-40">
+                                            <LayoutGrid className="w-8 h-8 text-blue-400" />
+                                        </div>
                                         <h3 className="text-lg font-semibold mb-2">Watchlist is empty</h3>
                                         <p className="text-sm max-w-xs mx-auto mb-6">
                                             Add stocks to track their performance and get AI-powered insights.
                                         </p>
-                                        <div className="bg-gradient-to-r from-blue-500 to-emerald-500 rounded-xl p-0.5">
+                                        <div className="bg-gradient-to-r from-blue-500 to-emerald-500 rounded-xl p-0.5 transition-transform hover:scale-105">
                                             <Button
                                                 onClick={() => setIsSearchOpen(true)}
                                                 className="bg-black hover:bg-zinc-900 text-white rounded-[11px]"
@@ -574,7 +634,11 @@ export default function Watchlist() {
 
             <WelcomeModal
                 isOpen={isWelcomeOpen}
-                onClose={() => setIsWelcomeOpen(false)}
+                onClose={() => {
+                    setIsWelcomeOpen(false)
+                    localStorage.setItem('hasSeenWelcome', 'true')
+                    setHasSeenWelcome(true)
+                }}
                 onAddStock={addStock}
                 watchlist={stocks}
             />
@@ -608,6 +672,7 @@ export default function Watchlist() {
                                         placeholder="e.g. High Growth, Dividend Stocks"
                                         className="bg-zinc-950/50 border-zinc-800 text-white placeholder:text-zinc-500 focus:border-blue-500/50"
                                         autoFocus
+                                        disabled={isCreating}
                                     />
                                 </div>
                                 <div className="flex justify-end gap-3 pt-2">
@@ -615,16 +680,17 @@ export default function Watchlist() {
                                         variant="ghost"
                                         onClick={() => setIsCreateModalOpen(false)}
                                         className="text-neutral-400 hover:text-white"
+                                        disabled={isCreating}
                                     >
                                         Cancel
                                     </Button>
                                     <div className="bg-gradient-to-r from-blue-500 to-emerald-500 rounded-xl p-0.5">
                                         <Button
                                             onClick={handleCreateWatchlist}
-                                            disabled={!newWatchlistName.trim()}
-                                            className="bg-black hover:bg-zinc-900 text-white rounded-[11px] disabled:opacity-50"
+                                            disabled={!newWatchlistName.trim() || isCreating}
+                                            className="bg-black hover:bg-zinc-900 text-white rounded-[11px] disabled:opacity-50 min-w-[80px]"
                                         >
-                                            Create
+                                            {isCreating ? <Loader2 size={16} className="animate-spin" /> : 'Create'}
                                         </Button>
                                     </div>
                                 </div>
@@ -633,6 +699,26 @@ export default function Watchlist() {
                     </div>
                 )
             }
+
+            {/* Delete Watchlist Confirmation Modal */}
+            <DeleteConfirmModal
+                isOpen={!!watchlistToDelete}
+                onClose={() => setWatchlistToDelete(null)}
+                onConfirm={handleDeleteWatchlist}
+                title="Delete Watchlist"
+                description={`Are you sure you want to delete "${watchlistToDelete?.watchlist_name}"? This action cannot be undone.`}
+                isLoading={isDeletingWatchlist}
+            />
+
+            {/* Delete Stock Confirmation Modal */}
+            <DeleteConfirmModal
+                isOpen={!!stockToDelete}
+                onClose={() => setStockToDelete(null)}
+                onConfirm={handleRemoveStock}
+                title="Remove Stock"
+                description={`Are you sure you want to remove ${stockToDelete} from your watchlist?`}
+                isLoading={isDeletingStock}
+            />
         </div >
     )
 }

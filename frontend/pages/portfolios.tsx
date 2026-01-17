@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Plus, Trash2, Folder, Star, Briefcase } from 'lucide-react';
 import { PageLoader } from '@/components/ui/page-loader';
+import DeleteConfirmModal from '../components/DeleteConfirmModal';
 
 export default function PortfoliosPage() {
     const router = useRouter();
@@ -19,6 +20,8 @@ export default function PortfoliosPage() {
     const [portfolioDescription, setPortfolioDescription] = useState('');
     const [isDefault, setIsDefault] = useState(false);
     const [submitting, setSubmitting] = useState(false);
+    const [portfolioToDelete, setPortfolioToDelete] = useState<{ id: string, name: string } | null>(null);
+    const [isDeletingPortfolio, setIsDeletingPortfolio] = useState(false);
 
     useEffect(() => {
         if (!isAuthLoading && !userEmail) {
@@ -44,15 +47,17 @@ export default function PortfoliosPage() {
         }
     };
 
-    const handleDeletePortfolio = async (portfolioId: string) => {
-        if (!confirm('Are you sure you want to delete this portfolio? This action cannot be undone.')) {
-            return;
-        }
+    const handleDeletePortfolio = async () => {
+        if (!portfolioToDelete) return;
 
         try {
-            await deletePortfolio(portfolioId);
+            setIsDeletingPortfolio(true);
+            await deletePortfolio(portfolioToDelete.id);
+            setPortfolioToDelete(null);
         } catch (error: any) {
             alert(error.message || 'Failed to delete portfolio');
+        } finally {
+            setIsDeletingPortfolio(false);
         }
     };
 
@@ -212,7 +217,7 @@ export default function PortfoliosPage() {
                                             variant="ghost"
                                             size="icon"
                                             className="h-8 w-8 text-red-500/60 hover:text-red-500 hover:bg-red-500/10"
-                                            onClick={(e) => { e.stopPropagation(); handleDeletePortfolio(p.portfolio_id); }}
+                                            onClick={(e) => { e.stopPropagation(); setPortfolioToDelete({ id: p.portfolio_id, name: p.portfolio_name }); }}
                                         >
                                             <Trash2 size={14} />
                                         </Button>
@@ -247,6 +252,16 @@ export default function PortfoliosPage() {
             {/* Background ambient light effects */}
             <div className="absolute top-0 right-0 -mr-20 -mt-20 w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[120px] pointer-events-none z-0" />
             <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-[400px] h-[400px] bg-emerald-500/10 rounded-full blur-[120px] pointer-events-none z-0" />
+
+            {/* Delete Portfolio Confirmation Modal */}
+            <DeleteConfirmModal
+                isOpen={!!portfolioToDelete}
+                onClose={() => setPortfolioToDelete(null)}
+                onConfirm={handleDeletePortfolio}
+                title="Delete Portfolio"
+                description={`Are you sure you want to delete "${portfolioToDelete?.name}"? All transactions and data in this portfolio will be permanently removed. This action cannot be undone.`}
+                isLoading={isDeletingPortfolio}
+            />
         </div>
     );
 }

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react'
-import { Clock, Newspaper, X, Sparkles, TrendingUp } from 'lucide-react'
+import { Clock, Newspaper, X, Sparkles, TrendingUp, Loader2 } from 'lucide-react'
 import { useAuth } from '../lib/auth-context'
 import { buildApiUrl, buildPublicApiUrl, getApiHeaders } from '../lib/api-helpers'
 import { Button } from "@/components/ui/button"
+import { WatchlistLoader } from './ui/watchlist-loader'
 
 interface Article {
   title: string
@@ -123,9 +124,13 @@ export default function RelatedNews({ ticker, watchlistId, onClose }: Props) {
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto scrollbar-hide p-0 bg-transparent">
+      <div className="flex-1 overflow-y-auto scrollbar-hide p-0 bg-transparent relative">
         {loading ? (
-          <div className="p-10 text-center text-gray-500 text-sm animate-pulse">Loading market insights...</div>
+          <div className="absolute inset-0 z-20 flex items-center justify-center transition-all duration-300 overflow-hidden">
+            <div className="scale-50 md:scale-75">
+              <WatchlistLoader />
+            </div>
+          </div>
         ) : (
           <>
             {/* Market Insights Section - Only show when no specific ticker selected and we have insights */}
