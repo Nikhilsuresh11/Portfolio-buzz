@@ -70,11 +70,8 @@ export default function MFPositionsPage() {
                 const existing = map.get(p.scheme_code)
                 existing.units += p.units
                 existing.invested_amount += p.invested_amount
-                existing.current_value += p.current_value
-                existing.returns += p.returns
                 // Weighted average avg nav
                 existing.purchase_avg_nav = existing.invested_amount / existing.units
-                existing.returns_percent = (existing.returns / existing.invested_amount) * 100
                 existing.txn_count = (existing.txn_count || 1) + 1
             } else {
                 map.set(p.scheme_code, { ...p, txn_count: 1, purchase_avg_nav: p.purchase_nav })
@@ -140,7 +137,7 @@ export default function MFPositionsPage() {
 
         try {
             setLoading(true)
-            const url = buildApiUrl(userEmail, `mf-portfolio/${currentPortfolio.portfolio_id}/analysis`)
+            const url = buildApiUrl(userEmail, `mf-portfolio/${currentPortfolio.portfolio_id}/positions-summary`)
             const res = await fetch(url, { headers: getApiHeaders() })
             const data = await res.json()
 
@@ -391,10 +388,10 @@ export default function MFPositionsPage() {
                                         <tr className="border-b border-zinc-800/50 bg-zinc-900/30">
                                             <th className="p-6 text-zinc-500 font-bold text-[10px] uppercase tracking-[0.15em]">Fund House / Name</th>
                                             <th className="p-6 text-zinc-500 font-bold text-[10px] uppercase tracking-[0.15em] text-right">Units</th>
-                                            <th className="p-6 text-zinc-500 font-bold text-[10px] uppercase tracking-[0.15em] text-right">Transactions</th>
-                                            <th className="p-6 text-zinc-500 font-bold text-[10px] uppercase tracking-[0.15em] text-right">Invested</th>
-                                            <th className="p-6 text-zinc-500 font-bold text-[10px] uppercase tracking-[0.15em] text-right">Current Value</th>
-                                            <th className="p-6 text-zinc-500 font-bold text-[10px] uppercase tracking-[0.15em] text-right">Status</th>
+                                            <th className="p-6 text-zinc-500 font-bold text-[10px] uppercase tracking-[0.15em] text-right">Avg NAV</th>
+                                            <th className="p-6 text-zinc-500 font-bold text-[10px] uppercase tracking-[0.15em] text-right">Current NAV</th>
+                                            <th className="p-6 text-zinc-500 font-bold text-[10px] uppercase tracking-[0.15em] text-right">Total Invested</th>
+                                            <th className="p-6 text-zinc-500 font-bold text-[10px] uppercase tracking-[0.15em] text-right">Orders</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-zinc-800/30">
@@ -417,26 +414,23 @@ export default function MFPositionsPage() {
                                                 </td>
                                                 <td className="p-6 text-right tabular-nums">
                                                     <div className="font-black text-white text-base tracking-tight">{position.units.toLocaleString('en-IN', { minimumFractionDigits: 3 })}</div>
-                                                    <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-1">Units Allotted</div>
+                                                    <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-1">Total Units</div>
                                                 </td>
                                                 <td className="p-6 text-right tabular-nums">
-                                                    <div className="font-bold text-zinc-300">₹{position.invested_amount.toLocaleString('en-IN')}</div>
-                                                    <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-1">
-                                                        @ ₹{position.purchase_avg_nav.toFixed(2)}
-                                                    </div>
+                                                    <div className="font-bold text-zinc-300">₹{position.purchase_avg_nav.toFixed(2)}</div>
+                                                    <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-1">Average Cost</div>
                                                 </td>
                                                 <td className="p-6 text-right tabular-nums">
-                                                    <div className="font-black text-white text-base tracking-tight">₹{position.current_value.toLocaleString('en-IN')}</div>
-                                                    <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-1">Current NAV</div>
+                                                    <div className="font-black text-white text-base tracking-tight">₹{position.current_nav?.toFixed(2) || '0.00'}</div>
+                                                    <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-1">Market NAV</div>
                                                 </td>
                                                 <td className="p-6 text-right tabular-nums">
-                                                    <div className={`flex items-center justify-end gap-1.5 font-black text-base ${position.returns >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                                                        {position.returns >= 0 ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
-                                                        {Math.abs(position.returns_percent).toFixed(2)}%
-                                                    </div>
-                                                    <div className={`text-[10px] font-bold uppercase tracking-widest mt-0.5 ${position.returns >= 0 ? 'text-emerald-500/50' : 'text-rose-500/50'}`}>
-                                                        {position.returns >= 0 ? '+' : ''}₹{Math.abs(position.returns).toLocaleString('en-IN')}
-                                                    </div>
+                                                    <div className="font-black text-white text-base tracking-tight">₹{position.invested_amount.toLocaleString('en-IN')}</div>
+                                                    <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-1">Total Capital</div>
+                                                </td>
+                                                <td className="p-6 text-right tabular-nums">
+                                                    <div className="font-black text-white text-base tracking-tight">{position.txn_count}</div>
+                                                    <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-1">Transactions</div>
                                                 </td>
                                             </tr>
                                         ))}
@@ -462,10 +456,7 @@ export default function MFPositionsPage() {
                                 </h3>
                                 <div className="flex items-center gap-4">
                                     <div className="text-xs text-zinc-500 font-bold uppercase tracking-widest">
-                                        {selectedFundDetails.txn_count} transactions • Total Invested: <span className="text-white">₹{selectedFundDetails.invested_amount.toLocaleString('en-IN')}</span>
-                                    </div>
-                                    <div className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest ${selectedFundDetails.returns >= 0 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>
-                                        {selectedFundDetails.returns >= 0 ? '+' : ''}{selectedFundDetails.returns_percent.toFixed(2)}%
+                                        {selectedFundDetails.txn_count} transactions • Total Units: <span className="text-white">{selectedFundDetails.units.toLocaleString('en-IN', { minimumFractionDigits: 3 })}</span> • Total Invested: <span className="text-white">₹{selectedFundDetails.invested_amount.toLocaleString('en-IN')}</span>
                                     </div>
                                 </div>
                             </div>

@@ -21,6 +21,18 @@ def get_portfolio_analysis(user_email, portfolio_id):
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
+@mf_portfolio_bp.route('/<portfolio_id>/positions-summary', methods=['GET'])
+def get_portfolio_positions_summary(user_email, portfolio_id):
+    """
+    Get lightweight portfolio analysis (positions + current NAV only)
+    GET /api/<user_email>/mf-portfolio/<portfolio_id>/positions-summary
+    """
+    try:
+        analysis = MFPortfolioService.get_simple_portfolio_analysis(user_email, portfolio_id)
+        return jsonify(analysis), 200
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
 @mf_portfolio_bp.route('/<portfolio_id>/positions', methods=['GET'])
 def get_positions(user_email, portfolio_id):
     """

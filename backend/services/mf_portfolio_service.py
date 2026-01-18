@@ -147,6 +147,89 @@ class MFPortfolioService:
             return None
     
     @staticmethod
+    def get_simple_portfolio_analysis(user_email: str, portfolio_id: str) -> Dict:
+        """
+        Lightweight portfolio analysis that skips heavy XIRR/Benchmark calculations.
+        Used for the Positions table to ensure fast loading.
+        """
+        try:
+            # Get all positions
+            positions = MFPosition.get_positions(user_email, portfolio_id)
+            
+            if not positions:
+                return {
+                    "success": True,
+                    "positions": [],
+                    "summary": {
+                        "total_invested": 0,
+                        "current_value": 0,
+                        "position_count": 0
+                    }
+                }
+            
+            # Identify unique scheme codes to avoid redundant NAV fetching
+            scheme_codes = list(set(p.get("scheme_code") for p in positions if p.get("scheme_code")))
+            
+            # Fetch NAVs for all unique schemes
+            nav_map = {}
+            for code in scheme_codes:
+                fund_data = MutualFundPriceService.get_fund_nav(code)
+                if fund_data:
+                    nav_map[code] = fund_data
+            
+            # Enrich positions
+            enriched_positions = []
+            total_invested = 0
+            total_current_value = 0
+            
+            for position in positions:
+                scheme_code = position.get("scheme_code")
+                units = position.get("units", 0)
+                invested_amount = position.get("invested_amount", 0)
+                
+                # Get current NAV from our pre-fetched map
+                fund_data = nav_map.get(scheme_code)
+                current_nav = fund_data.get("nav", 0) if fund_data else 0
+                
+                # Calculate current value
+                current_value = units * current_nav
+                
+                # Add to totals
+                total_invested += invested_amount
+                total_current_value += current_value
+                
+                # Enrich position with minimal extra info
+                enriched_position = {
+                    **position,
+                    "current_nav": current_nav,
+                    "current_value": current_value,
+                    "fund_house": fund_data.get("fund_house", "") if fund_data else ""
+                }
+                
+                enriched_positions.append(enriched_position)
+            
+            summary = {
+                "total_invested": total_invested,
+                "current_value": total_current_value,
+                "position_count": len(positions)
+            }
+            
+            return {
+                "success": True,
+                "positions": enriched_positions,
+                "summary": summary
+            }
+            
+        except Exception as e:
+            logger.error(f"Error in simple portfolio analysis: {str(e)}")
+            return {
+                "success": False,
+                "error": str(e),
+                "positions": [],
+                "summary": {}
+            }
+
+    @staticmethod
     def get_portfolio_analysis(user_email: str, portfolio_id: str) -> Dict:
         """
         Get comprehensive portfolio analysis with XIRR and other metrics
