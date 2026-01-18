@@ -37,10 +37,17 @@ class MFPortfolioService:
         """
         try:
             if not cashflows or len(cashflows) < 2:
+                logger.warning(f"Insufficient cashflows for XIRR: {len(cashflows) if cashflows else 0}")
                 return None
             
             # Sort cashflows by date
             cashflows = sorted(cashflows, key=lambda x: x[0])
+            
+            # Check if all cashflows are zero or same sign (invalid for XIRR)
+            amounts = [cf[1] for cf in cashflows]
+            if all(a >= 0 for a in amounts) or all(a <= 0 for a in amounts):
+                logger.warning("All cashflows have same sign, cannot calculate XIRR")
+                return None
             
             # Base date (first cashflow date)
             base_date = cashflows[0][0]
@@ -51,39 +58,50 @@ class MFPortfolioService:
                 days = (date - base_date).days
                 days_and_amounts.append((days, amount))
             
-            # Newton-Raphson method to find IRR
-            rate = guess
-            max_iterations = 100
-            tolerance = 1e-6
+            # Try multiple initial guesses if first one doesn't converge
+            guesses = [guess, 0.01, -0.01, 0.5, -0.5]
             
-            for iteration in range(max_iterations):
-                npv = 0
-                dnpv = 0
+            for initial_guess in guesses:
+                # Newton-Raphson method to find IRR
+                rate = initial_guess
+                max_iterations = 100
+                tolerance = 1e-6
                 
-                for days, amount in days_and_amounts:
-                    factor = (1 + rate) ** (days / 365.0)
-                    npv += amount / factor
-                    dnpv -= (days / 365.0) * amount / (factor * (1 + rate))
-                
-                if abs(npv) < tolerance:
-                    return rate * 100  # Convert to percentage
-                
-                if dnpv == 0:
-                    return None
-                
-                rate = rate - npv / dnpv
-                
-                # Prevent extreme values
-                if rate < -0.99:
-                    rate = -0.99
-                elif rate > 10:
-                    rate = 10
+                for iteration in range(max_iterations):
+                    npv = 0
+                    dnpv = 0
+                    
+                    for days, amount in days_and_amounts:
+                        if days == 0:
+                            npv += amount
+                        else:
+                            factor = (1 + rate) ** (days / 365.0)
+                            npv += amount / factor
+                            dnpv -= (days / 365.0) * amount / (factor * (1 + rate))
+                    
+                    if abs(npv) < tolerance:
+                        result = rate * 100  # Convert to percentage
+                        logger.info(f"XIRR converged to {result}% after {iteration} iterations with guess {initial_guess}")
+                        return result
+                    
+                    if dnpv == 0:
+                        break  # Try next guess
+                    
+                    rate = rate - npv / dnpv
+                    
+                    # Prevent extreme values
+                    if rate < -0.99:
+                        rate = -0.99
+                    elif rate > 10:
+                        rate = 10
             
-            # If we didn't converge, return None
+            # If we didn't converge with any guess
+            logger.warning(f"XIRR did not converge after trying {len(guesses)} initial guesses")
             return None
             
         except Exception as e:
             logger.error(f"Error calculating XIRR: {str(e)}")
+            logger.exception(e)
             return None
     
     @staticmethod
@@ -104,10 +122,12 @@ class MFPortfolioService:
             import yfinance as yf
             
             if not cashflows or len(cashflows) < 2:
+                logger.warning(f"Insufficient cashflows for Nifty XIRR: {len(cashflows) if cashflows else 0}")
                 return None
             
             # Sort cashflows
             cashflows = sorted(cashflows, key=lambda x: x[0])
+            logger.info(f"Calculating Nifty XIRR for {len(cashflows)} cashflows")
             
             # Check cache first
             global _nifty_cache
@@ -118,13 +138,16 @@ class MFPortfolioService:
                 _nifty_cache["last_updated"] is not None and 
                 (now - _nifty_cache["last_updated"]) < timedelta(hours=4)):
                 hist = _nifty_cache["data"]
+                logger.info("Using cached Nifty data")
             else:
                 # Fetch Nifty data (get last 5 years to be safe for most portfolios)
+                logger.info("Fetching fresh Nifty data from yfinance")
                 nifty = yf.Ticker("^NSEI")
                 hist = nifty.history(period="5y")
                 if not hist.empty:
                     _nifty_cache["data"] = hist
                     _nifty_cache["last_updated"] = now
+                    logger.info(f"Cached {len(hist)} days of Nifty data")
             
             if hist.empty:
                 logger.warning("No Nifty data available")
@@ -138,7 +161,15 @@ class MFPortfolioService:
                 # Find closest Nifty price
                 # Ensure we use date part only for matching
                 target_dt = d.date()
-                idx = hist.index.get_indexer([pd.Timestamp(target_dt)], method='nearest')[0]
+                
+                # Convert to timezone-aware timestamp to match hist.index
+                # yfinance returns timezone-aware data (Asia/Kolkata)
+                target_ts = pd.Timestamp(target_dt)
+                if hist.index.tz is not None:
+                    # Make target timezone-aware to match the index
+                    target_ts = target_ts.tz_localize(hist.index.tz)
+                
+                idx = hist.index.get_indexer([target_ts], method='nearest')[0]
                 nifty_price = hist.iloc[idx]['Close']
                 
                 if amount < 0:  # Investment
@@ -146,13 +177,20 @@ class MFPortfolioService:
                     total_nifty_units += units
                     nifty_cashflows.append((d, amount))
             
+            logger.info(f"Total Nifty units purchased: {total_nifty_units}")
+            
             # Calculate current Nifty value
             current_nifty_price = hist.iloc[-1]['Close']
             current_nifty_value = total_nifty_units * current_nifty_price
             nifty_cashflows.append((now, current_nifty_value))
             
+            logger.info(f"Current Nifty value: {current_nifty_value}, Price: {current_nifty_price}")
+            logger.info(f"Nifty cashflows count: {len(nifty_cashflows)}")
+            
             # Calculate XIRR for Nifty
             nifty_xirr = MFPortfolioService.calculate_xirr(nifty_cashflows)
+            
+            logger.info(f"Calculated Nifty XIRR: {nifty_xirr}")
             
             return nifty_xirr
             
@@ -161,6 +199,7 @@ class MFPortfolioService:
             return None
         except Exception as e:
             logger.error(f"Error calculating Nifty XIRR: {str(e)}")
+            logger.exception(e)
             return None
     
     @staticmethod
@@ -223,7 +262,11 @@ class MFPortfolioService:
             now = datetime.now()
             cashflows.append((now, total_current_value))
             
+            logger.info(f"Calculating portfolio XIRR with {len(cashflows)} cashflows")
             xirr = MFPortfolioService.calculate_xirr(cashflows)
+            
+            logger.info(f"Calculating Nifty XIRR with {len(cashflows)} cashflows")
+            logger.info(f"First cashflow: {cashflows[0] if cashflows else 'None'}, Last: {cashflows[-1] if cashflows else 'None'}")
             nifty_xirr = MFPortfolioService.calculate_nifty_xirr(cashflows)
             
             total_returns = total_current_value - total_invested
