@@ -179,7 +179,9 @@ export default function MFSummaryPage() {
                                 Concentration
                             </div>
                             <div className="text-xl font-bold text-purple-400 truncate max-w-full uppercase tracking-tight">{insights.largestValue.scheme_name}</div>
-                            <div className="text-sm text-zinc-500 font-bold mt-2">Weight: {((insights.largestValue.current_value / summary.current_value) * 100).toFixed(1)}% of total</div>
+                            <div className="text-sm text-zinc-500 font-bold mt-2">
+                                Weight: {summary?.current_value ? ((insights.largestValue.current_value / summary.current_value) * 100).toFixed(1) : '0.0'}% of total
+                            </div>
                         </div>
                     </div>
                 )}
@@ -237,7 +239,7 @@ export default function MFSummaryPage() {
                                         </td>
                                         <td className="px-8 py-6 text-right">
                                             <div className="inline-block px-3 py-1 bg-blue-500/10 border border-blue-500/20 rounded-lg text-blue-400 font-black text-xs uppercase tracking-tighter">
-                                                {((p.current_value / summary.current_value) * 100).toFixed(1)}%
+                                                {summary?.current_value ? ((p.current_value / summary.current_value) * 100).toFixed(1) : '0.0'}%
                                             </div>
                                         </td>
                                         <td className="px-8 py-6 text-right tabular-nums text-zinc-500 font-bold text-sm tracking-tighter">
@@ -284,7 +286,9 @@ export default function MFSummaryPage() {
                                                     <div className="bg-zinc-900/90 border border-zinc-800 backdrop-blur-xl p-4 rounded-2xl shadow-2xl">
                                                         <p className="text-zinc-500 text-[10px] uppercase font-black mb-1">{payload[0].name}</p>
                                                         <p className="text-white font-black text-xl">₹{Number(payload[0].value).toLocaleString('en-IN')}</p>
-                                                        <p className="text-blue-400 text-xs font-bold mt-1 uppercase">Allocation: {((Number(payload[0].value) / summary.current_value) * 100).toFixed(1)}%</p>
+                                                        <p className="text-blue-400 text-xs font-bold mt-1 uppercase">
+                                                            Allocation: {summary?.current_value ? ((Number(payload[0].value) / summary.current_value) * 100).toFixed(1) : '0.0'}%
+                                                        </p>
                                                     </div>
                                                 );
                                             }
@@ -296,7 +300,9 @@ export default function MFSummaryPage() {
                             {/* Center labels for Donut */}
                             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                                 <div className="text-[10px] text-zinc-500 font-black uppercase tracking-[0.2em] mb-1">Total Value</div>
-                                <div className="text-2xl font-black text-white tracking-tight">₹{summary.current_value.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</div>
+                                <div className="text-2xl font-black text-white tracking-tight">
+                                    ₹{summary?.current_value?.toLocaleString('en-IN', { maximumFractionDigits: 0 }) || '0'}
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -313,14 +319,15 @@ export default function MFSummaryPage() {
                                     <div className="flex justify-between items-center text-sm font-bold uppercase tracking-widest text-zinc-400">
                                         <span className="truncate max-w-[180px] group-hover/item:text-white transition-colors uppercase">{p.scheme_name}</span>
                                         <span className="text-white font-black text-base">
-                                            {((p.current_value / summary.current_value) * 100).toFixed(1)}<span className="text-xs text-zinc-500 ml-0.5">%</span>
+                                            {summary?.current_value ? ((p.current_value / summary.current_value) * 100).toFixed(1) : '0.0'}
+                                            <span className="text-xs text-zinc-500 ml-0.5">%</span>
                                         </span>
                                     </div>
                                     <div className="w-full bg-zinc-800/50 rounded-full h-2.5 overflow-hidden">
                                         <div
                                             className="h-full rounded-full transition-all duration-1000 group-hover:opacity-100 opacity-80"
                                             style={{
-                                                width: `${(p.current_value / summary.current_value) * 100}%`,
+                                                width: `${summary?.current_value ? (p.current_value / summary.current_value) * 100 : 0}%`,
                                                 backgroundColor: chartColors[index % chartColors.length]
                                             }}
                                         />

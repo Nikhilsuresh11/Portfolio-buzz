@@ -4,12 +4,20 @@ Handles MF portfolio analysis, XIRR calculation, and performance metrics
 """
 
 import logging
-from datetime import datetime
+import concurrent.futures
+from datetime import datetime, date, timedelta
 from typing import List, Dict, Optional, Tuple
+import pandas as pd
 from models.mf_position import MFPosition
 from services.mf_price_service import MutualFundPriceService
 
 logger = logging.getLogger(__name__)
+
+# Global cache for Nifty data to avoid redundant slow yfinance fetches
+_nifty_cache = {
+    "data": None,
+    "last_updated": None
+}
 
 class MFPortfolioService:
     """Service for MF portfolio management and analysis"""
@@ -101,15 +109,22 @@ class MFPortfolioService:
             # Sort cashflows
             cashflows = sorted(cashflows, key=lambda x: x[0])
             
-            # Get Nifty 50 data
-            nifty = yf.Ticker("^NSEI")
+            # Check cache first
+            global _nifty_cache
+            now = datetime.now()
             
-            # Get earliest and latest dates
-            start_date = cashflows[0][0]
-            end_date = datetime.now()
-            
-            # Fetch historical data
-            hist = nifty.history(start=start_date, end=end_date)
+            # Cache Nifty history for 4 hours to avoid redundant hits
+            if (_nifty_cache["data"] is not None and 
+                _nifty_cache["last_updated"] is not None and 
+                (now - _nifty_cache["last_updated"]) < timedelta(hours=4)):
+                hist = _nifty_cache["data"]
+            else:
+                # Fetch Nifty data (get last 5 years to be safe for most portfolios)
+                nifty = yf.Ticker("^NSEI")
+                hist = nifty.history(period="5y")
+                if not hist.empty:
+                    _nifty_cache["data"] = hist
+                    _nifty_cache["last_updated"] = now
             
             if hist.empty:
                 logger.warning("No Nifty data available")
@@ -119,20 +134,22 @@ class MFPortfolioService:
             nifty_cashflows = []
             total_nifty_units = 0
             
-            for date, amount in cashflows[:-1]:  # Exclude last cashflow (current value)
+            for d, amount in cashflows[:-1]:  # Exclude last cashflow (current value)
                 # Find closest Nifty price
-                closest_date = min(hist.index, key=lambda x: abs(x.date() - date.date()))
-                nifty_price = hist.loc[closest_date, 'Close']
+                # Ensure we use date part only for matching
+                target_dt = d.date()
+                idx = hist.index.get_indexer([pd.Timestamp(target_dt)], method='nearest')[0]
+                nifty_price = hist.iloc[idx]['Close']
                 
                 if amount < 0:  # Investment
                     units = abs(amount) / nifty_price
                     total_nifty_units += units
-                    nifty_cashflows.append((date, amount))
+                    nifty_cashflows.append((d, amount))
             
             # Calculate current Nifty value
             current_nifty_price = hist.iloc[-1]['Close']
             current_nifty_value = total_nifty_units * current_nifty_price
-            nifty_cashflows.append((datetime.now(), current_nifty_value))
+            nifty_cashflows.append((now, current_nifty_value))
             
             # Calculate XIRR for Nifty
             nifty_xirr = MFPortfolioService.calculate_xirr(nifty_cashflows)
@@ -172,12 +189,18 @@ class MFPortfolioService:
             cashflows = []
             scheme_codes = list(set(p.get("scheme_code") for p in positions if p.get("scheme_code")))
             
-            # Fetch NAVs once per scheme
+            # Fetch NAVs IN PARALLEL
             nav_map = {}
-            for code in scheme_codes:
-                fund_data = MutualFundPriceService.get_fund_nav(code)
-                if fund_data:
-                    nav_map[code] = fund_data
+            with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+                future_to_code = {executor.submit(MutualFundPriceService.get_fund_nav, code): code for code in scheme_codes}
+                for future in concurrent.futures.as_completed(future_to_code):
+                    code = future_to_code[future]
+                    try:
+                        fund_data = future.result()
+                        if fund_data:
+                            nav_map[code] = fund_data
+                    except Exception as exc:
+                        logger.error(f"Scheme {code} error: {exc}")
 
             for position in positions:
                 scheme_code = position.get("scheme_code")
@@ -257,12 +280,28 @@ class MFPortfolioService:
             # Identify unique scheme codes to avoid redundant NAV fetching
             scheme_codes = list(set(p.get("scheme_code") for p in positions if p.get("scheme_code")))
             
-            # Fetch NAVs once per scheme
+            # Fetch NAVs IN PARALLEL to significantly reduce wait time
             nav_map = {}
-            for code in scheme_codes:
-                fund_data = MutualFundPriceService.get_fund_nav(code)
-                if fund_data:
-                    nav_map[code] = fund_data
+            with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+                # Map scheme codes to futures
+                future_to_code = {executor.submit(MutualFundPriceService.get_fund_nav, code): code for code in scheme_codes}
+                for future in concurrent.futures.as_completed(future_to_code):
+                    code = future_to_code[future]
+                    try:
+                        fund_data = future.result()
+                        if fund_data:
+                            nav_map[code] = fund_data
+                    except Exception as exc:
+                        logger.error(f"Scheme {code} generated an exception: {exc}")
+
+            # Enrich positions with current NAV and calculate metrics
+            enriched_positions = []
+            total_invested = 0
+            total_current_value = 0
+            cashflows = []  # For XIRR calculation
+            
+            # For per-fund XIRR
+            fund_groups = {} # scheme_code -> {"cashflows": [], "current_value": 0}
 
             for position in positions:
                 scheme_code = position.get("scheme_code")
