@@ -21,6 +21,7 @@ type MFPosition = {
     returns: number
     returns_percent: number
     fund_house: string
+    fund_xirr?: number | null
 }
 
 export default function MFSummaryPage() {
@@ -183,6 +184,72 @@ export default function MFSummaryPage() {
                     </div>
                 )}
 
+                {/* Fund-wise Performance Table */}
+                <div className="bg-zinc-900/40 border border-zinc-800/60 rounded-[2.5rem] overflow-hidden shadow-2xl shadow-black/60 group mb-10">
+                    <div className="p-8 border-b border-zinc-800/50 flex justify-between items-center bg-zinc-900/20">
+                        <h3 className="text-2xl font-black flex items-center gap-3 tracking-tight">
+                            <div className="p-2 bg-blue-500/10 rounded-xl">
+                                <BarChart3 className="w-6 h-6 text-blue-400" />
+                            </div>
+                            Performance Metrics
+                        </h3>
+                        <div className="text-[10px] text-zinc-500 font-black uppercase tracking-[0.2em]">Individual Fund Analysis</div>
+                    </div>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                                <tr className="text-zinc-500 text-[10px] font-black uppercase tracking-[0.2em] border-b border-zinc-800/50 bg-zinc-900/10">
+                                    <th className="px-8 py-6">Mutual Fund Scheme</th>
+                                    <th className="px-8 py-6 text-right">Invested</th>
+                                    <th className="px-8 py-6 text-right">Current Value</th>
+                                    <th className="px-8 py-6 text-right text-emerald-500/80">XIRR</th>
+                                    <th className="px-8 py-6 text-right">Total Return</th>
+                                    <th className="px-8 py-6 text-right">Concentration</th>
+                                    <th className="px-8 py-6 text-right">Latest NAV</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-zinc-800/30">
+                                {aggregatedPositions.map((p) => (
+                                    <tr
+                                        key={p.scheme_code}
+                                        onClick={() => router.push(`/mf-positions?fund=${encodeURIComponent(p.fund_house)}`)}
+                                        className="group/row hover:bg-zinc-800/30 transition-all cursor-pointer"
+                                    >
+                                        <td className="px-8 py-6">
+                                            <div className="text-[10px] text-zinc-500 font-black uppercase tracking-widest mb-1">{p.fund_house}</div>
+                                            <div className="font-black text-white text-base group-hover/row:text-blue-400 transition-colors uppercase tracking-tight">{p.scheme_name}</div>
+                                        </td>
+                                        <td className="px-8 py-6 text-right tabular-nums text-zinc-300 font-bold">₹{p.invested_amount.toLocaleString('en-IN')}</td>
+                                        <td className="px-8 py-6 text-right tabular-nums font-black text-white text-base">₹{p.current_value.toLocaleString('en-IN')}</td>
+                                        <td className="px-8 py-6 text-right tabular-nums">
+                                            <div className={`text-base font-black ${p.fund_xirr && p.fund_xirr >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                                {p.fund_xirr ? `${p.fund_xirr.toFixed(2)}%` : 'N/A'}
+                                            </div>
+                                            <div className="text-[9px] text-zinc-600 font-bold uppercase tracking-widest mt-0.5">Annualized</div>
+                                        </td>
+                                        <td className="px-8 py-6 text-right tabular-nums">
+                                            <div className={`text-base font-black ${p.returns >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                                {p.returns >= 0 ? '+' : ''}{p.returns_percent.toFixed(2)}%
+                                            </div>
+                                            <div className={`text-[10px] font-bold uppercase tracking-widest mt-0.5 ${p.returns >= 0 ? 'text-emerald-500/50' : 'text-rose-500/50'}`}>
+                                                {p.returns >= 0 ? '+' : ''}₹{Math.abs(p.returns).toLocaleString('en-IN')}
+                                            </div>
+                                        </td>
+                                        <td className="px-8 py-6 text-right">
+                                            <div className="inline-block px-3 py-1 bg-blue-500/10 border border-blue-500/20 rounded-lg text-blue-400 font-black text-xs uppercase tracking-tighter">
+                                                {((p.current_value / summary.current_value) * 100).toFixed(1)}%
+                                            </div>
+                                        </td>
+                                        <td className="px-8 py-6 text-right tabular-nums text-zinc-500 font-bold text-sm tracking-tighter">
+                                            ₹{p.current_nav.toFixed(2)}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-10">
                     {/* Allocation Chart */}
                     <div className="lg:col-span-2 bg-zinc-900/40 border border-zinc-800/60 rounded-[2.5rem] p-10 h-[500px] shadow-2xl relative overflow-hidden group">
@@ -206,7 +273,7 @@ export default function MFSummaryPage() {
                                         dataKey="value"
                                         stroke="none"
                                     >
-                                        {positions.map((_, index) => (
+                                        {aggregatedPositions.map((_, index) => (
                                             <Cell key={`cell-${index}`} fill={chartColors[index % chartColors.length]} className="hover:opacity-80 transition-opacity cursor-pointer outline-none" />
                                         ))}
                                     </Pie>
@@ -261,65 +328,6 @@ export default function MFSummaryPage() {
                                 </div>
                             ))}
                         </div>
-                    </div>
-                </div>
-
-                {/* Fund-wise Performance Table */}
-                <div className="bg-zinc-900/40 border border-zinc-800/60 rounded-[2.5rem] overflow-hidden shadow-2xl shadow-black/60 group">
-                    <div className="p-8 border-b border-zinc-800/50 flex justify-between items-center bg-zinc-900/20">
-                        <h3 className="text-2xl font-black flex items-center gap-3 tracking-tight">
-                            <div className="p-2 bg-blue-500/10 rounded-xl">
-                                <BarChart3 className="w-6 h-6 text-blue-400" />
-                            </div>
-                            Performance Metrics
-                        </h3>
-                        <div className="text-[10px] text-zinc-500 font-black uppercase tracking-[0.2em]">Individual Fund Analysis</div>
-                    </div>
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse">
-                            <thead>
-                                <tr className="text-zinc-500 text-[10px] font-black uppercase tracking-[0.2em] border-b border-zinc-800/50 bg-zinc-900/10">
-                                    <th className="px-8 py-6">Mutual Fund Scheme</th>
-                                    <th className="px-8 py-6 text-right">Invested</th>
-                                    <th className="px-8 py-6 text-right">Current Value</th>
-                                    <th className="px-8 py-6 text-right">Total Return</th>
-                                    <th className="px-8 py-6 text-right">Concentration</th>
-                                    <th className="px-8 py-6 text-right">Latest NAV</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-zinc-800/30">
-                                {aggregatedPositions.map((p) => (
-                                    <tr
-                                        key={p.scheme_code}
-                                        onClick={() => router.push(`/mf-positions?fund=${encodeURIComponent(p.fund_house)}`)}
-                                        className="group/row hover:bg-zinc-800/30 transition-all cursor-pointer"
-                                    >
-                                        <td className="px-8 py-6">
-                                            <div className="text-[10px] text-zinc-500 font-black uppercase tracking-widest mb-1">{p.fund_house}</div>
-                                            <div className="font-black text-white text-base group-hover/row:text-blue-400 transition-colors uppercase tracking-tight">{p.scheme_name}</div>
-                                        </td>
-                                        <td className="px-8 py-6 text-right tabular-nums text-zinc-300 font-bold">₹{p.invested_amount.toLocaleString('en-IN')}</td>
-                                        <td className="px-8 py-6 text-right tabular-nums font-black text-white text-base">₹{p.current_value.toLocaleString('en-IN')}</td>
-                                        <td className="px-8 py-6 text-right tabular-nums">
-                                            <div className={`text-base font-black ${p.returns >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                                                {p.returns >= 0 ? '+' : ''}{p.returns_percent.toFixed(2)}%
-                                            </div>
-                                            <div className={`text-[10px] font-bold uppercase tracking-widest mt-0.5 ${p.returns >= 0 ? 'text-emerald-500/50' : 'text-rose-500/50'}`}>
-                                                {p.returns >= 0 ? '+' : ''}₹{Math.abs(p.returns).toLocaleString('en-IN')}
-                                            </div>
-                                        </td>
-                                        <td className="px-8 py-6 text-right">
-                                            <div className="inline-block px-3 py-1 bg-blue-500/10 border border-blue-500/20 rounded-lg text-blue-400 font-black text-xs uppercase tracking-tighter">
-                                                {((p.current_value / summary.current_value) * 100).toFixed(1)}%
-                                            </div>
-                                        </td>
-                                        <td className="px-8 py-6 text-right tabular-nums text-zinc-500 font-bold text-sm tracking-tighter">
-                                            ₹{p.current_nav.toFixed(2)}
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
                     </div>
                 </div>
 

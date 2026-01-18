@@ -265,6 +265,9 @@ class MFPortfolioService:
             total_current_value = 0
             cashflows = []  # For XIRR calculation
             
+            # For per-fund XIRR
+            fund_groups = {} # scheme_code -> {"cashflows": [], "current_value": 0}
+            
             for position in positions:
                 scheme_code = position.get("scheme_code")
                 units = position.get("units", 0)
@@ -285,13 +288,19 @@ class MFPortfolioService:
                 total_invested += invested_amount
                 total_current_value += current_value
                 
+                if scheme_code not in fund_groups:
+                    fund_groups[scheme_code] = {"cashflows": [], "current_value": 0}
+                
                 # Add cashflow for XIRR (negative for investment)
                 if purchase_date_str:
                     try:
                         purchase_date = datetime.fromisoformat(purchase_date_str.replace('Z', '+00:00'))
                         cashflows.append((purchase_date, -invested_amount))
+                        fund_groups[scheme_code]["cashflows"].append((purchase_date, -invested_amount))
                     except:
                         pass
+                
+                fund_groups[scheme_code]["current_value"] += current_value
                 
                 # Enrich position
                 enriched_position = {
@@ -306,8 +315,22 @@ class MFPortfolioService:
                 
                 enriched_positions.append(enriched_position)
             
+            # Calculate per-fund XIRR
+            now = datetime.now()
+            fund_xirrs = {}
+            for sc, g_data in fund_groups.items():
+                if g_data["cashflows"]:
+                    f_cashflows = g_data["cashflows"] + [(now, g_data["current_value"])]
+                    fund_xirrs[sc] = MFPortfolioService.calculate_xirr(f_cashflows)
+                else:
+                    fund_xirrs[sc] = None
+            
+            # Inject fund-wise XIRR into enriched positions
+            for ep in enriched_positions:
+                ep["fund_xirr"] = fund_xirrs.get(ep.get("scheme_code"))
+            
             # Add final cashflow (current value as positive)
-            cashflows.append((datetime.now(), total_current_value))
+            cashflows.append((now, total_current_value))
             
             # Calculate XIRR
             xirr = MFPortfolioService.calculate_xirr(cashflows)
