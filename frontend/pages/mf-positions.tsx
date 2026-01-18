@@ -448,28 +448,28 @@ export default function MFPositionsPage() {
 
             {/* Add Position Modal */}
             {isAddModalOpen && (
-                <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-50 p-4">
-                    <div className="bg-zinc-900/95 border border-zinc-800 backdrop-blur-xl rounded-[2rem] max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
-                        <div className="p-6 border-b border-zinc-800/50 flex justify-between items-center sticky top-0 bg-zinc-900/95 backdrop-blur-xl z-10">
-                            <h2 className="text-xl font-black text-white tracking-tight">Add MF Position</h2>
-                            <Button
+                <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
+                    <div className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-md shadow-2xl">
+                        <div className="p-5 border-b border-zinc-800 flex justify-between items-center">
+                            <h3 className="text-2xl font-bold text-white">Add MF Position</h3>
+                            <button
                                 onClick={() => {
                                     setIsAddModalOpen(false)
                                     setSelectedFund(null)
                                     setSearchQuery('')
                                     setFormData({ units: '', purchase_date: '', invested_amount: '', purchase_nav: '' })
                                 }}
-                                className="bg-zinc-800/50 hover:bg-zinc-700 text-zinc-400 hover:text-white h-10 w-10 p-0 rounded-xl transition-all"
+                                className="w-10 h-10 rounded-xl bg-zinc-800/50 hover:bg-zinc-800 flex items-center justify-center transition-colors"
                             >
-                                <X size={20} />
-                            </Button>
+                                <X className="w-5 h-5 text-zinc-400" />
+                            </button>
                         </div>
 
-                        <div className="p-6 space-y-6">
+                        <div className="p-5 space-y-4">
                             {/* Fund Selection - Only show if no fund selected */}
                             {!selectedFund ? (
                                 <div>
-                                    <label className="block text-sm font-black text-zinc-400 mb-3 uppercase tracking-[0.1em]">Select Fund</label>
+                                    <label className="block text-sm font-medium text-zinc-400 mb-2">Select Fund</label>
 
                                     {/* Existing Holdings Dropdown */}
                                     {existingHoldings.length > 0 && (
@@ -480,7 +480,7 @@ export default function MFPositionsPage() {
                                                     <ChevronDown size={16} />
                                                 </Button>
                                             </DropdownMenuTrigger>
-                                            <DropdownMenuContent className="w-[600px] bg-zinc-900 border-zinc-800 rounded-xl p-2">
+                                            <DropdownMenuContent className="w-[400px] bg-zinc-900 border-zinc-800 rounded-xl p-2">
                                                 {existingHoldings.map((fund) => (
                                                     <DropdownMenuItem
                                                         key={fund.scheme_code}
@@ -505,7 +505,7 @@ export default function MFPositionsPage() {
                                             placeholder="Search for a new fund..."
                                             value={searchQuery}
                                             onChange={(e) => setSearchQuery(e.target.value)}
-                                            className="bg-zinc-800/50 border-zinc-700 text-white pl-12 h-12 rounded-xl font-semibold placeholder:text-zinc-600"
+                                            className="bg-zinc-800/50 border-zinc-700 text-white pl-12 h-11 rounded-xl font-medium placeholder:text-zinc-500 focus:outline-none focus:border-blue-500 transition-colors"
                                         />
                                         {isSearching && (
                                             <div className="absolute right-4 top-1/2 -translate-y-1/2">
@@ -540,112 +540,101 @@ export default function MFPositionsPage() {
                             ) : (
                                 <>
                                     {/* Selected Fund Display */}
-                                    <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl">
-                                        <div className="flex justify-between items-start">
-                                            <div className="flex-1">
-                                                <div className="text-xs text-blue-400 font-bold uppercase tracking-wider mb-1">{selectedFund.fund_house}</div>
-                                                <div className="text-base font-black text-white">{selectedFund.scheme_name}</div>
-                                            </div>
-                                            <Button
-                                                onClick={() => {
-                                                    setSelectedFund(null)
-                                                    setSearchQuery('')
-                                                    setFormData({ units: '', purchase_date: '', invested_amount: '', purchase_nav: '' })
-                                                }}
-                                                className="bg-transparent hover:bg-blue-500/10 text-blue-400 h-8 w-8 p-0 rounded-lg"
-                                            >
-                                                <X size={16} />
-                                            </Button>
+                                    <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl flex items-center justify-between">
+                                        <div className="min-w-0 flex-1">
+                                            <div className="text-xs text-blue-400 font-medium mb-0.5">{selectedFund.fund_house}</div>
+                                            <div className="text-sm font-semibold text-white truncate">{selectedFund.scheme_name}</div>
                                         </div>
-                                    </div>
-
-                                    {/* Form Fields */}
-                                    <div className="p-3 bg-black-500/10 border border-blue-500/20 rounded-xl flex items-start gap-3 mb-4">
-                                        <Info size={18} className="text-blue-400 flex-shrink-0 mt-0.5" />
-                                        <p className="text-sm text-blue-300">
-                                            <span className="font-bold">Auto-calculation:</span> Enter the invested amount and purchase date. Units and NAV will be calculated automatically.
-                                        </p>
-                                    </div>
-
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <label className="block text-sm font-black text-zinc-400 mb-2 uppercase tracking-[0.1em]">Invested Amount</label>
-                                            <Input
-                                                type="number"
-                                                step="0.01"
-                                                placeholder="0.00"
-                                                value={formData.invested_amount}
-                                                onChange={(e) => setFormData({ ...formData, invested_amount: e.target.value })}
-                                                className="bg-zinc-800/50 border-zinc-700 text-white h-12 rounded-xl font-bold text-base"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-black text-zinc-400 mb-2 uppercase tracking-[0.1em]">Purchase Date</label>
-                                            <div className="relative">
-                                                <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
-                                                <Input
-                                                    type="date"
-                                                    value={formData.purchase_date}
-                                                    onChange={(e) => setFormData({ ...formData, purchase_date: e.target.value })}
-                                                    className="bg-zinc-800/50 border-zinc-700 text-white pl-12 h-12 rounded-xl font-bold"
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Auto-calculated fields (read-only) */}
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <label className="block text-sm font-black text-zinc-400 mb-2 uppercase tracking-[0.1em] flex items-center gap-2">
-                                                Purchase NAV
-                                                {isFetchingNav && <span className="text-xs text-blue-400 normal-case tracking-normal">(fetching...)</span>}
-                                                {formData.purchase_nav && <span className="text-xs text-emerald-400 normal-case tracking-normal">✓ Calculated</span>}
-                                            </label>
-                                            <Input
-                                                type="number"
-                                                step="0.0001"
-                                                placeholder="Auto-calculated"
-                                                value={formData.purchase_nav}
-                                                readOnly
-                                                className="bg-zinc-800/30 border-zinc-700/50 text-zinc-400 h-12 rounded-xl font-bold text-base cursor-not-allowed"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-black text-zinc-400 mb-2 uppercase tracking-[0.1em] flex items-center gap-2">
-                                                Units
-                                                {formData.units && <span className="text-xs text-emerald-400 normal-case tracking-normal">✓ Calculated</span>}
-                                            </label>
-                                            <Input
-                                                type="number"
-                                                step="0.001"
-                                                placeholder="Auto-calculated"
-                                                value={formData.units}
-                                                readOnly
-                                                className="bg-zinc-800/30 border-zinc-700/50 text-zinc-400 h-12 rounded-xl font-bold text-base cursor-not-allowed"
-                                            />
-                                        </div>
-                                    </div>
-
-                                    {/* Action Buttons */}
-                                    <div className="flex gap-3 pt-4">
-                                        <Button
+                                        <button
                                             onClick={() => {
-                                                setIsAddModalOpen(false)
                                                 setSelectedFund(null)
                                                 setSearchQuery('')
                                                 setFormData({ units: '', purchase_date: '', invested_amount: '', purchase_nav: '' })
                                             }}
-                                            className="flex-1 bg-zinc-800/50 hover:bg-zinc-700 border border-zinc-700 text-white h-12 rounded-xl font-bold text-base transition-all"
+                                            className="w-8 h-8 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 flex items-center justify-center transition-colors ml-3 flex-shrink-0"
+                                        >
+                                            <X size={16} className="text-blue-400" />
+                                        </button>
+                                    </div>
+
+                                    {/* Form Fields */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-zinc-400 mb-2">
+                                            Invested Amount (₹)
+                                        </label>
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            placeholder="0.00"
+                                            value={formData.invested_amount}
+                                            onChange={(e) => setFormData({ ...formData, invested_amount: e.target.value })}
+                                            className="w-full bg-zinc-800/50 border border-zinc-700 rounded-xl px-4 py-2.5 text-white placeholder-zinc-500 focus:outline-none focus:border-blue-500 transition-colors"
+                                            required
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-zinc-400 mb-2">
+                                            Purchase Date
+                                        </label>
+                                        <input
+                                            type="date"
+                                            value={formData.purchase_date}
+                                            onChange={(e) => setFormData({ ...formData, purchase_date: e.target.value })}
+                                            className="w-full bg-zinc-800/50 border border-zinc-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-blue-500 transition-colors"
+                                            required
+                                        />
+                                    </div>
+
+                                    {/* Auto-calculated fields (read-only) */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-zinc-400 mb-2">
+                                            Purchase NAV {isFetchingNav && <span className="text-xs text-blue-400">(fetching...)</span>}
+                                            {formData.purchase_nav && <span className="text-xs text-emerald-400"> ✓</span>}
+                                        </label>
+                                        <input
+                                            type="number"
+                                            step="0.0001"
+                                            placeholder="Auto-calculated"
+                                            value={formData.purchase_nav}
+                                            readOnly
+                                            className="w-full bg-zinc-800/30 border border-zinc-700/50 rounded-xl px-4 py-2.5 text-zinc-400 cursor-not-allowed"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-zinc-400 mb-2">
+                                            Units
+                                            {formData.units && <span className="text-xs text-emerald-400"> ✓</span>}
+                                        </label>
+                                        <input
+                                            type="number"
+                                            step="0.001"
+                                            placeholder="Auto-calculated"
+                                            value={formData.units}
+                                            readOnly
+                                            className="w-full bg-zinc-800/30 border border-zinc-700/50 rounded-xl px-4 py-2.5 text-zinc-400 cursor-not-allowed"
+                                        />
+                                    </div>
+
+                                    {/* Action Buttons */}
+                                    <div className="flex gap-3 pt-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsAddModalOpen(false)}
+                                            className="flex-1 bg-zinc-800/50 hover:bg-zinc-800 text-white font-semibold py-2.5 rounded-xl transition-colors"
                                         >
                                             Cancel
-                                        </Button>
-                                        <Button
-                                            onClick={handleAddPosition}
-                                            disabled={isAdding || !formData.units || !formData.purchase_nav}
-                                            className="flex-1 bg-blue-600 hover:bg-blue-500 text-white h-12 rounded-xl font-bold text-base shadow-xl shadow-blue-600/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                                        >
-                                            {isAdding ? 'Adding...' : !formData.units || !formData.purchase_nav ? 'Calculating...' : 'Add Position'}
-                                        </Button>
+                                        </button>
+                                        <div className="flex-1 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-xl p-0.5">
+                                            <button
+                                                onClick={handleAddPosition}
+                                                disabled={isAdding || !formData.units || !formData.purchase_nav}
+                                                className="w-full bg-black hover:bg-zinc-900 text-white font-semibold py-[9px] rounded-[11px] transition-colors disabled:opacity-50"
+                                            >
+                                                {isAdding ? 'Adding...' : !formData.units || !formData.purchase_nav ? 'Calculating...' : 'Add Position'}
+                                            </button>
+                                        </div>
                                     </div>
                                 </>
                             )}
@@ -657,7 +646,7 @@ export default function MFPositionsPage() {
             {/* Transactions Modal */}
             {selectedFundForTxns && selectedFundDetails && (
                 <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                    <div className="bg-zinc-900 border border-zinc-800 rounded-2xl max-w-6xl w-full max-h-[90vh] flex flex-col">
+                    <div className="bg-zinc-900 border border-zinc-800 rounded-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col">
                         {/* Header */}
                         <div className="p-6 border-b border-zinc-800 flex-none">
                             <div className="flex justify-between items-start">
@@ -678,76 +667,74 @@ export default function MFPositionsPage() {
                         </div>
 
                         {/* Table */}
-                        <div className="flex-1 overflow-hidden">
-                            <div className="h-full overflow-y-auto">
-                                <table className="w-full border-collapse text-left">
-                                    <thead className="sticky top-0 z-10 bg-zinc-900/95 backdrop-blur-sm">
-                                        <tr className="border-b border-zinc-800 text-xs font-semibold text-zinc-400 uppercase tracking-wider">
-                                            <th className="px-6 py-4 text-left">Purchase Date</th>
-                                            <th className="px-6 py-4 text-right">Units</th>
-                                            <th className="px-6 py-4 text-right">Purchase NAV</th>
-                                            <th className="px-6 py-4 text-right">Invested</th>
-                                            <th className="px-6 py-4 text-right">Current NAV</th>
-                                            <th className="px-6 py-4 text-right">Current Value</th>
-                                            <th className="px-6 py-4 text-center">Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-zinc-800/50">
-                                        {transactionsForSelectedFund.map((txn) => {
-                                            const currentValue = txn.units * (txn.current_nav || 0)
-                                            const returns = currentValue - txn.invested_amount
-                                            const returnsPercent = (returns / txn.invested_amount) * 100
+                        <div className="flex-1 overflow-y-auto scrollbar-hide">
+                            <table className="w-full border-collapse text-left">
+                                <thead className="sticky top-0 z-10 bg-zinc-900/95 backdrop-blur-sm">
+                                    <tr className="border-b border-zinc-800 text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+                                        <th className="px-6 py-4 text-left">Purchase Date</th>
+                                        <th className="px-6 py-4 text-right">Units</th>
+                                        <th className="px-6 py-4 text-right">Purchase NAV</th>
+                                        <th className="px-6 py-4 text-right">Invested</th>
+                                        <th className="px-6 py-4 text-right">Current NAV</th>
+                                        <th className="px-6 py-4 text-right">Current Value</th>
+                                        <th className="px-6 py-4 text-center">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-zinc-800/50">
+                                    {transactionsForSelectedFund.map((txn) => {
+                                        const currentValue = txn.units * (txn.current_nav || 0)
+                                        const returns = currentValue - txn.invested_amount
+                                        const returnsPercent = (returns / txn.invested_amount) * 100
 
-                                            return (
-                                                <tr key={txn.position_id} className="group hover:bg-zinc-800/30 transition-all">
-                                                    <td className="px-6 py-4">
-                                                        <div className="flex items-center gap-2">
-                                                            <Calendar size={14} className="text-zinc-500" />
-                                                            <span className="text-sm font-semibold text-white">
-                                                                {new Date(txn.purchase_date).toLocaleDateString('en-IN', {
-                                                                    day: '2-digit',
-                                                                    month: 'short',
-                                                                    year: 'numeric'
-                                                                })}
-                                                            </span>
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-6 py-4 text-right">
-                                                        <div className="font-bold text-white text-sm">{txn.units.toLocaleString('en-IN', { minimumFractionDigits: 3 })}</div>
-                                                        <div className="text-xs text-zinc-500 font-semibold">units</div>
-                                                    </td>
-                                                    <td className="px-6 py-4 text-right">
-                                                        <div className="font-semibold text-zinc-300 text-sm">₹{txn.purchase_nav.toFixed(4)}</div>
-                                                        <div className="text-xs text-zinc-500 font-semibold">per unit</div>
-                                                    </td>
-                                                    <td className="px-6 py-4 text-right">
-                                                        <div className="font-bold text-white text-sm">₹{txn.invested_amount.toLocaleString('en-IN')}</div>
-                                                        <div className="text-xs text-zinc-500 font-semibold">invested</div>
-                                                    </td>
-                                                    <td className="px-6 py-4 text-right">
-                                                        <div className="font-semibold text-zinc-300 text-sm">₹{txn.current_nav?.toFixed(4) || '0.0000'}</div>
-                                                        <div className="text-xs text-zinc-500 font-semibold">current</div>
-                                                    </td>
-                                                    <td className="px-6 py-4 text-right">
-                                                        <div className="font-bold text-white text-sm">₹{currentValue.toLocaleString('en-IN')}</div>
-                                                        <div className={`text-xs font-semibold ${returns >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                                                            {returns >= 0 ? '+' : ''}{returnsPercent.toFixed(2)}%
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-6 py-4 text-center">
-                                                        <Button
-                                                            onClick={() => setPositionToDelete(txn.position_id)}
-                                                            className="bg-transparent hover:bg-red-500/10 text-red-400 h-8 w-8 p-0 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
-                                                        >
-                                                            <Trash2 size={16} />
-                                                        </Button>
-                                                    </td>
-                                                </tr>
-                                            )
-                                        })}
-                                    </tbody>
-                                </table>
-                            </div>
+                                        return (
+                                            <tr key={txn.position_id} className="group hover:bg-zinc-800/30 transition-all">
+                                                <td className="px-6 py-4">
+                                                    <div className="flex items-center gap-2">
+                                                        <Calendar size={14} className="text-zinc-500" />
+                                                        <span className="text-sm font-semibold text-white">
+                                                            {new Date(txn.purchase_date).toLocaleDateString('en-IN', {
+                                                                day: '2-digit',
+                                                                month: 'short',
+                                                                year: 'numeric'
+                                                            })}
+                                                        </span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4 text-right">
+                                                    <div className="font-bold text-white text-sm">{txn.units.toLocaleString('en-IN', { minimumFractionDigits: 3 })}</div>
+                                                    <div className="text-xs text-zinc-500 font-semibold">units</div>
+                                                </td>
+                                                <td className="px-6 py-4 text-right">
+                                                    <div className="font-semibold text-zinc-300 text-sm">₹{txn.purchase_nav.toFixed(4)}</div>
+                                                    <div className="text-xs text-zinc-500 font-semibold">per unit</div>
+                                                </td>
+                                                <td className="px-6 py-4 text-right">
+                                                    <div className="font-bold text-white text-sm">₹{txn.invested_amount.toLocaleString('en-IN')}</div>
+                                                    <div className="text-xs text-zinc-500 font-semibold">invested</div>
+                                                </td>
+                                                <td className="px-6 py-4 text-right">
+                                                    <div className="font-semibold text-zinc-300 text-sm">₹{txn.current_nav?.toFixed(4) || '0.0000'}</div>
+                                                    <div className="text-xs text-zinc-500 font-semibold">current</div>
+                                                </td>
+                                                <td className="px-6 py-4 text-right">
+                                                    <div className="font-bold text-white text-sm">₹{currentValue.toLocaleString('en-IN')}</div>
+                                                    <div className={`text-xs font-semibold ${returns >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                                        {returns >= 0 ? '+' : ''}{returnsPercent.toFixed(2)}%
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4 text-center">
+                                                    <Button
+                                                        onClick={() => setPositionToDelete(txn.position_id)}
+                                                        className="bg-transparent hover:bg-red-500/10 text-red-400 h-8 w-8 p-0 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </Button>
+                                                </td>
+                                            </tr>
+                                        )
+                                    })}
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
@@ -787,6 +774,6 @@ export default function MFPositionsPage() {
                     scrollbar-width: none;
                 }
             `}</style>
-        </div>
+        </div >
     )
 }
