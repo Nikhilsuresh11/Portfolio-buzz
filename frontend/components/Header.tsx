@@ -42,39 +42,24 @@ export default function Header({ user }: { user?: string | null }) {
       </Button>
 
       <div className="flex-1 flex items-center gap-3">
-        <h1 className="text-xl font-bold tracking-tight text-white/90">{getPageTitle()}</h1>
-        {currentPortfolio && (
-          <div className="hidden md:flex items-center gap-2 px-3 py-1 bg-white/5 border border-white/10 rounded-full">
-            <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-            <span className="text-xs font-medium text-white/60 tracking-wide uppercase">
-              {currentPortfolio.portfolio_name}
-            </span>
-          </div>
-        )}
-      </div>
-
-      <div className="flex items-center gap-4">
-        {/* Notifications Quick Link */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="text-white/70 hover:text-white hover:bg-white/10 border border-white/5"
-          onClick={() => router.push('/notifications')}
+        <button
+          onClick={() => router.push('/portfolio')}
+          className="text-xl font-bold tracking-tight text-white/90 hover:text-white transition-colors cursor-pointer"
         >
-          <Bell className="h-5 w-5 text-blue-400" />
-          <span className="sr-only">Notifications</span>
-        </Button>
-        {/* Portfolio Switcher Quick Access (Visible on Desktop) */}
-        <div className="hidden md:block">
+          {getPageTitle()}
+        </button>
+        {currentPortfolio && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-9 gap-2 px-3 bg-white/5 hover:bg-white/10 text-white/80 border border-white/5">
-                <Folder size={16} className="text-blue-400" />
-                <span className="text-sm font-medium">{currentPortfolio?.portfolio_name || 'Switch'}</span>
-                <ChevronDown size={14} className="text-white/40" />
-              </Button>
+              <button className="hidden md:flex items-center gap-2 px-3 py-1 bg-white/5 border border-white/10 rounded-full hover:bg-white/10 transition-all cursor-pointer group">
+                <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse group-hover:bg-blue-400" />
+                <span className="text-xs font-medium text-white/60 tracking-wide uppercase group-hover:text-white/90">
+                  {currentPortfolio.portfolio_name}
+                </span>
+                <ChevronDown size={12} className="text-white/40 group-hover:text-white/70 transition-transform group-hover:rotate-180" />
+              </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-64 bg-[#111] border-white/10 text-white p-1">
+            <DropdownMenuContent align="start" className="w-64 bg-[#111] border-white/10 text-white p-1">
               <DropdownMenuLabel className="text-xs font-semibold text-white/40 px-2 py-1.5 uppercase tracking-wider">
                 Switch Portfolio
               </DropdownMenuLabel>
@@ -110,6 +95,24 @@ export default function Header({ user }: { user?: string | null }) {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+        )}
+      </div>
+
+      <div className="flex items-center gap-4">
+        {/* Notifications Quick Link */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="text-white/70 hover:text-white hover:bg-white/10 border border-white/5"
+          onClick={() => router.push('/notifications')}
+        >
+          <Bell className="h-5 w-5 text-blue-400" />
+          <span className="sr-only">Notifications</span>
+        </Button>
+        {/* Notification & User Profile Action */}
+        <div className="flex items-center gap-2">
+          {/* Add a simplified mobile-only portfolio switcher here if needed, 
+               but for now the left side handles desktop. Let's keep the right side minimal. */}
         </div>
       </div>
     </header>

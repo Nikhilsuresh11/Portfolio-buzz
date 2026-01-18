@@ -108,78 +108,61 @@ export default function MFSummaryPage() {
 
     return (
         <div className="flex flex-col h-screen bg-black text-white relative overflow-hidden">
-            <Header />
 
             {/* Background effects */}
             <div className="absolute top-0 right-0 -mr-20 -mt-20 w-[600px] h-[600px] bg-blue-500/5 rounded-full blur-[120px] pointer-events-none z-0" />
             <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-[500px] h-[500px] bg-emerald-500/5 rounded-full blur-[120px] pointer-events-none z-0" />
 
             <div className="flex-1 px-6 md:px-8 pb-8 overflow-y-auto scrollbar-hide max-w-[1600px] mx-auto w-full relative z-10">
-                {/* Fixed Top Breadcrumb */}
-                <div className="flex items-center gap-2 text-zinc-500 text-xs font-bold uppercase tracking-widest pt-4 mb-6">
-                    <button onClick={() => router.push('/mf-portfolio')} className="hover:text-blue-400 transition-colors flex items-center gap-1">
-                        <ArrowLeft size={12} /> MF Overview
-                    </button>
-                    <ChevronRight size={10} />
-                    <span className="text-zinc-300">Detailed Analysis</span>
-                </div>
 
                 {/* Header */}
                 <div className="mb-10">
-                    <h1 className="text-4xl md:text-5xl font-black bg-gradient-to-r from-white via-blue-100 to-emerald-200 bg-clip-text text-transparent tracking-tight mb-3">
-                        Breakdown & Insights
+                    <h1 className="text-2xl md:text-3xl font-bold text-white mb-2 pt-8">
+                        MF Summary
                     </h1>
-                    <p className="text-zinc-400 text-lg font-medium">Deep dive into your mutual fund allocations and performance metrics.</p>
+                    <p className="text-zinc-400 text-sm">Deep dive into your mutual fund allocations and performance metrics.</p>
                 </div>
 
                 {insights && (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
                         {/* Highest Invested */}
-                        <div className="bg-zinc-900/40 border border-zinc-800/60 p-6 rounded-[2rem] hover:bg-zinc-900/60 transition-all group">
-                            <div className="flex items-center gap-3 text-zinc-500 text-[10px] font-bold uppercase tracking-[0.2em] mb-4">
-                                <div className="p-1.5 bg-blue-500/10 rounded-lg group-hover:scale-110 transition-transform">
-                                    <DollarSign size={14} className="text-blue-400" />
-                                </div>
+                        <div className="bg-zinc-900/40 border border-zinc-800/60 p-5 rounded-2xl">
+                            <div className="flex items-center gap-2 text-zinc-500 text-xs mb-3">
+                                <DollarSign size={14} className="text-blue-400" />
                                 Highest Invested
                             </div>
-                            <div className="text-xl font-bold text-white truncate max-w-full group-hover:text-blue-400 transition-colors uppercase tracking-tight">{insights.highestInvested.scheme_name}</div>
-                            <div className="text-sm text-zinc-500 font-bold mt-2">₹{insights.highestInvested.invested_amount.toLocaleString('en-IN')}</div>
+                            <div className="text-lg font-semibold text-white truncate">{insights.highestInvested.scheme_name}</div>
+                            <div className="text-sm text-zinc-500 mt-2">₹{insights.highestInvested.invested_amount.toLocaleString('en-IN')}</div>
                         </div>
 
                         {/* Best Performer */}
-                        <div className="bg-zinc-900/40 border border-emerald-500/20 p-6 rounded-[2rem] hover:bg-emerald-500/5 transition-all group">
-                            <div className="flex items-center gap-3 text-emerald-500/60 text-[10px] font-bold uppercase tracking-[0.2em] mb-4">
-                                <div className="p-1.5 bg-emerald-500/10 rounded-lg group-hover:scale-110 transition-transform">
-                                    <Trophy size={14} className="text-emerald-400" />
-                                </div>
+                        <div className="bg-zinc-900/40 border border-emerald-500/20 p-5 rounded-2xl">
+                            <div className="flex items-center gap-2 text-emerald-500/60 text-xs mb-3">
+                                <Trophy size={14} className="text-emerald-400" />
                                 Best Return
                             </div>
-                            <div className="text-xl font-bold text-emerald-400 truncate max-w-full uppercase tracking-tight">{insights.bestReturn.scheme_name}</div>
-                            <div className="text-sm text-zinc-500 font-bold mt-2">+{insights.bestReturn.returns_percent.toFixed(2)}% absolute return</div>
+                            <div className="text-lg font-semibold text-emerald-400 truncate">{insights.bestReturn.scheme_name}</div>
+                            <div className="text-sm text-zinc-500 mt-2">+{insights.bestReturn.returns_percent.toFixed(2)}% absolute return</div>
                         </div>
 
                         {/* Lagging Fund */}
-                        <div className="bg-zinc-900/40 border border-rose-500/20 p-6 rounded-[2rem] hover:bg-rose-500/5 transition-all group">
-                            <div className="flex items-center gap-3 text-rose-500/60 text-[10px] font-bold uppercase tracking-[0.2em] mb-4">
-                                <div className="p-1.5 bg-rose-500/10 rounded-lg group-hover:scale-110 transition-transform">
-                                    <TrendingDown size={14} className="text-rose-400" />
-                                </div>
+                        <div className="bg-zinc-900/40 border border-rose-500/20 p-5 rounded-2xl">
+                            <div className="flex items-center gap-2 text-rose-500/60 text-xs mb-3">
+                                <TrendingDown size={14} className="text-rose-400" />
                                 Lowest Return
                             </div>
-                            <div className="text-xl font-bold text-rose-400 truncate max-w-full uppercase tracking-tight">{insights.worstReturn.scheme_name}</div>
-                            <div className="text-sm text-zinc-500 font-bold mt-2">{insights.worstReturn.returns_percent.toFixed(2)}% absolute return</div>
+                            <div className="text-lg font-semibold text-rose-400 truncate">{insights.worstReturn.scheme_name}</div>
+                            <div className="text-sm text-zinc-500 mt-2">{insights.worstReturn.returns_percent.toFixed(2)}% absolute return</div>
                         </div>
 
                         {/* Largest Holding */}
-                        <div className="bg-zinc-900/40 border border-purple-500/20 p-6 rounded-[2rem] hover:bg-purple-500/5 transition-all group">
-                            <div className="flex items-center gap-3 text-purple-500/60 text-[10px] font-bold uppercase tracking-[0.2em] mb-4">
-                                <div className="p-1.5 bg-purple-500/10 rounded-lg group-hover:scale-110 transition-transform">
-                                    <Target size={14} className="text-purple-400" />
-                                </div>
+                        <div className="bg-zinc-900/40 border border-purple-500/20 p-5 rounded-2xl">
+                            <div className="flex items-center gap-2 text-purple-500/60 text-xs mb-3">
+                                <Target size={14} className="text-purple-400" />
                                 Concentration
                             </div>
-                            <div className="text-xl font-bold text-purple-400 truncate max-w-full uppercase tracking-tight">{insights.largestValue.scheme_name}</div>
-                            <div className="text-sm text-zinc-500 font-bold mt-2">
+                            <div className="text-lg font-semibold text-purple-400 truncate">{insights.largestValue.scheme_name}</div>
+                            <div className="text-sm text-zinc-500 mt-2">
                                 Weight: {summary?.current_value ? ((insights.largestValue.current_value / summary.current_value) * 100).toFixed(1) : '0.0'}% of total
                             </div>
                         </div>
@@ -187,7 +170,7 @@ export default function MFSummaryPage() {
                 )}
 
                 {/* Fund-wise Performance Table */}
-                <div className="bg-zinc-900/40 border border-zinc-800/60 rounded-[2.5rem] overflow-hidden shadow-2xl shadow-black/60 group mb-10">
+                <div className="bg-zinc-900/40 border border-zinc-800/60 rounded-2xl overflow-hidden mb-10">
                     <div className="p-8 border-b border-zinc-800/50 flex justify-between items-center bg-zinc-900/20">
                         <h3 className="text-2xl font-black flex items-center gap-3 tracking-tight">
                             <div className="p-2 bg-blue-500/10 rounded-xl">
