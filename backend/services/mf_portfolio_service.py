@@ -147,87 +147,82 @@ class MFPortfolioService:
             return None
     
     @staticmethod
-    def get_simple_portfolio_analysis(user_email: str, portfolio_id: str) -> Dict:
+    def get_portfolio_overview(user_email: str, portfolio_id: str) -> Dict:
         """
-        Lightweight portfolio analysis that skips heavy XIRR/Benchmark calculations.
-        Used for the Positions table to ensure fast loading.
+        Calculates only high-level KPIs and benchmarks.
+        Skips building the enriched positions list to save resources.
+        Optimized by fetching unique NAVs only once.
         """
         try:
-            # Get all positions
             positions = MFPosition.get_positions(user_email, portfolio_id)
             
             if not positions:
                 return {
                     "success": True,
-                    "positions": [],
                     "summary": {
-                        "total_invested": 0,
-                        "current_value": 0,
-                        "position_count": 0
+                        "total_invested": 0, "current_value": 0, "total_returns": 0,
+                        "total_returns_percent": 0, "xirr": None, "nifty_xirr": None,
+                        "alpha": None, "position_count": 0
                     }
                 }
-            
-            # Identify unique scheme codes to avoid redundant NAV fetching
+
+            # Grouping and aggregating
+            total_invested = 0
+            total_current_value = 0
+            cashflows = []
             scheme_codes = list(set(p.get("scheme_code") for p in positions if p.get("scheme_code")))
             
-            # Fetch NAVs for all unique schemes
+            # Fetch NAVs once per scheme
             nav_map = {}
             for code in scheme_codes:
                 fund_data = MutualFundPriceService.get_fund_nav(code)
                 if fund_data:
                     nav_map[code] = fund_data
-            
-            # Enrich positions
-            enriched_positions = []
-            total_invested = 0
-            total_current_value = 0
-            
+
             for position in positions:
                 scheme_code = position.get("scheme_code")
-                units = position.get("units", 0)
                 invested_amount = position.get("invested_amount", 0)
+                units = position.get("units", 0)
+                purchase_date_str = position.get("purchase_date")
                 
-                # Get current NAV from our pre-fetched map
-                fund_data = nav_map.get(scheme_code)
-                current_nav = fund_data.get("nav", 0) if fund_data else 0
+                nav_data = nav_map.get(scheme_code)
+                current_nav = nav_data.get("nav", 0) if nav_data else 0
                 
-                # Calculate current value
-                current_value = units * current_nav
-                
-                # Add to totals
                 total_invested += invested_amount
-                total_current_value += current_value
+                total_current_value += (units * current_nav)
                 
-                # Enrich position with minimal extra info
-                enriched_position = {
-                    **position,
-                    "current_nav": current_nav,
-                    "current_value": current_value,
-                    "fund_house": fund_data.get("fund_house", "") if fund_data else ""
-                }
-                
-                enriched_positions.append(enriched_position)
+                if purchase_date_str:
+                    try:
+                        p_date = datetime.fromisoformat(purchase_date_str.replace('Z', '+00:00'))
+                        cashflows.append((p_date, -invested_amount))
+                    except: pass
+
+            now = datetime.now()
+            cashflows.append((now, total_current_value))
             
-            summary = {
-                "total_invested": total_invested,
-                "current_value": total_current_value,
-                "position_count": len(positions)
-            }
+            xirr = MFPortfolioService.calculate_xirr(cashflows)
+            nifty_xirr = MFPortfolioService.calculate_nifty_xirr(cashflows)
+            
+            total_returns = total_current_value - total_invested
+            total_returns_percent = (total_returns / total_invested * 100) if total_invested > 0 else 0
+            alpha = (xirr - nifty_xirr) if (xirr is not None and nifty_xirr is not None) else None
             
             return {
                 "success": True,
-                "positions": enriched_positions,
-                "summary": summary
+                "summary": {
+                    "total_invested": total_invested,
+                    "current_value": total_current_value,
+                    "total_returns": total_returns,
+                    "total_returns_percent": total_returns_percent,
+                    "xirr": xirr,
+                    "nifty_xirr": nifty_xirr,
+                    "alpha": alpha,
+                    "position_count": len(positions)
+                }
             }
-            
         except Exception as e:
-            logger.error(f"Error in simple portfolio analysis: {str(e)}")
-            return {
-                "success": False,
-                "error": str(e),
-                "positions": [],
-                "summary": {}
-            }
+            logger.error(f"Error in portfolio overview: {str(e)}")
+            return {"success": False, "error": str(e), "summary": {}}
 
     @staticmethod
     def get_portfolio_analysis(user_email: str, portfolio_id: str) -> Dict:
@@ -259,15 +254,16 @@ class MFPortfolioService:
                     }
                 }
             
-            # Enrich positions with current NAV and calculate metrics
-            enriched_positions = []
-            total_invested = 0
-            total_current_value = 0
-            cashflows = []  # For XIRR calculation
+            # Identify unique scheme codes to avoid redundant NAV fetching
+            scheme_codes = list(set(p.get("scheme_code") for p in positions if p.get("scheme_code")))
             
-            # For per-fund XIRR
-            fund_groups = {} # scheme_code -> {"cashflows": [], "current_value": 0}
-            
+            # Fetch NAVs once per scheme
+            nav_map = {}
+            for code in scheme_codes:
+                fund_data = MutualFundPriceService.get_fund_nav(code)
+                if fund_data:
+                    nav_map[code] = fund_data
+
             for position in positions:
                 scheme_code = position.get("scheme_code")
                 units = position.get("units", 0)
@@ -275,8 +271,8 @@ class MFPortfolioService:
                 purchase_date_str = position.get("purchase_date")
                 purchase_nav = position.get("purchase_nav", 0)
                 
-                # Get current NAV
-                fund_data = MutualFundPriceService.get_fund_nav(scheme_code)
+                # Get current NAV from optimized map
+                fund_data = nav_map.get(scheme_code)
                 current_nav = fund_data.get("nav", 0) if fund_data else 0
                 
                 # Calculate current value and returns
@@ -363,7 +359,6 @@ class MFPortfolioService:
                 "positions": enriched_positions,
                 "summary": summary
             }
-            
         except Exception as e:
             logger.error(f"Error in portfolio analysis: {str(e)}")
             return {

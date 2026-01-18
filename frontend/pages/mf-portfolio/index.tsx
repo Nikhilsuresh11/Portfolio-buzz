@@ -45,7 +45,7 @@ export default function MFOverviewPage() {
 
         try {
             setLoading(true)
-            const url = buildApiUrl(userEmail, `mf-portfolio/${currentPortfolio.portfolio_id}/analysis`)
+            const url = buildApiUrl(userEmail, `mf-portfolio/${currentPortfolio.portfolio_id}/overview`)
             const res = await fetch(url, { headers: getApiHeaders() })
             const data = await res.json()
 
