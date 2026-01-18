@@ -1,13 +1,12 @@
 import { useEffect, useState, useMemo } from 'react'
 import { useRouter } from 'next/router'
-import Header from '../components/Header'
 import { useAuth } from '../lib/auth-context'
 import { usePortfolio } from '../lib/portfolio-context'
 import { buildApiUrl, buildPublicApiUrl, getApiHeaders } from '../lib/api-helpers'
-import { Plus, Trash2, RefreshCw, Search, Calendar, Package, ArrowUpRight, TrendingUp, TrendingDown, X, Activity, ChevronDown, ArrowLeft } from 'lucide-react'
+import { Plus, Trash2, RefreshCw, Search, Calendar, Package, X, ChevronDown, Info } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { WatchlistLoader } from '@/components/ui/watchlist-loader'
+import { PageLoader } from '@/components/ui/page-loader'
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -25,8 +24,6 @@ type MFPosition = {
     purchase_nav: number
     current_nav: number
     current_value: number
-    returns: number
-    returns_percent: number
     fund_house: string
 }
 
@@ -52,6 +49,7 @@ export default function MFPositionsPage() {
     })
     const [isAdding, setIsAdding] = useState(false)
     const [isFetchingNav, setIsFetchingNav] = useState(false)
+    const [isSearching, setIsSearching] = useState(false)
 
     // Delete Modal State
     const [positionToDelete, setPositionToDelete] = useState<string | null>(null)
@@ -62,7 +60,7 @@ export default function MFPositionsPage() {
 
     const fundFilter = router.query.fund as string
 
-    // Grouping logic (always show grouped in main list, drill down via modal)
+    // Grouping logic
     const displayPositions = useMemo(() => {
         const map = new Map<string, any>()
         positions.forEach(p => {
@@ -70,7 +68,6 @@ export default function MFPositionsPage() {
                 const existing = map.get(p.scheme_code)
                 existing.units += p.units
                 existing.invested_amount += p.invested_amount
-                // Weighted average avg nav
                 existing.purchase_avg_nav = existing.invested_amount / existing.units
                 existing.txn_count = (existing.txn_count || 1) + 1
             } else {
@@ -120,17 +117,65 @@ export default function MFPositionsPage() {
         return Array.from(uniqueFunds.values())
     }, [positions])
 
+    // Auto-calculate units by fetching NAV on purchase date
     useEffect(() => {
-        if (!authLoading && !userEmail) {
-            router.push('/login')
+        const calculateUnits = async () => {
+            if (selectedFund && formData.purchase_date && formData.invested_amount) {
+                setIsFetchingNav(true)
+                try {
+                    const url = buildPublicApiUrl(`mf/${selectedFund.scheme_code}/nav-on-date?date=${formData.purchase_date}`)
+                    const res = await fetch(url)
+                    const data = await res.json()
+
+                    if (data.success && data.data?.nav) {
+                        const nav = data.data.nav
+                        const amount = parseFloat(formData.invested_amount)
+                        const units = (amount / nav).toFixed(4)
+                        setFormData(prev => ({ ...prev, units, purchase_nav: nav.toString() }))
+                    }
+                } catch (error) {
+                    console.error('Error fetching NAV on date:', error)
+                } finally {
+                    setIsFetchingNav(false)
+                }
+            }
         }
-    }, [authLoading, userEmail, router])
+
+        const timeoutId = setTimeout(calculateUnits, 500)
+        return () => clearTimeout(timeoutId)
+    }, [selectedFund, formData.purchase_date, formData.invested_amount])
+
+    // Clear auto-calculated units when fund changes
+    useEffect(() => {
+        if (selectedFund) {
+            setFormData(prev => ({ ...prev, units: '', purchase_nav: '' }))
+        }
+    }, [selectedFund])
+
+    // Debounced search for funds
+    useEffect(() => {
+        if (!searchQuery || searchQuery.length < 2) {
+            setSearchResults([])
+            return
+        }
+
+        // Debounce the search - wait 1 second after user stops typing
+        const timeoutId = setTimeout(() => {
+            handleSearchFunds(searchQuery)
+        }, 1000)
+
+        return () => clearTimeout(timeoutId)
+    }, [searchQuery])
 
     useEffect(() => {
-        if (userEmail && currentPortfolio) {
+        if (!authLoading && !userEmail) {
+            router.push('/')
+        } else if (userEmail && !currentPortfolio && !portfolioLoading) {
+            router.push('/select-portfolio')
+        } else if (userEmail && currentPortfolio) {
             fetchPositions()
         }
-    }, [userEmail, currentPortfolio])
+    }, [authLoading, userEmail, currentPortfolio, portfolioLoading, router])
 
     const fetchPositions = async () => {
         if (!userEmail || !currentPortfolio) return
@@ -157,280 +202,239 @@ export default function MFPositionsPage() {
         setIsRefreshing(false)
     }
 
-    const fetchNavOnDate = async (schemeCode: string, date: string) => {
-        if (!schemeCode || !date) return null
-
-        try {
-            setIsFetchingNav(true)
-            const url = buildPublicApiUrl(`mf/${schemeCode}/nav-on-date?date=${date}`)
-            const res = await fetch(url, { headers: getApiHeaders() })
-            const data = await res.json()
-
-            if (data.success) {
-                return data.data.nav
-            }
-            return null
-        } catch (error) {
-            console.error('Error fetching NAV on date:', error)
-            return null
-        } finally {
-            setIsFetchingNav(false)
-        }
-    }
-
-    // Auto-calculate units when date or amount changes
-    useEffect(() => {
-        const calculateUnits = async () => {
-            if (selectedFund && formData.purchase_date && formData.invested_amount) {
-                const nav = await fetchNavOnDate(selectedFund.scheme_code, formData.purchase_date)
-                if (nav) {
-                    const amount = parseFloat(formData.invested_amount)
-                    const units = (amount / nav).toFixed(4)
-                    setFormData(prev => ({ ...prev, units, purchase_nav: nav.toString() }))
-                }
-            }
-        }
-
-        const timeoutId = setTimeout(calculateUnits, 500)
-        return () => clearTimeout(timeoutId)
-    }, [selectedFund, formData.purchase_date, formData.invested_amount])
-
-    // Clear auto-calculated units when fund changes
-    useEffect(() => {
-        if (selectedFund) {
-            setFormData(prev => ({ ...prev, units: '', purchase_nav: '' }))
-        }
-    }, [selectedFund])
-
-    // Debounced search effect
-    useEffect(() => {
-        const timeoutId = setTimeout(() => {
-            searchFunds(searchQuery)
-        }, 1000)
-        return () => clearTimeout(timeoutId)
-    }, [searchQuery])
-
-    const searchFunds = async (query: string) => {
-        if (query.length < 2) {
+    const handleSearchFunds = async (query: string) => {
+        if (!query || query.length < 2) {
             setSearchResults([])
+            setIsSearching(false)
             return
         }
 
         try {
+            setIsSearching(true)
             const url = buildPublicApiUrl(`mf/search?q=${encodeURIComponent(query)}`)
-            const res = await fetch(url, { headers: getApiHeaders() })
+            const res = await fetch(url)
             const data = await res.json()
-
-            if (data.success) {
-                setSearchResults(data.data.results || [])
-            }
+            // Fix: API returns {data: {results: [...]}} not {results: [...]}
+            const results = data.data?.results || data.results || []
+            setSearchResults(results)
         } catch (error) {
             console.error('Error searching funds:', error)
+            setSearchResults([])
+        } finally {
+            setIsSearching(false)
         }
     }
 
-    const handleAddPosition = async (e: React.FormEvent) => {
-        e.preventDefault()
-        if (!userEmail || !currentPortfolio || !selectedFund) return
+    const handleSelectFund = async (fund: any) => {
+        setSelectedFund(fund)
+        setSearchQuery(fund.scheme_name)
+        setSearchResults([])
+    }
 
+    const handleAddPosition = async () => {
+        if (!selectedFund || !userEmail || !currentPortfolio) return
+        if (!formData.units || !formData.purchase_date || !formData.invested_amount || !formData.purchase_nav) {
+            alert('Please fill all fields')
+            return
+        }
+
+        setIsAdding(true)
         try {
-            setIsAdding(true)
             const url = buildApiUrl(userEmail, `mf-portfolio/${currentPortfolio.portfolio_id}/positions`)
             const res = await fetch(url, {
                 method: 'POST',
                 headers: getApiHeaders(),
                 body: JSON.stringify({
                     scheme_code: selectedFund.scheme_code,
-                    units: formData.units ? parseFloat(formData.units) : null,
+                    scheme_name: selectedFund.scheme_name,
+                    units: parseFloat(formData.units),
                     purchase_date: formData.purchase_date,
                     invested_amount: parseFloat(formData.invested_amount),
-                    purchase_nav: formData.purchase_nav ? parseFloat(formData.purchase_nav) : null
+                    purchase_nav: parseFloat(formData.purchase_nav)
                 })
             })
 
             const data = await res.json()
             if (data.success) {
+                await fetchPositions()
                 setIsAddModalOpen(false)
                 setSelectedFund(null)
-                setFormData({ units: '', purchase_date: '', invested_amount: '', purchase_nav: '' })
                 setSearchQuery('')
-                await fetchPositions()
+                setFormData({ units: '', purchase_date: '', invested_amount: '', purchase_nav: '' })
             } else {
-                alert(data.message || 'Failed to add position')
+                alert(data.error || 'Failed to add position')
             }
         } catch (error) {
             console.error('Error adding position:', error)
-            alert('An error occurred while adding the position')
+            alert('Failed to add position')
         } finally {
             setIsAdding(false)
         }
     }
 
-    const handleDeletePosition = async () => {
-        if (!userEmail || !currentPortfolio || !positionToDelete) return
+    const handleDeletePosition = async (positionId: string) => {
+        if (!userEmail || !currentPortfolio) return
 
+        setIsDeleting(true)
         try {
-            setIsDeleting(true)
-            const url = buildApiUrl(userEmail, `mf-portfolio/${currentPortfolio.portfolio_id}/positions/${positionToDelete}`)
+            const url = buildApiUrl(userEmail, `mf-portfolio/${currentPortfolio.portfolio_id}/positions/${positionId}`)
             const res = await fetch(url, {
                 method: 'DELETE',
                 headers: getApiHeaders()
             })
 
-            if (res.ok) {
-                setPositionToDelete(null)
+            const data = await res.json()
+            if (data.success) {
                 await fetchPositions()
+                setPositionToDelete(null)
+            } else {
+                alert(data.error || 'Failed to delete position')
             }
         } catch (error) {
             console.error('Error deleting position:', error)
+            alert('Failed to delete position')
         } finally {
             setIsDeleting(false)
         }
     }
 
-    if (authLoading || portfolioLoading || (loading && positions.length === 0)) {
-        return <WatchlistLoader />
-    }
-
-    if (!currentPortfolio) {
+    if (loading && positions.length === 0) {
         return (
-            <div className="flex flex-col items-center justify-center h-screen bg-black text-center p-4">
-                <div className="bg-zinc-900/50 p-6 rounded-3xl mb-6">
-                    <Package className="w-16 h-16 text-zinc-700" />
-                </div>
-                <h3 className="text-2xl font-bold text-white mb-2">No Portfolio Selected</h3>
-                <p className="text-zinc-500 mb-8 max-w-sm">Please select or create a portfolio to manage positions.</p>
-                <Button onClick={() => router.push('/settings')} className="bg-white hover:bg-zinc-200 text-black font-bold h-11 px-8 rounded-xl">Go to Settings</Button>
+            <div className="flex-1 overflow-auto flex items-center justify-center min-h-screen">
+                <PageLoader
+                    messages={[
+                        "Loading your MF positions...",
+                        "Fetching transaction history...",
+                        "Almost ready..."
+                    ]}
+                    subtitle="Preparing your mutual fund data"
+                />
             </div>
         )
     }
 
+    const totalInvested = positions.reduce((sum, p) => sum + p.invested_amount, 0)
+
     return (
-        <div className="flex flex-col h-screen bg-black text-white relative overflow-hidden">
-            <Header />
-
-            {/* Background effects */}
-            <div className="absolute top-0 right-0 -mr-20 -mt-20 w-[600px] h-[600px] bg-blue-500/5 rounded-full blur-[120px] pointer-events-none z-0" />
-            <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-[500px] h-[500px] bg-emerald-500/5 rounded-full blur-[120px] pointer-events-none z-0" />
-
-            <div className={`flex-1 px-6 md:px-8 pb-8 overflow-y-auto scrollbar-hide max-w-[1600px] mx-auto w-full relative z-10 transition-opacity duration-300 ${loading ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
-                {/* Header Section */}
-                <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10 pt-4">
+        <div className="flex flex-col h-screen relative overflow-hidden bg-black">
+            <div className="flex-none p-6 md:p-8 pb-0 z-10 max-w-[1600px] mx-auto w-full">
+                {/* Header */}
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
                     <div>
-                        <h1 className="text-4xl md:text-5xl font-black bg-gradient-to-r from-white via-blue-100 to-emerald-100 bg-clip-text text-transparent tracking-tight">
+                        <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-white via-blue-100 to-emerald-100 bg-clip-text text-transparent">
                             MF Positions
                         </h1>
-                        <p className="text-zinc-400 mt-3 text-lg font-medium">Manage and track individual buy transactions.</p>
-                        {fundFilter && (
-                            <Button
-                                variant="ghost"
-                                onClick={() => router.push('/mf-portfolio')}
-                                className="mt-4 text-xs font-black uppercase tracking-[0.2em] text-blue-400 hover:text-blue-300 p-0 flex items-center gap-2 group"
-                            >
-                                <ArrowLeft size={14} className="group-hover:-translate-x-1 transition-transform" />
-                                Back to MF Overview
-                            </Button>
-                        )}
+                        <p className="text-zinc-400">Track and manage all your mutual fund transactions</p>
                     </div>
-
                     <div className="flex items-center gap-3">
                         <Button
                             onClick={handleRefresh}
                             disabled={isRefreshing}
-                            className="bg-zinc-900/50 border border-zinc-800 text-zinc-300 hover:bg-zinc-800 transition-all h-12 w-12 p-0 rounded-2xl"
+                            className="bg-zinc-900/50 border border-zinc-800 text-zinc-300 hover:bg-zinc-800 transition-all h-9 w-9 p-0 rounded-lg"
                         >
-                            <RefreshCw size={20} className={isRefreshing ? 'animate-spin' : ''} />
+                            <RefreshCw size={16} className={isRefreshing ? 'animate-spin' : ''} />
                         </Button>
-                        <Button
-                            onClick={() => setIsAddModalOpen(true)}
-                            className="bg-blue-600 hover:bg-blue-500 text-white font-bold h-12 px-6 rounded-2xl shadow-xl shadow-blue-600/20 flex items-center gap-2 group transition-all"
-                        >
-                            <Plus size={20} />
-                            Add Position
-                            <ArrowUpRight size={18} className="opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all" />
-                        </Button>
+                        <div className="bg-gradient-to-r from-blue-500 to-emerald-500 rounded-xl p-0.5">
+                            <Button
+                                onClick={() => setIsAddModalOpen(true)}
+                                className="bg-black hover:bg-zinc-900 text-white gap-2 font-semibold text-sm h-9 px-5 rounded-[11px]"
+                            >
+                                <Plus size={16} />
+                                Add Position
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Content Area */}
+            <div className="flex-1 px-6 md:px-8 pb-6 md:pb-8 overflow-hidden max-w-[1600px] mx-auto w-full" style={{ paddingTop: '0px' }}>
+                {/* Stats Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div className="bg-zinc-900/40 border border-zinc-800/60 backdrop-blur-xl rounded-2xl p-5">
+                        <p className="text-zinc-500 text-xs mb-2">Total Transactions</p>
+                        <p className="text-2xl font-bold text-white">{positions.length}</p>
+                    </div>
+                    <div className="bg-zinc-900/40 border border-zinc-800/60 backdrop-blur-xl rounded-2xl p-5">
+                        <p className="text-zinc-500 text-xs mb-2">Total Invested</p>
+                        <p className="text-2xl font-bold text-white">₹{totalInvested.toLocaleString('en-IN')}</p>
+                    </div>
+                    <div className="bg-zinc-900/40 border border-zinc-800/60 backdrop-blur-xl rounded-2xl p-5">
+                        <p className="text-zinc-500 text-xs mb-2">Unique Funds</p>
+                        <p className="text-2xl font-bold text-white">{displayPositions.length}</p>
                     </div>
                 </div>
 
-                {/* Table Section */}
-                {loading && positions.length === 0 ? (
-                    <div className="flex-1 flex items-center justify-center py-40">
-                        <WatchlistLoader />
-                    </div>
-                ) : positions.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-24 bg-zinc-900/20 border border-zinc-800/50 border-dashed rounded-[2rem] text-center">
-                        <div className="bg-zinc-900/50 p-8 rounded-full mb-8">
-                            <Package size={48} className="text-zinc-700" />
+                {/* Table */}
+                {displayPositions.length === 0 ? (
+                    <div className="bg-zinc-900/20 border border-zinc-800/40 backdrop-blur-xl rounded-2xl p-16 text-center">
+                        <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-zinc-800/50 to-zinc-900/50 flex items-center justify-center mx-auto mb-6">
+                            <Package className="w-10 h-10 text-zinc-600" />
                         </div>
-                        <h3 className="text-2xl font-bold text-white mb-3">No Positions Yet</h3>
-                        <p className="text-zinc-400 mb-10 max-w-sm">Start tracking your mutual fund investments by adding your first buy transaction.</p>
-                        <Button
-                            onClick={() => setIsAddModalOpen(true)}
-                            className="bg-white hover:bg-zinc-200 text-black font-bold h-12 px-10 rounded-2xl shadow-xl shadow-white/5 transition-all"
-                        >
-                            Add Your First Position
-                        </Button>
+                        <h3 className="text-2xl font-bold text-white mb-3">No positions yet</h3>
+                        <p className="text-zinc-400 mb-8 max-w-md mx-auto">
+                            Start building your mutual fund portfolio by adding your first position
+                        </p>
+                        <div className="bg-gradient-to-r from-blue-500 to-emerald-500 rounded-xl p-0.5 inline-block">
+                            <Button
+                                onClick={() => setIsAddModalOpen(true)}
+                                className="bg-black hover:bg-zinc-900 text-white gap-2 font-semibold text-sm h-9 px-5 rounded-[11px]"
+                            >
+                                <Plus size={16} />
+                                Add First Position
+                            </Button>
+                        </div>
                     </div>
                 ) : (
-                    <div className="relative group">
-                        {loading && (
-                            <div className="absolute inset-0 bg-black/20 backdrop-blur-[2px] z-50 flex items-center justify-center rounded-[2rem]">
-                                <div className="flex flex-col items-center gap-4 bg-zinc-900/80 p-8 rounded-[2rem] border border-zinc-800 shadow-2xl">
-                                    <RefreshCw className="w-10 h-10 text-blue-500 animate-spin" />
-                                    <div className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] animate-pulse">Updating Portfolio...</div>
-                                </div>
-                            </div>
-                        )}
-                        <div className="bg-zinc-900/40 border border-zinc-800/60 backdrop-blur-xl rounded-[2rem] overflow-hidden shadow-2xl shadow-black/40">
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-left border-collapse">
-                                    <thead>
-                                        <tr className="border-b border-zinc-800/50 bg-zinc-900/30">
-                                            <th className="p-6 text-zinc-500 font-bold text-[10px] uppercase tracking-[0.15em]">Fund House / Name</th>
-                                            <th className="p-6 text-zinc-500 font-bold text-[10px] uppercase tracking-[0.15em] text-right">Units</th>
-                                            <th className="p-6 text-zinc-500 font-bold text-[10px] uppercase tracking-[0.15em] text-right">Avg NAV</th>
-                                            <th className="p-6 text-zinc-500 font-bold text-[10px] uppercase tracking-[0.15em] text-right">Current NAV</th>
-                                            <th className="p-6 text-zinc-500 font-bold text-[10px] uppercase tracking-[0.15em] text-right">Total Invested</th>
-                                            <th className="p-6 text-zinc-500 font-bold text-[10px] uppercase tracking-[0.15em] text-right">Orders</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-zinc-800/30">
+                    <div className="bg-zinc-900/30 border border-zinc-800/50 backdrop-blur-xl rounded-2xl shadow-2xl shadow-black/20 overflow-hidden flex flex-col h-[600px]">
+                        <div className="flex flex-col h-full overflow-hidden">
+                            {/* Sticky Header */}
+                            <table className="w-full border-collapse text-left table-fixed">
+                                <thead className="sticky top-0 z-10 bg-zinc-900/95 backdrop-blur-sm">
+                                    <tr className="border-b border-white/10 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                                        <th className="w-[40%] px-6 py-4 text-left">Fund House / Name</th>
+                                        <th className="w-[12%] px-6 py-4 text-right">Units</th>
+                                        <th className="w-[12%] px-6 py-4 text-right">Avg NAV</th>
+                                        <th className="w-[12%] px-6 py-4 text-right">Current NAV</th>
+                                        <th className="w-[12%] px-6 py-4 text-right">Total Invested</th>
+                                        <th className="w-[12%] px-6 py-4 text-right">Orders</th>
+                                    </tr>
+                                </thead>
+                            </table>
+
+                            {/* Scrollable Body */}
+                            <div className="flex-1 overflow-y-auto scrollbar-hide">
+                                <table className="w-full border-collapse text-left table-fixed">
+                                    <tbody className="divide-y divide-white/5">
                                         {displayPositions.map((position) => (
                                             <tr
                                                 key={position.scheme_code}
                                                 onClick={() => setSelectedFundForTxns(position.scheme_code)}
-                                                className="group/row transition-all cursor-pointer hover:bg-zinc-800/30"
+                                                className="group hover:bg-white/5 transition-all cursor-pointer"
                                             >
-                                                <td className="p-6">
-                                                    <div className="flex items-center gap-4">
-                                                        <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400 group-hover/row:scale-110 transition-transform">
-                                                            <Package size={20} />
-                                                        </div>
-                                                        <div className="min-w-0">
-                                                            <div className="text-[10px] text-zinc-500 font-black uppercase tracking-widest mb-0.5">{position.fund_house}</div>
-                                                            <div className="font-black text-white text-base group-hover/row:text-blue-400 transition-colors uppercase tracking-tight truncate max-w-[300px]">{position.scheme_name}</div>
-                                                        </div>
-                                                    </div>
+                                                <td className="w-[40%] px-6 py-5">
+                                                    <div className="text-xs text-zinc-500 font-semibold mb-1 uppercase tracking-wider">{position.fund_house}</div>
+                                                    <div className="font-bold text-white text-sm group-hover:text-blue-400 transition-colors line-clamp-1">{position.scheme_name}</div>
                                                 </td>
-                                                <td className="p-6 text-right tabular-nums">
-                                                    <div className="font-black text-white text-base tracking-tight">{position.units.toLocaleString('en-IN', { minimumFractionDigits: 3 })}</div>
-                                                    <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-1">Total Units</div>
+                                                <td className="w-[12%] px-6 py-5 text-right">
+                                                    <div className="font-bold text-white text-sm">{position.units.toLocaleString('en-IN', { minimumFractionDigits: 3 })}</div>
+                                                    <div className="text-xs text-zinc-500 font-semibold">Total Units</div>
                                                 </td>
-                                                <td className="p-6 text-right tabular-nums">
-                                                    <div className="font-bold text-zinc-300">₹{position.purchase_avg_nav.toFixed(2)}</div>
-                                                    <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-1">Average Cost</div>
+                                                <td className="w-[12%] px-6 py-5 text-right">
+                                                    <div className="font-semibold text-zinc-300 text-sm">₹{position.purchase_avg_nav.toFixed(2)}</div>
+                                                    <div className="text-xs text-zinc-500 font-semibold">Average Cost</div>
                                                 </td>
-                                                <td className="p-6 text-right tabular-nums">
-                                                    <div className="font-black text-white text-base tracking-tight">₹{position.current_nav?.toFixed(2) || '0.00'}</div>
-                                                    <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-1">Market NAV</div>
+                                                <td className="w-[12%] px-6 py-5 text-right">
+                                                    <div className="font-bold text-white text-sm">₹{position.current_nav?.toFixed(2) || '0.00'}</div>
+                                                    <div className="text-xs text-zinc-500 font-semibold">Market NAV</div>
                                                 </td>
-                                                <td className="p-6 text-right tabular-nums">
-                                                    <div className="font-black text-white text-base tracking-tight">₹{position.invested_amount.toLocaleString('en-IN')}</div>
-                                                    <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-1">Total Capital</div>
+                                                <td className="w-[12%] px-6 py-5 text-right">
+                                                    <div className="font-bold text-white text-sm">₹{position.invested_amount.toLocaleString('en-IN')}</div>
+                                                    <div className="text-xs text-zinc-500 font-semibold">Total Capital</div>
                                                 </td>
-                                                <td className="p-6 text-right tabular-nums">
-                                                    <div className="font-black text-white text-base tracking-tight">{position.txn_count}</div>
-                                                    <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-1">Transactions</div>
+                                                <td className="w-[12%] px-6 py-5 text-right">
+                                                    <div className="font-bold text-white text-sm">{position.txn_count}</div>
+                                                    <div className="text-xs text-zinc-500 font-semibold">Transactions</div>
                                                 </td>
                                             </tr>
                                         ))}
@@ -442,79 +446,293 @@ export default function MFPositionsPage() {
                 )}
             </div>
 
+            {/* Add Position Modal */}
+            {isAddModalOpen && (
+                <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
+                    <div className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-md shadow-2xl">
+                        <div className="p-5 border-b border-zinc-800 flex justify-between items-center">
+                            <h3 className="text-2xl font-bold text-white">Add MF Position</h3>
+                            <button
+                                onClick={() => {
+                                    setIsAddModalOpen(false)
+                                    setSelectedFund(null)
+                                    setSearchQuery('')
+                                    setFormData({ units: '', purchase_date: '', invested_amount: '', purchase_nav: '' })
+                                }}
+                                className="w-10 h-10 rounded-xl bg-zinc-800/50 hover:bg-zinc-800 flex items-center justify-center transition-colors"
+                            >
+                                <X className="w-5 h-5 text-zinc-400" />
+                            </button>
+                        </div>
+
+                        <div className="p-5 space-y-4">
+                            {/* Fund Selection - Only show if no fund selected */}
+                            {!selectedFund ? (
+                                <div>
+                                    <label className="block text-sm font-medium text-zinc-400 mb-2">Select Fund</label>
+
+                                    {/* Existing Holdings Dropdown */}
+                                    {existingHoldings.length > 0 && (
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button className="w-full bg-zinc-800/50 hover:bg-zinc-700 border border-zinc-700 text-white justify-between h-12 px-5 rounded-xl mb-3 font-bold transition-all">
+                                                    <span className="text-sm">Add to existing holding</span>
+                                                    <ChevronDown size={16} />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent className="w-[400px] bg-zinc-900 border-zinc-800 rounded-xl p-2">
+                                                {existingHoldings.map((fund) => (
+                                                    <DropdownMenuItem
+                                                        key={fund.scheme_code}
+                                                        onClick={() => handleSelectFund(fund)}
+                                                        className="cursor-pointer hover:bg-zinc-800 text-white p-4 rounded-xl mb-1 last:mb-0"
+                                                    >
+                                                        <div>
+                                                            <div className="text-xs text-zinc-500 font-bold uppercase tracking-wider mb-1">{fund.fund_house}</div>
+                                                            <div className="font-bold text-sm">{fund.scheme_name}</div>
+                                                        </div>
+                                                    </DropdownMenuItem>
+                                                ))}
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    )}
+
+                                    {/* Search Input */}
+                                    <div className="relative">
+                                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
+                                        <Input
+                                            type="text"
+                                            placeholder="Search for a new fund..."
+                                            value={searchQuery}
+                                            onChange={(e) => setSearchQuery(e.target.value)}
+                                            className="bg-zinc-800/50 border-zinc-700 text-white pl-12 h-11 rounded-xl font-medium placeholder:text-zinc-500 focus:outline-none focus:border-blue-500 transition-colors"
+                                        />
+                                        {isSearching && (
+                                            <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                                                <RefreshCw size={16} className="text-blue-400 animate-spin" />
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Search Results */}
+                                    {searchQuery.length >= 2 && !isSearching && searchResults.length === 0 && (
+                                        <div className="mt-3 p-3 bg-zinc-800/50 border border-zinc-700 rounded-xl text-center text-zinc-500 text-sm">
+                                            No results found for "{searchQuery}"
+                                        </div>
+                                    )}
+
+                                    {searchResults.length > 0 && (
+                                        <div className="mt-3 bg-zinc-800/50 border border-zinc-700 rounded-xl max-h-60 overflow-y-auto scrollbar-hide">
+                                            {searchResults.map((fund) => (
+                                                <div
+                                                    key={fund.scheme_code}
+                                                    onClick={() => handleSelectFund(fund)}
+                                                    className="p-4 hover:bg-zinc-700 cursor-pointer border-b border-zinc-700/50 last:border-0 transition-all"
+                                                >
+                                                    <div className="text-xs text-zinc-500 font-bold uppercase tracking-wider mb-1">{fund.fund_house}</div>
+                                                    <div className="text-sm font-bold text-white">{fund.scheme_name}</div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                </div>
+                            ) : (
+                                <>
+                                    {/* Selected Fund Display */}
+                                    <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl flex items-center justify-between">
+                                        <div className="min-w-0 flex-1">
+                                            <div className="text-xs text-blue-400 font-medium mb-0.5">{selectedFund.fund_house}</div>
+                                            <div className="text-sm font-semibold text-white truncate">{selectedFund.scheme_name}</div>
+                                        </div>
+                                        <button
+                                            onClick={() => {
+                                                setSelectedFund(null)
+                                                setSearchQuery('')
+                                                setFormData({ units: '', purchase_date: '', invested_amount: '', purchase_nav: '' })
+                                            }}
+                                            className="w-8 h-8 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 flex items-center justify-center transition-colors ml-3 flex-shrink-0"
+                                        >
+                                            <X size={16} className="text-blue-400" />
+                                        </button>
+                                    </div>
+
+                                    {/* Form Fields */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-zinc-400 mb-2">
+                                            Invested Amount (₹)
+                                        </label>
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            placeholder="0.00"
+                                            value={formData.invested_amount}
+                                            onChange={(e) => setFormData({ ...formData, invested_amount: e.target.value })}
+                                            className="w-full bg-zinc-800/50 border border-zinc-700 rounded-xl px-4 py-2.5 text-white placeholder-zinc-500 focus:outline-none focus:border-blue-500 transition-colors"
+                                            required
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-zinc-400 mb-2">
+                                            Purchase Date
+                                        </label>
+                                        <input
+                                            type="date"
+                                            value={formData.purchase_date}
+                                            onChange={(e) => setFormData({ ...formData, purchase_date: e.target.value })}
+                                            className="w-full bg-zinc-800/50 border border-zinc-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-blue-500 transition-colors"
+                                            required
+                                        />
+                                    </div>
+
+                                    {/* Auto-calculated fields (read-only) */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-zinc-400 mb-2">
+                                            Purchase NAV {isFetchingNav && <span className="text-xs text-blue-400">(fetching...)</span>}
+                                            {formData.purchase_nav && <span className="text-xs text-emerald-400"> ✓</span>}
+                                        </label>
+                                        <input
+                                            type="number"
+                                            step="0.0001"
+                                            placeholder="Auto-calculated"
+                                            value={formData.purchase_nav}
+                                            readOnly
+                                            className="w-full bg-zinc-800/30 border border-zinc-700/50 rounded-xl px-4 py-2.5 text-zinc-400 cursor-not-allowed"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-zinc-400 mb-2">
+                                            Units
+                                            {formData.units && <span className="text-xs text-emerald-400"> ✓</span>}
+                                        </label>
+                                        <input
+                                            type="number"
+                                            step="0.001"
+                                            placeholder="Auto-calculated"
+                                            value={formData.units}
+                                            readOnly
+                                            className="w-full bg-zinc-800/30 border border-zinc-700/50 rounded-xl px-4 py-2.5 text-zinc-400 cursor-not-allowed"
+                                        />
+                                    </div>
+
+                                    {/* Action Buttons */}
+                                    <div className="flex gap-3 pt-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsAddModalOpen(false)}
+                                            className="flex-1 bg-zinc-800/50 hover:bg-zinc-800 text-white font-semibold py-2.5 rounded-xl transition-colors"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <div className="flex-1 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-xl p-0.5">
+                                            <button
+                                                onClick={handleAddPosition}
+                                                disabled={isAdding || !formData.units || !formData.purchase_nav}
+                                                className="w-full bg-black hover:bg-zinc-900 text-white font-semibold py-[9px] rounded-[11px] transition-colors disabled:opacity-50"
+                                            >
+                                                {isAdding ? 'Adding...' : !formData.units || !formData.purchase_nav ? 'Calculating...' : 'Add Position'}
+                                            </button>
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Transactions Modal */}
             {selectedFundForTxns && selectedFundDetails && (
-                <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-black/90 backdrop-blur-sm" onClick={() => setSelectedFundForTxns(null)} />
-                    <div className="relative w-full max-w-4xl bg-[#0a0a0a] border border-zinc-800/50 rounded-[2.5rem] shadow-[0_0_100px_rgba(0,0,0,1)] overflow-hidden">
-
-                        {/* Modal Header */}
-                        <div className="p-10 pb-6 flex justify-between items-start border-b border-zinc-800/30">
-                            <div>
-                                <h3 className="text-3xl font-black text-white uppercase tracking-tight mb-2">
-                                    {selectedFundDetails.scheme_name} <span className="text-zinc-600 ml-2">Transactions</span>
-                                </h3>
-                                <div className="flex items-center gap-4">
-                                    <div className="text-xs text-zinc-500 font-bold uppercase tracking-widest">
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <div className="bg-zinc-900 border border-zinc-800 rounded-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+                        {/* Header */}
+                        <div className="p-6 border-b border-zinc-800 flex-none">
+                            <div className="flex justify-between items-start">
+                                <div className="flex-1">
+                                    <div className="text-xs text-zinc-500 font-semibold mb-1 uppercase tracking-wider">{selectedFundDetails.fund_house}</div>
+                                    <h2 className="text-xl font-bold text-white mb-2">{selectedFundDetails.scheme_name}</h2>
+                                    <div className="text-xs text-zinc-500 font-semibold">
                                         {selectedFundDetails.txn_count} transactions • Total Units: <span className="text-white">{selectedFundDetails.units.toLocaleString('en-IN', { minimumFractionDigits: 3 })}</span> • Total Invested: <span className="text-white">₹{selectedFundDetails.invested_amount.toLocaleString('en-IN')}</span>
                                     </div>
                                 </div>
+                                <Button
+                                    onClick={() => setSelectedFundForTxns(null)}
+                                    className="bg-transparent hover:bg-zinc-800 text-zinc-400 h-8 w-8 p-0 rounded-lg"
+                                >
+                                    <X size={18} />
+                                </Button>
                             </div>
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => setSelectedFundForTxns(null)}
-                                className="h-10 w-10 bg-zinc-900/50 hover:bg-zinc-800 text-zinc-500 hover:text-white rounded-xl transition-all"
-                            >
-                                <X size={20} />
-                            </Button>
                         </div>
 
-                        {/* Modal Content */}
-                        <div className="p-10 pt-6 max-h-[70vh] overflow-y-auto scrollbar-hide">
-                            <table className="w-full text-left border-collapse">
-                                <thead>
-                                    <tr className="text-zinc-600 font-bold text-[10px] uppercase tracking-[0.2em] border-b border-zinc-800/30">
-                                        <th className="py-4 px-2">Date</th>
-                                        <th className="py-4 px-2 text-right">Units</th>
-                                        <th className="py-4 px-2 text-right">NAV</th>
-                                        <th className="py-4 px-2 text-right">Amount</th>
-                                        <th className="py-4 px-2 text-right">Action</th>
+                        {/* Table */}
+                        <div className="flex-1 overflow-y-auto scrollbar-hide">
+                            <table className="w-full border-collapse text-left">
+                                <thead className="sticky top-0 z-10 bg-zinc-900/95 backdrop-blur-sm">
+                                    <tr className="border-b border-zinc-800 text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+                                        <th className="px-6 py-4 text-left">Purchase Date</th>
+                                        <th className="px-6 py-4 text-right">Units</th>
+                                        <th className="px-6 py-4 text-right">Purchase NAV</th>
+                                        <th className="px-6 py-4 text-right">Invested</th>
+                                        <th className="px-6 py-4 text-right">Current NAV</th>
+                                        <th className="px-6 py-4 text-right">Current Value</th>
+                                        <th className="px-6 py-4 text-center">Actions</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-zinc-800/20">
-                                    {transactionsForSelectedFund.map((txn) => (
-                                        <tr key={txn.position_id} className="group hover:bg-white/[0.02] transition-colors">
-                                            <td className="py-5 px-2">
-                                                <div className="flex items-center gap-3 text-sm font-bold text-zinc-400 group-hover:text-blue-400 transition-colors">
-                                                    <Calendar size={14} className="opacity-50" />
-                                                    {new Date(txn.purchase_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
-                                                </div>
-                                            </td>
-                                            <td className="py-5 px-2 text-right tabular-nums text-white font-bold text-sm">
-                                                {txn.units.toLocaleString('en-IN', { minimumFractionDigits: 3 })}
-                                            </td>
-                                            <td className="py-5 px-2 text-right tabular-nums text-zinc-500 font-bold text-sm">
-                                                ₹{txn.purchase_nav?.toFixed(2)}
-                                            </td>
-                                            <td className="py-5 px-2 text-right tabular-nums">
-                                                <div className="text-emerald-400 font-black text-sm">₹{txn.invested_amount.toLocaleString('en-IN')}</div>
-                                            </td>
-                                            <td className="py-5 px-2 text-right">
-                                                <Button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation()
-                                                        setPositionToDelete(txn.position_id)
-                                                    }}
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="h-8 w-8 text-zinc-700 hover:text-rose-500 hover:bg-rose-500/10 rounded-lg transition-all"
-                                                >
-                                                    <Trash2 size={16} />
-                                                </Button>
-                                            </td>
-                                        </tr>
-                                    ))}
+                                <tbody className="divide-y divide-zinc-800/50">
+                                    {transactionsForSelectedFund.map((txn) => {
+                                        const currentValue = txn.units * (txn.current_nav || 0)
+                                        const returns = currentValue - txn.invested_amount
+                                        const returnsPercent = (returns / txn.invested_amount) * 100
+
+                                        return (
+                                            <tr key={txn.position_id} className="group hover:bg-zinc-800/30 transition-all">
+                                                <td className="px-6 py-4">
+                                                    <div className="flex items-center gap-2">
+                                                        <Calendar size={14} className="text-zinc-500" />
+                                                        <span className="text-sm font-semibold text-white">
+                                                            {new Date(txn.purchase_date).toLocaleDateString('en-IN', {
+                                                                day: '2-digit',
+                                                                month: 'short',
+                                                                year: 'numeric'
+                                                            })}
+                                                        </span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4 text-right">
+                                                    <div className="font-bold text-white text-sm">{txn.units.toLocaleString('en-IN', { minimumFractionDigits: 3 })}</div>
+                                                    <div className="text-xs text-zinc-500 font-semibold">units</div>
+                                                </td>
+                                                <td className="px-6 py-4 text-right">
+                                                    <div className="font-semibold text-zinc-300 text-sm">₹{txn.purchase_nav.toFixed(4)}</div>
+                                                    <div className="text-xs text-zinc-500 font-semibold">per unit</div>
+                                                </td>
+                                                <td className="px-6 py-4 text-right">
+                                                    <div className="font-bold text-white text-sm">₹{txn.invested_amount.toLocaleString('en-IN')}</div>
+                                                    <div className="text-xs text-zinc-500 font-semibold">invested</div>
+                                                </td>
+                                                <td className="px-6 py-4 text-right">
+                                                    <div className="font-semibold text-zinc-300 text-sm">₹{txn.current_nav?.toFixed(4) || '0.0000'}</div>
+                                                    <div className="text-xs text-zinc-500 font-semibold">current</div>
+                                                </td>
+                                                <td className="px-6 py-4 text-right">
+                                                    <div className="font-bold text-white text-sm">₹{currentValue.toLocaleString('en-IN')}</div>
+                                                    <div className={`text-xs font-semibold ${returns >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                                        {returns >= 0 ? '+' : ''}{returnsPercent.toFixed(2)}%
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4 text-center">
+                                                    <Button
+                                                        onClick={() => setPositionToDelete(txn.position_id)}
+                                                        className="bg-transparent hover:bg-red-500/10 text-red-400 h-8 w-8 p-0 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </Button>
+                                                </td>
+                                            </tr>
+                                        )
+                                    })}
                                 </tbody>
                             </table>
                         </div>
@@ -522,226 +740,23 @@ export default function MFPositionsPage() {
                 </div>
             )}
 
-            {/* Add Position Modal */}
-            {isAddModalOpen && (
-                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => setIsAddModalOpen(false)} />
-                    <div className="relative w-full max-w-lg bg-zinc-900 border border-zinc-800 rounded-[2.5rem] shadow-2xl p-8 overflow-hidden group">
-                        <div className="absolute top-0 right-0 p-8 opacity-5">
-                            <Plus size={100} />
-                        </div>
-
-                        <div className="relative z-10">
-                            <div className="flex justify-between items-center mb-10">
-                                <div>
-                                    <h3 className="text-3xl font-black text-white tracking-tight">Add Position</h3>
-                                    <p className="text-zinc-500 text-sm font-medium mt-1">Record a new buy transaction.</p>
-                                </div>
-                                <Button variant="ghost" size="icon" onClick={() => setIsAddModalOpen(false)} className="text-zinc-500 hover:text-white rounded-xl">
-                                    <X size={24} />
-                                </Button>
-                            </div>
-
-                            <form onSubmit={handleAddPosition} className="space-y-6">
-                                {/* Fund Selection */}
-                                <div className="space-y-3">
-                                    <div className="flex justify-between items-center px-1">
-                                        <label className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em]">Select Mutual Fund</label>
-                                        <div className="flex items-center gap-2">
-                                            {loading && (
-                                                <div className="flex items-center gap-1.5 px-2 py-1 bg-blue-500/5 rounded-lg border border-blue-500/10">
-                                                    <RefreshCw size={10} className="text-blue-500 animate-spin" />
-                                                    <span className="text-[9px] font-black text-blue-400 uppercase tracking-widest">Syncing</span>
-                                                </div>
-                                            )}
-                                            {existingHoldings.length > 0 && (
-                                                <DropdownMenu>
-                                                    <DropdownMenuTrigger asChild>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            className="h-7 px-3 bg-zinc-800/30 hover:bg-zinc-800 text-[10px] font-black uppercase tracking-wider text-blue-400 rounded-lg flex items-center gap-1.5"
-                                                        >
-                                                            Use Existing Holding <ChevronDown size={12} />
-                                                        </Button>
-                                                    </DropdownMenuTrigger>
-                                                    <DropdownMenuContent align="end" className="bg-zinc-900 border-zinc-800 w-64 max-h-60 overflow-y-auto scrollbar-hide p-2 shadow-2xl z-[301]">
-                                                        <div className="text-[9px] font-black text-zinc-500 uppercase tracking-widest p-2 mb-1 border-b border-zinc-800/50">Your Portfolio Funds</div>
-                                                        {existingHoldings.map((fund) => (
-                                                            <DropdownMenuItem
-                                                                key={fund.scheme_code}
-                                                                onSelect={() => {
-                                                                    setSelectedFund(fund)
-                                                                    setSearchQuery('')
-                                                                    setSearchResults([])
-                                                                }}
-                                                                className="flex flex-col items-start p-3 hover:bg-zinc-800 cursor-pointer rounded-xl focus:bg-zinc-800 focus:text-white"
-                                                            >
-                                                                <div className="font-bold text-white text-xs uppercase truncate w-full">{fund.scheme_name}</div>
-                                                                <div className="text-[9px] text-zinc-500 font-black uppercase mt-0.5">{fund.fund_house}</div>
-                                                            </DropdownMenuItem>
-                                                        ))}
-                                                    </DropdownMenuContent>
-                                                </DropdownMenu>
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    <div className="relative">
-                                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500" />
-                                        <Input
-                                            value={searchQuery}
-                                            onChange={(e) => setSearchQuery(e.target.value)}
-                                            placeholder={selectedFund ? "Search to change fund..." : "Type to search new fund..."}
-                                            className="bg-zinc-800/50 border-zinc-800 text-white pl-12 h-14 rounded-2xl focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/5 transition-all"
-                                        />
-                                    </div>
-
-                                    {searchResults.length > 0 && (
-                                        <div className="absolute left-8 right-8 mt-2 max-h-60 overflow-y-auto bg-zinc-900 border border-zinc-800 rounded-[1.5rem] shadow-2xl z-[210] scrollbar-hide divide-y divide-zinc-800/50">
-                                            {searchResults.map((fund) => (
-                                                <div
-                                                    key={fund.scheme_code}
-                                                    onClick={() => {
-                                                        setSelectedFund(fund)
-                                                        setSearchQuery(fund.scheme_name)
-                                                        setSearchResults([])
-                                                    }}
-                                                    className="p-4 hover:bg-zinc-800/80 cursor-pointer transition-colors"
-                                                >
-                                                    <div className="font-bold text-white text-sm uppercase tracking-tight">{fund.scheme_name}</div>
-                                                    <div className="text-[10px] text-zinc-500 font-black uppercase mt-1 tracking-widest">{fund.fund_house}</div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-
-                                    {selectedFund && (
-                                        <div className="p-4 bg-blue-500/5 border border-blue-500/20 rounded-2xl flex items-center justify-between">
-                                            <div className="min-w-0">
-                                                <div className="text-[8px] font-black text-blue-400 uppercase tracking-[0.2em] mb-1">Selected Scheme</div>
-                                                <div className="text-white font-bold text-xs truncate max-w-[300px] uppercase">{selectedFund.scheme_name}</div>
-                                            </div>
-                                            <Button variant="ghost" size="icon" onClick={() => setSelectedFund(null)} className="h-8 w-8 text-blue-400 hover:text-blue-300">
-                                                <X size={16} />
-                                            </Button>
-                                        </div>
-                                    )}
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-6">
-                                    <div className="space-y-3">
-                                        <label className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] px-1">Invested Amount</label>
-                                        <Input
-                                            type="number"
-                                            step="0.01"
-                                            value={formData.invested_amount}
-                                            onChange={(e) => setFormData({ ...formData, invested_amount: e.target.value })}
-                                            placeholder="0.00"
-                                            className="bg-zinc-800/50 border-zinc-800 text-white h-14 rounded-2xl focus:border-blue-500/50 transition-all font-black text-lg"
-                                            required
-                                        />
-                                    </div>
-                                    <div className="space-y-3">
-                                        <label className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] px-1">Purchase Date</label>
-                                        <Input
-                                            type="date"
-                                            value={formData.purchase_date}
-                                            onChange={(e) => setFormData({ ...formData, purchase_date: e.target.value })}
-                                            className="bg-zinc-800/50 border-zinc-800 text-white h-14 rounded-2xl focus:border-blue-500/50 transition-all font-bold"
-                                            required
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-6">
-                                    <div className="space-y-3">
-                                        <div className="flex justify-between items-center px-1">
-                                            <label className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em]">Units</label>
-                                            <span className="text-[9px] text-zinc-600 font-black uppercase italic">Optional</span>
-                                        </div>
-                                        <div className="relative">
-                                            <Input
-                                                type="number"
-                                                step="0.0001"
-                                                value={formData.units}
-                                                onChange={(e) => setFormData({ ...formData, units: e.target.value })}
-                                                placeholder={isFetchingNav ? "Calculating..." : "Auto-fill"}
-                                                className={`bg-zinc-800/50 border-zinc-800 text-white h-14 rounded-2xl focus:border-blue-500/50 transition-all font-bold ${isFetchingNav ? 'opacity-50' : ''}`}
-                                            />
-                                            {isFetchingNav && (
-                                                <div className="absolute right-4 top-1/2 -translate-y-1/2">
-                                                    <RefreshCw size={18} className="animate-spin text-blue-400" />
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                    <div className="space-y-3">
-                                        <label className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] px-1">Purchase NAV</label>
-                                        <Input
-                                            type="number"
-                                            step="0.0001"
-                                            value={formData.purchase_nav}
-                                            onChange={(e) => setFormData({ ...formData, purchase_nav: e.target.value })}
-                                            placeholder="Auto-fetched"
-                                            className="bg-zinc-800/50 border-zinc-800 text-white h-14 rounded-2xl focus:border-blue-500/50 transition-all font-bold"
-                                            disabled={isFetchingNav}
-                                        />
-                                    </div>
-                                </div>
-
-                                {!formData.units && !isFetchingNav && selectedFund && formData.invested_amount && formData.purchase_date && (
-                                    <div className="flex items-center gap-2 text-[10px] font-black text-blue-400 uppercase tracking-widest bg-blue-500/5 p-3 rounded-xl animate-pulse">
-                                        <Activity size={12} />
-                                        Units will be calculated automatically on save.
-                                    </div>
-                                )}
-
-                                <div className="flex gap-4 pt-4">
-                                    <Button
-                                        type="button"
-                                        onClick={() => setIsAddModalOpen(false)}
-                                        variant="outline"
-                                        className="flex-1 border-zinc-800 hover:bg-zinc-800 text-zinc-400 h-14 rounded-2xl font-bold uppercase tracking-widest text-xs"
-                                    >
-                                        Cancel
-                                    </Button>
-                                    <Button
-                                        type="submit"
-                                        disabled={isAdding || !selectedFund}
-                                        className="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-black h-14 rounded-2xl shadow-xl shadow-blue-600/20 uppercase tracking-widest text-xs"
-                                    >
-                                        {isAdding ? 'Adding...' : 'Add Position'}
-                                    </Button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            )}
-
             {/* Delete Confirmation Modal */}
             {positionToDelete && (
-                <div className="fixed inset-0 z-[400] flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setPositionToDelete(null)} />
-                    <div className="relative w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-[2rem] shadow-2xl p-8">
-                        <div className="bg-rose-500/10 w-16 h-16 rounded-2xl flex items-center justify-center text-rose-500 mb-6">
-                            <Trash2 size={28} />
-                        </div>
-                        <h3 className="text-2xl font-black text-white tracking-tight mb-3">Delete Position?</h3>
-                        <p className="text-zinc-500 font-medium mb-8 leading-relaxed">This action will permanently remove this transaction from your portfolio. This cannot be undone.</p>
-                        <div className="flex gap-4">
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <div className="bg-zinc-900 border border-zinc-800 rounded-2xl max-w-md w-full p-6">
+                        <h3 className="text-xl font-bold text-white mb-3">Delete Transaction?</h3>
+                        <p className="text-zinc-400 mb-6">This action cannot be undone. The transaction will be permanently removed from your portfolio.</p>
+                        <div className="flex gap-3">
                             <Button
                                 onClick={() => setPositionToDelete(null)}
-                                variant="outline"
-                                className="flex-1 border-zinc-800 text-zinc-400 h-12 rounded-xl font-bold"
+                                className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-white h-11 rounded-xl font-semibold"
                             >
                                 Cancel
                             </Button>
                             <Button
-                                onClick={handleDeletePosition}
+                                onClick={() => handleDeletePosition(positionToDelete)}
                                 disabled={isDeleting}
-                                className="flex-1 bg-rose-500 hover:bg-rose-600 text-white font-black h-12 rounded-xl"
+                                className="flex-1 bg-red-500 hover:bg-red-600 text-white h-11 rounded-xl font-semibold"
                             >
                                 {isDeleting ? 'Deleting...' : 'Delete'}
                             </Button>
@@ -759,6 +774,6 @@ export default function MFPositionsPage() {
                     scrollbar-width: none;
                 }
             `}</style>
-        </div>
+        </div >
     )
 }

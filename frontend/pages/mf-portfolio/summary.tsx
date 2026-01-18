@@ -98,6 +98,18 @@ export default function MFSummaryPage() {
 
     const chartColors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#14b8a6', '#6366f1']
 
+    const getRandomColor = (symbol: string) => {
+        const colors = [
+            'bg-gradient-to-br from-blue-500 to-blue-600',
+            'bg-gradient-to-br from-purple-500 to-purple-600',
+            'bg-gradient-to-br from-pink-500 to-pink-600',
+            'bg-gradient-to-br from-emerald-500 to-emerald-600',
+            'bg-gradient-to-br from-amber-500 to-amber-600',
+        ];
+        const index = symbol.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+        return colors[index % colors.length];
+    };
+
     if (authLoading || portfolioLoading || (loading && positions.length === 0)) {
         return (
             <div className="flex items-center justify-center h-screen bg-black">
@@ -108,78 +120,61 @@ export default function MFSummaryPage() {
 
     return (
         <div className="flex flex-col h-screen bg-black text-white relative overflow-hidden">
-            <Header />
 
             {/* Background effects */}
             <div className="absolute top-0 right-0 -mr-20 -mt-20 w-[600px] h-[600px] bg-blue-500/5 rounded-full blur-[120px] pointer-events-none z-0" />
             <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-[500px] h-[500px] bg-emerald-500/5 rounded-full blur-[120px] pointer-events-none z-0" />
 
             <div className="flex-1 px-6 md:px-8 pb-8 overflow-y-auto scrollbar-hide max-w-[1600px] mx-auto w-full relative z-10">
-                {/* Fixed Top Breadcrumb */}
-                <div className="flex items-center gap-2 text-zinc-500 text-xs font-bold uppercase tracking-widest pt-4 mb-6">
-                    <button onClick={() => router.push('/mf-portfolio')} className="hover:text-blue-400 transition-colors flex items-center gap-1">
-                        <ArrowLeft size={12} /> MF Overview
-                    </button>
-                    <ChevronRight size={10} />
-                    <span className="text-zinc-300">Detailed Analysis</span>
-                </div>
 
                 {/* Header */}
                 <div className="mb-10">
-                    <h1 className="text-4xl md:text-5xl font-black bg-gradient-to-r from-white via-blue-100 to-emerald-200 bg-clip-text text-transparent tracking-tight mb-3">
-                        Breakdown & Insights
+                    <h1 className="text-2xl md:text-3xl font-bold text-white mb-2 pt-8">
+                        MF Summary
                     </h1>
-                    <p className="text-zinc-400 text-lg font-medium">Deep dive into your mutual fund allocations and performance metrics.</p>
+                    <p className="text-zinc-400 text-sm">Deep dive into your mutual fund allocations and performance metrics.</p>
                 </div>
 
                 {insights && (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
                         {/* Highest Invested */}
-                        <div className="bg-zinc-900/40 border border-zinc-800/60 p-6 rounded-[2rem] hover:bg-zinc-900/60 transition-all group">
-                            <div className="flex items-center gap-3 text-zinc-500 text-[10px] font-bold uppercase tracking-[0.2em] mb-4">
-                                <div className="p-1.5 bg-blue-500/10 rounded-lg group-hover:scale-110 transition-transform">
-                                    <DollarSign size={14} className="text-blue-400" />
-                                </div>
+                        <div className="bg-zinc-900/40 border border-zinc-800/60 p-5 rounded-2xl">
+                            <div className="flex items-center gap-2 text-zinc-500 text-xs mb-3">
+                                <DollarSign size={14} className="text-blue-400" />
                                 Highest Invested
                             </div>
-                            <div className="text-xl font-bold text-white truncate max-w-full group-hover:text-blue-400 transition-colors uppercase tracking-tight">{insights.highestInvested.scheme_name}</div>
-                            <div className="text-sm text-zinc-500 font-bold mt-2">₹{insights.highestInvested.invested_amount.toLocaleString('en-IN')}</div>
+                            <div className="text-lg font-semibold text-white truncate">{insights.highestInvested.scheme_name}</div>
+                            <div className="text-sm text-zinc-500 mt-2">₹{insights.highestInvested.invested_amount.toLocaleString('en-IN')}</div>
                         </div>
 
                         {/* Best Performer */}
-                        <div className="bg-zinc-900/40 border border-emerald-500/20 p-6 rounded-[2rem] hover:bg-emerald-500/5 transition-all group">
-                            <div className="flex items-center gap-3 text-emerald-500/60 text-[10px] font-bold uppercase tracking-[0.2em] mb-4">
-                                <div className="p-1.5 bg-emerald-500/10 rounded-lg group-hover:scale-110 transition-transform">
-                                    <Trophy size={14} className="text-emerald-400" />
-                                </div>
+                        <div className="bg-zinc-900/40 border border-emerald-500/20 p-5 rounded-2xl">
+                            <div className="flex items-center gap-2 text-emerald-500/60 text-xs mb-3">
+                                <Trophy size={14} className="text-emerald-400" />
                                 Best Return
                             </div>
-                            <div className="text-xl font-bold text-emerald-400 truncate max-w-full uppercase tracking-tight">{insights.bestReturn.scheme_name}</div>
-                            <div className="text-sm text-zinc-500 font-bold mt-2">+{insights.bestReturn.returns_percent.toFixed(2)}% absolute return</div>
+                            <div className="text-lg font-semibold text-emerald-400 truncate">{insights.bestReturn.scheme_name}</div>
+                            <div className="text-sm text-zinc-500 mt-2">+{insights.bestReturn.returns_percent.toFixed(2)}% absolute return</div>
                         </div>
 
                         {/* Lagging Fund */}
-                        <div className="bg-zinc-900/40 border border-rose-500/20 p-6 rounded-[2rem] hover:bg-rose-500/5 transition-all group">
-                            <div className="flex items-center gap-3 text-rose-500/60 text-[10px] font-bold uppercase tracking-[0.2em] mb-4">
-                                <div className="p-1.5 bg-rose-500/10 rounded-lg group-hover:scale-110 transition-transform">
-                                    <TrendingDown size={14} className="text-rose-400" />
-                                </div>
+                        <div className="bg-zinc-900/40 border border-rose-500/20 p-5 rounded-2xl">
+                            <div className="flex items-center gap-2 text-rose-500/60 text-xs mb-3">
+                                <TrendingDown size={14} className="text-rose-400" />
                                 Lowest Return
                             </div>
-                            <div className="text-xl font-bold text-rose-400 truncate max-w-full uppercase tracking-tight">{insights.worstReturn.scheme_name}</div>
-                            <div className="text-sm text-zinc-500 font-bold mt-2">{insights.worstReturn.returns_percent.toFixed(2)}% absolute return</div>
+                            <div className="text-lg font-semibold text-rose-400 truncate">{insights.worstReturn.scheme_name}</div>
+                            <div className="text-sm text-zinc-500 mt-2">{insights.worstReturn.returns_percent.toFixed(2)}% absolute return</div>
                         </div>
 
                         {/* Largest Holding */}
-                        <div className="bg-zinc-900/40 border border-purple-500/20 p-6 rounded-[2rem] hover:bg-purple-500/5 transition-all group">
-                            <div className="flex items-center gap-3 text-purple-500/60 text-[10px] font-bold uppercase tracking-[0.2em] mb-4">
-                                <div className="p-1.5 bg-purple-500/10 rounded-lg group-hover:scale-110 transition-transform">
-                                    <Target size={14} className="text-purple-400" />
-                                </div>
+                        <div className="bg-zinc-900/40 border border-purple-500/20 p-5 rounded-2xl">
+                            <div className="flex items-center gap-2 text-purple-500/60 text-xs mb-3">
+                                <Target size={14} className="text-purple-400" />
                                 Concentration
                             </div>
-                            <div className="text-xl font-bold text-purple-400 truncate max-w-full uppercase tracking-tight">{insights.largestValue.scheme_name}</div>
-                            <div className="text-sm text-zinc-500 font-bold mt-2">
+                            <div className="text-lg font-semibold text-purple-400 truncate">{insights.largestValue.scheme_name}</div>
+                            <div className="text-sm text-zinc-500 mt-2">
                                 Weight: {summary?.current_value ? ((insights.largestValue.current_value / summary.current_value) * 100).toFixed(1) : '0.0'}% of total
                             </div>
                         </div>
@@ -187,153 +182,198 @@ export default function MFSummaryPage() {
                 )}
 
                 {/* Fund-wise Performance Table */}
-                <div className="bg-zinc-900/40 border border-zinc-800/60 rounded-[2.5rem] overflow-hidden shadow-2xl shadow-black/60 group mb-10">
-                    <div className="p-8 border-b border-zinc-800/50 flex justify-between items-center bg-zinc-900/20">
-                        <h3 className="text-2xl font-black flex items-center gap-3 tracking-tight">
-                            <div className="p-2 bg-blue-500/10 rounded-xl">
-                                <BarChart3 className="w-6 h-6 text-blue-400" />
-                            </div>
-                            Performance Metrics
+                <div className="bg-zinc-900/30 border border-zinc-800/50 backdrop-blur-xl rounded-2xl shadow-2xl shadow-black/20 overflow-hidden flex flex-col mb-10">
+                    <div className="p-4 border-b border-white/10 bg-zinc-900/50">
+                        <h3 className="text-lg font-bold flex items-center gap-2">
+                            <BarChart3 className="w-5 h-5 text-blue-400" />
+                            Fund Performance
                         </h3>
-                        <div className="text-[10px] text-zinc-500 font-black uppercase tracking-[0.2em]">Individual Fund Analysis</div>
                     </div>
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse">
-                            <thead>
-                                <tr className="text-zinc-500 text-[10px] font-black uppercase tracking-[0.2em] border-b border-zinc-800/50 bg-zinc-900/10">
-                                    <th className="px-8 py-6">Mutual Fund Scheme</th>
-                                    <th className="px-8 py-6 text-right">Invested</th>
-                                    <th className="px-8 py-6 text-right">Current Value</th>
-                                    <th className="px-8 py-6 text-right text-emerald-500/80">XIRR</th>
-                                    <th className="px-8 py-6 text-right">Total Return</th>
-                                    <th className="px-8 py-6 text-right">Concentration</th>
-                                    <th className="px-8 py-6 text-right">Latest NAV</th>
+                    <div className="flex flex-col flex-1 overflow-hidden">
+                        {/* Sticky Header */}
+                        <table className="w-full border-collapse text-left table-fixed">
+                            <thead className="sticky top-0 z-10 bg-zinc-900/95 backdrop-blur-sm">
+                                <tr className="border-b border-white/10 text-[10px] font-black uppercase tracking-wider text-zinc-500">
+                                    <th className="px-4 py-3 w-[350px]">Mutual Fund Scheme</th>
+                                    <th className="px-3 py-3 text-right w-[140px]">Invested</th>
+                                    <th className="px-3 py-3 text-right w-[140px]">Current Value</th>
+                                    <th className="px-3 py-3 text-right w-[110px]">XIRR</th>
+                                    <th className="px-3 py-3 text-right w-[160px]">Total Return</th>
+                                    <th className="px-3 py-3 text-right w-[130px]">Allocation</th>
+                                    <th className="px-3 py-3 text-right pr-6 w-[110px]">Latest NAV</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-zinc-800/30">
-                                {aggregatedPositions.map((p) => (
-                                    <tr
-                                        key={p.scheme_code}
-                                        onClick={() => router.push(`/mf-positions?fund=${encodeURIComponent(p.fund_house)}`)}
-                                        className="group/row hover:bg-zinc-800/30 transition-all cursor-pointer"
-                                    >
-                                        <td className="px-8 py-6">
-                                            <div className="text-[10px] text-zinc-500 font-black uppercase tracking-widest mb-1">{p.fund_house}</div>
-                                            <div className="font-black text-white text-base group-hover/row:text-blue-400 transition-colors uppercase tracking-tight">{p.scheme_name}</div>
-                                        </td>
-                                        <td className="px-8 py-6 text-right tabular-nums text-zinc-300 font-bold">₹{p.invested_amount.toLocaleString('en-IN')}</td>
-                                        <td className="px-8 py-6 text-right tabular-nums font-black text-white text-base">₹{p.current_value.toLocaleString('en-IN')}</td>
-                                        <td className="px-8 py-6 text-right tabular-nums">
-                                            <div className={`text-base font-black ${p.fund_xirr && p.fund_xirr >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                                                {p.fund_xirr ? `${p.fund_xirr.toFixed(2)}%` : 'N/A'}
-                                            </div>
-                                            <div className="text-[9px] text-zinc-600 font-bold uppercase tracking-widest mt-0.5">Annualized</div>
-                                        </td>
-                                        <td className="px-8 py-6 text-right tabular-nums">
-                                            <div className={`text-base font-black ${p.returns >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                                                {p.returns >= 0 ? '+' : ''}{p.returns_percent.toFixed(2)}%
-                                            </div>
-                                            <div className={`text-[10px] font-bold uppercase tracking-widest mt-0.5 ${p.returns >= 0 ? 'text-emerald-500/50' : 'text-rose-500/50'}`}>
-                                                {p.returns >= 0 ? '+' : ''}₹{Math.abs(p.returns).toLocaleString('en-IN')}
-                                            </div>
-                                        </td>
-                                        <td className="px-8 py-6 text-right">
-                                            <div className="inline-block px-3 py-1 bg-blue-500/10 border border-blue-500/20 rounded-lg text-blue-400 font-black text-xs uppercase tracking-tighter">
-                                                {summary?.current_value ? ((p.current_value / summary.current_value) * 100).toFixed(1) : '0.0'}%
-                                            </div>
-                                        </td>
-                                        <td className="px-8 py-6 text-right tabular-nums text-zinc-500 font-bold text-sm tracking-tighter">
-                                            ₹{p.current_nav.toFixed(2)}
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
                         </table>
+
+                        {/* Scrollable Body */}
+                        <div className="overflow-x-auto scrollbar-hide">
+                            <table className="w-full border-collapse text-left table-fixed">
+                                <tbody className="divide-y divide-white/5">
+                                    {aggregatedPositions.map((p) => {
+                                        const houseInitial = p.fund_house.substring(0, 1).toUpperCase();
+                                        const isPositive = p.returns >= 0;
+
+                                        return (
+                                            <tr
+                                                key={p.scheme_code}
+                                                onClick={() => router.push(`/mf-positions?fund=${encodeURIComponent(p.fund_house)}`)}
+                                                className="group cursor-pointer transition-colors duration-200 hover:bg-white/5"
+                                            >
+                                                {/* Scheme Name Column */}
+                                                <td className="px-4 py-4 w-[350px]">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className={`
+                                                            w-10 h-10 rounded-lg flex items-center justify-center 
+                                                            text-white font-black text-sm shadow-md shrink-0
+                                                            ${getRandomColor(p.fund_house)}
+                                                        `}>
+                                                            {houseInitial}
+                                                        </div>
+                                                        <div className="min-w-0 flex-1">
+                                                            <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-0.5 truncate">{p.fund_house}</div>
+                                                            <div className="font-bold text-gray-100 text-sm group-hover:text-blue-400 transition-colors truncate uppercase tracking-tight">{p.scheme_name}</div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+
+                                                {/* Invested */}
+                                                <td className="px-3 py-4 text-right tabular-nums text-sm text-zinc-300 font-semibold w-[140px]">
+                                                    ₹{p.invested_amount.toLocaleString('en-IN')}
+                                                </td>
+
+                                                {/* Current Value */}
+                                                <td className="px-3 py-4 text-right tabular-nums font-bold text-[15px] text-white w-[140px]">
+                                                    ₹{p.current_value.toLocaleString('en-IN')}
+                                                </td>
+
+                                                {/* XIRR */}
+                                                <td className="px-3 py-4 text-right w-[110px]">
+                                                    <div className={`text-sm font-bold ${p.fund_xirr && p.fund_xirr >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                                        {p.fund_xirr ? `${p.fund_xirr.toFixed(1)}%` : 'N/A'}
+                                                    </div>
+                                                    <div className="text-[9px] text-zinc-600 font-bold uppercase tracking-widest mt-0.5">Annualized</div>
+                                                </td>
+
+                                                {/* Total Return */}
+                                                <td className="px-3 py-4 text-right w-[160px]">
+                                                    <div className={`text-sm font-bold ${isPositive ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                                        {isPositive ? '+' : ''}{p.returns_percent.toFixed(2)}%
+                                                    </div>
+                                                    <div className={`text-[10px] font-bold uppercase tracking-tight ${isPositive ? 'text-emerald-500/50' : 'text-rose-500/50'}`}>
+                                                        {isPositive ? '+' : ''}₹{Math.abs(p.returns).toLocaleString('en-IN')}
+                                                    </div>
+                                                </td>
+
+                                                {/* Allocation */}
+                                                <td className="px-3 py-4 text-right w-[130px]">
+                                                    <span className="inline-block px-2.5 py-0.5 bg-blue-500/10 border border-blue-500/20 rounded-md text-blue-400 font-bold text-[11px] uppercase">
+                                                        {summary?.current_value ? ((p.current_value / summary.current_value) * 100).toFixed(1) : '0.0'}%
+                                                    </span>
+                                                </td>
+
+                                                {/* Latest NAV */}
+                                                <td className="px-3 py-4 text-right pr-6 tabular-nums text-zinc-500 font-medium text-sm tracking-tight w-[110px]">
+                                                    ₹{p.current_nav.toFixed(2)}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-10">
                     {/* Allocation Chart */}
-                    <div className="lg:col-span-2 bg-zinc-900/40 border border-zinc-800/60 rounded-[2.5rem] p-10 h-[500px] shadow-2xl relative overflow-hidden group">
-                        <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
-                            <PieChart size={64} className="w-32 h-32" />
+                    <div className="lg:col-span-2 bg-zinc-900/30 border border-zinc-800/50 backdrop-blur-xl rounded-2xl shadow-2xl shadow-black/20 overflow-hidden flex flex-col group">
+                        <div className="p-4 border-b border-white/10 bg-zinc-900/50">
+                            <h3 className="text-lg font-bold flex items-center gap-2">
+                                <PieChart size={20} className="text-blue-400" />
+                                Fund Distribution
+                            </h3>
                         </div>
-                        <h3 className="text-2xl font-black text-white mb-8 tracking-tight relative z-10 flex items-center gap-3">
-                            <Activity className="text-blue-400" />
-                            Fund Distribution
-                        </h3>
-                        <div className="h-[350px] w-full relative z-10">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <RechartsPieChart>
-                                    <Pie
-                                        data={aggregatedPositions.map(p => ({ name: p.scheme_name, value: p.current_value }))}
-                                        cx="50%"
-                                        cy="50%"
-                                        innerRadius={90}
-                                        outerRadius={130}
-                                        paddingAngle={4}
-                                        dataKey="value"
-                                        stroke="none"
-                                    >
-                                        {aggregatedPositions.map((_, index) => (
-                                            <Cell key={`cell-${index}`} fill={chartColors[index % chartColors.length]} className="hover:opacity-80 transition-opacity cursor-pointer outline-none" />
-                                        ))}
-                                    </Pie>
-                                    <RechartsTooltip
-                                        content={({ active, payload }) => {
-                                            if (active && payload && payload.length) {
-                                                return (
-                                                    <div className="bg-zinc-900/90 border border-zinc-800 backdrop-blur-xl p-4 rounded-2xl shadow-2xl">
-                                                        <p className="text-zinc-500 text-[10px] uppercase font-black mb-1">{payload[0].name}</p>
-                                                        <p className="text-white font-black text-xl">₹{Number(payload[0].value).toLocaleString('en-IN')}</p>
-                                                        <p className="text-blue-400 text-xs font-bold mt-1 uppercase">
-                                                            Allocation: {summary?.current_value ? ((Number(payload[0].value) / summary.current_value) * 100).toFixed(1) : '0.0'}%
-                                                        </p>
-                                                    </div>
-                                                );
-                                            }
-                                            return null;
-                                        }}
-                                    />
-                                </RechartsPieChart>
-                            </ResponsiveContainer>
-                            {/* Center labels for Donut */}
-                            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                                <div className="text-[10px] text-zinc-500 font-black uppercase tracking-[0.2em] mb-1">Total Value</div>
-                                <div className="text-2xl font-black text-white tracking-tight">
-                                    ₹{summary?.current_value?.toLocaleString('en-IN', { maximumFractionDigits: 0 }) || '0'}
+                        <div className="p-8 relative">
+                            <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
+                                <PieChart size={64} className="w-32 h-32" />
+                            </div>
+                            <div className="h-[350px] w-full relative z-10">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <RechartsPieChart>
+                                        <Pie
+                                            data={aggregatedPositions.map(p => ({ name: p.scheme_name, value: p.current_value }))}
+                                            cx="50%"
+                                            cy="50%"
+                                            innerRadius={90}
+                                            outerRadius={130}
+                                            paddingAngle={4}
+                                            dataKey="value"
+                                            stroke="none"
+                                        >
+                                            {aggregatedPositions.map((_, index) => (
+                                                <Cell key={`cell-${index}`} fill={chartColors[index % chartColors.length]} className="hover:opacity-80 transition-opacity cursor-pointer outline-none" />
+                                            ))}
+                                        </Pie>
+                                        <RechartsTooltip
+                                            content={({ active, payload }) => {
+                                                if (active && payload && payload.length) {
+                                                    return (
+                                                        <div className="bg-zinc-900/90 border border-zinc-800 backdrop-blur-xl p-4 rounded-2xl shadow-2xl">
+                                                            <p className="text-zinc-500 text-[10px] uppercase font-black mb-1">{payload[0].name}</p>
+                                                            <p className="text-white font-black text-xl">₹{Number(payload[0].value).toLocaleString('en-IN')}</p>
+                                                            <p className="text-blue-400 text-xs font-bold mt-1 uppercase">
+                                                                Allocation: {summary?.current_value ? ((Number(payload[0].value) / summary.current_value) * 100).toFixed(1) : '0.0'}%
+                                                            </p>
+                                                        </div>
+                                                    );
+                                                }
+                                                return null;
+                                            }}
+                                        />
+                                    </RechartsPieChart>
+                                </ResponsiveContainer>
+                                {/* Center labels for Donut */}
+                                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                                    <div className="text-[10px] text-zinc-500 font-black uppercase tracking-[0.2em] mb-1">Total Value</div>
+                                    <div className="text-2xl font-black text-white tracking-tight">
+                                        ₹{summary?.current_value?.toLocaleString('en-IN', { maximumFractionDigits: 0 }) || '0'}
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
                     {/* Weightage List */}
-                    <div className="bg-zinc-900/40 border border-zinc-800/60 rounded-[2.5rem] p-10 shadow-2xl overflow-y-auto scrollbar-hide group">
-                        <h3 className="text-2xl font-black text-white mb-8 tracking-tight flex items-center gap-3">
-                            <Activity className="text-emerald-400" />
-                            Portfolio Weightage
-                        </h3>
-                        <div className="space-y-6">
-                            {aggregatedPositions.map((p, index) => (
-                                <div key={p.scheme_code} className="flex flex-col gap-2 group/item">
-                                    <div className="flex justify-between items-center text-sm font-bold uppercase tracking-widest text-zinc-400">
-                                        <span className="truncate max-w-[180px] group-hover/item:text-white transition-colors uppercase">{p.scheme_name}</span>
-                                        <span className="text-white font-black text-base">
-                                            {summary?.current_value ? ((p.current_value / summary.current_value) * 100).toFixed(1) : '0.0'}
-                                            <span className="text-xs text-zinc-500 ml-0.5">%</span>
-                                        </span>
+                    <div className="bg-zinc-900/30 border border-zinc-800/50 backdrop-blur-xl rounded-2xl shadow-2xl shadow-black/20 overflow-hidden flex flex-col group">
+                        <div className="p-4 border-b border-white/10 bg-zinc-900/50">
+                            <h3 className="text-lg font-bold flex items-center gap-2">
+                                <Activity size={20} className="text-emerald-400" />
+                                Portfolio Weightage
+                            </h3>
+                        </div>
+                        <div className="p-8 overflow-y-auto scrollbar-hide">
+                            <div className="space-y-6">
+                                {aggregatedPositions.map((p, index) => (
+                                    <div key={p.scheme_code} className="flex flex-col gap-2 group/item">
+                                        <div className="flex justify-between items-center text-sm font-bold uppercase tracking-widest text-zinc-400">
+                                            <span className="truncate max-w-[180px] group-hover/item:text-white transition-colors uppercase">{p.scheme_name}</span>
+                                            <span className="text-white font-black text-base">
+                                                {summary?.current_value ? ((p.current_value / summary.current_value) * 100).toFixed(1) : '0.0'}
+                                                <span className="text-xs text-zinc-500 ml-0.5">%</span>
+                                            </span>
+                                        </div>
+                                        <div className="w-full bg-zinc-800/50 rounded-full h-2.5 overflow-hidden">
+                                            <div
+                                                className="h-full rounded-full transition-all duration-1000 group-hover:opacity-100 opacity-80"
+                                                style={{
+                                                    width: `${summary?.current_value ? (p.current_value / summary.current_value) * 100 : 0}%`,
+                                                    backgroundColor: chartColors[index % chartColors.length]
+                                                }}
+                                            />
+                                        </div>
                                     </div>
-                                    <div className="w-full bg-zinc-800/50 rounded-full h-2.5 overflow-hidden">
-                                        <div
-                                            className="h-full rounded-full transition-all duration-1000 group-hover:opacity-100 opacity-80"
-                                            style={{
-                                                width: `${summary?.current_value ? (p.current_value / summary.current_value) * 100 : 0}%`,
-                                                backgroundColor: chartColors[index % chartColors.length]
-                                            }}
-                                        />
-                                    </div>
-                                </div>
-                            ))}
+                                ))}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -351,14 +391,14 @@ export default function MFSummaryPage() {
             </div>
 
             <style jsx global>{`
-                .scrollbar-hide::-webkit-scrollbar {
-                    display: none;
-                }
-                .scrollbar-hide {
-                    -ms-overflow-style: none;
-                    scrollbar-width: none;
-                }
-            `}</style>
+                    .scrollbar-hide::-webkit-scrollbar {
+                        display: none;
+                    }
+                    .scrollbar-hide {
+                        -ms-overflow-style: none;
+                        scrollbar-width: none;
+                    }
+                `}</style>
         </div>
-    )
+    );
 }

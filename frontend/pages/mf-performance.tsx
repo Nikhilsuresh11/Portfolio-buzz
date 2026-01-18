@@ -50,7 +50,6 @@ export default function MFPerformancePage() {
 
     return (
         <div className="flex flex-col h-screen bg-black text-white relative overflow-hidden">
-            <Header />
 
             {/* Premium Background Effects */}
             <div className="absolute top-0 right-0 -mr-20 -mt-20 w-[600px] h-[600px] bg-blue-500/5 rounded-full blur-[120px] pointer-events-none z-0" />

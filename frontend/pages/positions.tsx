@@ -46,6 +46,7 @@ export default function MyPositionsPage() {
     const [sortField, setSortField] = useState<SortField>('totalInvested');
     const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
     const [formData, setFormData] = useState({
+        symbol: '',
         quantity: '',
         buy_date: '',
         invested_amount: '',
@@ -158,18 +159,16 @@ export default function MyPositionsPage() {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    symbol: selectedStock,
+                    ...formData,
                     portfolio_id: currentPortfolio.portfolio_id || 'default',
                     quantity: parseFloat(formData.quantity),
                     invested_amount: parseFloat(formData.invested_amount),
-                    buy_date: formData.buy_date,
                 }),
             });
 
             if (!response.ok) throw new Error('Failed to add position');
 
-            setFormData({ quantity: '', buy_date: '', invested_amount: '' });
-            setSelectedStock('');
+            setFormData({ symbol: '', quantity: '', buy_date: '', invested_amount: '' });
             setIsAddModalOpen(false);
             fetchPositions();
         } catch (err: any) {
@@ -243,7 +242,7 @@ export default function MyPositionsPage() {
                     </div>
                     <div className="bg-gradient-to-r from-blue-500 to-emerald-500 rounded-xl p-0.5">
                         <Button
-                            onClick={() => setIsStockSearchOpen(true)}
+                            onClick={() => setIsAddModalOpen(true)}
                             className="bg-black hover:bg-zinc-900 text-white gap-2 font-semibold text-sm h-9 px-5 rounded-[11px]"
                         >
                             <Plus size={16} />
@@ -283,7 +282,7 @@ export default function MyPositionsPage() {
                         </p>
                         <div className="bg-gradient-to-r from-blue-500 to-emerald-500 rounded-xl p-0.5 inline-block">
                             <Button
-                                onClick={() => setIsStockSearchOpen(true)}
+                                onClick={() => setIsAddModalOpen(true)}
                                 className="bg-black hover:bg-zinc-900 text-white gap-2 font-semibold text-sm h-9 px-5 rounded-[11px]"
                             >
                                 <Plus size={16} />
@@ -499,20 +498,13 @@ export default function MyPositionsPage() {
             />
 
             {/* Add Position Modal */}
-            {isAddModalOpen && selectedStock && (
+            {isAddModalOpen && (
                 <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
                     <div className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-md shadow-2xl">
                         <div className="p-5 border-b border-zinc-800 flex justify-between items-center">
-                            <div>
-                                <h3 className="text-2xl font-bold text-white">Add Position</h3>
-                                <p className="text-sm text-zinc-400 mt-1">Stock: <span className="text-blue-400 font-semibold">{selectedStock}</span></p>
-                            </div>
+                            <h3 className="text-2xl font-bold text-white">Add Position</h3>
                             <button
-                                onClick={() => {
-                                    setIsAddModalOpen(false);
-                                    setSelectedStock('');
-                                    setFormData({ quantity: '', buy_date: '', invested_amount: '' });
-                                }}
+                                onClick={() => setIsAddModalOpen(false)}
                                 className="w-10 h-10 rounded-xl bg-zinc-800/50 hover:bg-zinc-800 flex items-center justify-center transition-colors"
                             >
                                 <X className="w-5 h-5 text-zinc-400" />
@@ -525,6 +517,20 @@ export default function MyPositionsPage() {
                                     {error}
                                 </div>
                             )}
+
+                            <div>
+                                <label className="block text-sm font-medium text-zinc-400 mb-2">
+                                    Stock Symbol
+                                </label>
+                                <input
+                                    type="text"
+                                    required
+                                    value={formData.symbol}
+                                    onChange={(e) => setFormData({ ...formData, symbol: e.target.value.toUpperCase() })}
+                                    className="w-full bg-zinc-800/50 border border-zinc-700 rounded-xl px-4 py-2.5 text-white placeholder-zinc-500 focus:outline-none focus:border-blue-500 transition-colors"
+                                    placeholder="e.g., RELIANCE"
+                                />
+                            </div>
 
                             <div>
                                 <label className="block text-sm font-medium text-zinc-400 mb-2">
@@ -572,11 +578,7 @@ export default function MyPositionsPage() {
                             <div className="flex gap-3 pt-2">
                                 <button
                                     type="button"
-                                    onClick={() => {
-                                        setIsAddModalOpen(false);
-                                        setSelectedStock('');
-                                        setFormData({ quantity: '', buy_date: '', invested_amount: '' });
-                                    }}
+                                    onClick={() => setIsAddModalOpen(false)}
                                     className="flex-1 bg-zinc-800/50 hover:bg-zinc-800 text-white font-semibold py-2.5 rounded-xl transition-colors"
                                 >
                                     Cancel

@@ -111,7 +111,6 @@ export default function MFOverviewPage() {
 
     return (
         <div className="flex flex-col h-screen bg-black text-white relative overflow-hidden">
-            <Header />
 
             {/* Premium Background Effects */}
             <div className="absolute top-0 right-0 -mr-20 -mt-20 w-[600px] h-[600px] bg-blue-500/5 rounded-full blur-[120px] pointer-events-none z-0" />
@@ -119,34 +118,31 @@ export default function MFOverviewPage() {
 
             <div className="flex-1 px-6 md:px-8 pb-8 overflow-y-auto scrollbar-hide max-w-[1600px] mx-auto w-full relative z-10">
                 {/* Header Section */}
-                <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10 pt-4">
+                <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10 pt-8">
                     <div>
-                        <div className="flex items-center gap-2 text-blue-400 font-bold text-xs uppercase tracking-[0.2em] mb-3">
-                            <Target className="w-4 h-4" />
-                            Mutual Fund Insights
-                        </div>
-                        <h1 className="text-4xl md:text-5xl font-black bg-gradient-to-r from-white via-blue-100 to-emerald-100 bg-clip-text text-transparent tracking-tight">
+                        <h1 className="text-2xl md:text-3xl font-bold text-white">
                             MF Overview
                         </h1>
-                        <p className="text-zinc-400 mt-3 text-lg font-medium">Global performance overview of your mutual fund portfolio.</p>
+                        <p className="text-zinc-400 mt-2 text-sm">Global performance overview of your mutual fund portfolio.</p>
                     </div>
 
                     <div className="flex items-center gap-3">
                         <Button
                             onClick={handleRefresh}
                             disabled={isRefreshing}
-                            className="bg-zinc-900/50 border border-zinc-800 text-zinc-300 hover:bg-zinc-800 transition-all h-12 w-12 p-0 rounded-2xl"
+                            className="bg-zinc-900/50 border border-zinc-800 text-zinc-300 hover:bg-zinc-800 transition-colors h-10 w-10 p-0 rounded-xl"
                         >
-                            <RefreshCw size={20} className={isRefreshing ? 'animate-spin' : ''} />
+                            <RefreshCw size={18} className={isRefreshing ? 'animate-spin' : ''} />
                         </Button>
-                        <Button
-                            onClick={() => router.push('/mf-positions')}
-                            className="bg-blue-600 hover:bg-blue-500 text-white font-bold h-12 px-6 rounded-2xl shadow-xl shadow-blue-600/20 flex items-center gap-2 group transition-all"
-                        >
-                            <Plus size={20} />
-                            Manage Positions
-                            <ArrowUpRight size={18} className="opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all" />
-                        </Button>
+                        <div className="bg-gradient-to-r from-blue-500 to-emerald-500 rounded-xl p-0.5">
+                            <Button
+                                onClick={() => router.push('/mf-positions')}
+                                className="bg-black hover:bg-zinc-900 text-white font-semibold h-9 px-5 rounded-[11px] flex items-center gap-2 transition-colors"
+                            >
+                                <Plus size={16} />
+                                Manage Positions
+                            </Button>
+                        </div>
                     </div>
                 </div>
 
@@ -155,68 +151,38 @@ export default function MFOverviewPage() {
                         {/* KPI Cards Grid */}
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                             {/* Total Invested */}
-                            <div className="bg-zinc-900/40 border border-zinc-800/60 backdrop-blur-xl rounded-[2rem] p-8 hover:bg-zinc-900/60 hover:border-blue-500/30 transition-all group shadow-2xl shadow-black/40">
-                                <div className="flex items-center justify-between mb-4">
-                                    <span className="text-zinc-500 text-xs font-bold uppercase tracking-widest">Total Invested</span>
-                                    <div className="p-2 bg-blue-500/10 rounded-xl group-hover:scale-110 transition-transform">
-                                        <DollarSign className="w-5 h-5 text-blue-400" />
-                                    </div>
-                                </div>
-                                <div className="text-3xl font-black text-white tracking-tight">{formatCurrency(summary.total_invested)}</div>
-                                <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-4 flex items-center gap-2">
-                                    <Activity className="w-3 h-3" />
-                                    {summary.position_count} Active Funds
-                                </div>
+                            <div className="bg-zinc-900/40 border border-zinc-800/60 backdrop-blur-xl rounded-2xl p-5">
+                                <p className="text-zinc-500 text-xs mb-2">Total Invested</p>
+                                <p className="text-2xl font-bold text-white">{formatCurrency(summary.total_invested)}</p>
                             </div>
 
                             {/* Current Value */}
-                            <div className="bg-zinc-900/40 border border-zinc-800/60 backdrop-blur-xl rounded-[2rem] p-8 hover:bg-zinc-900/60 hover:border-purple-500/30 transition-all group shadow-2xl shadow-black/40">
-                                <div className="flex items-center justify-between mb-4">
-                                    <span className="text-zinc-500 text-xs font-bold uppercase tracking-widest">Current Value</span>
-                                    <div className="p-2 bg-purple-500/10 rounded-xl group-hover:scale-110 transition-transform">
-                                        <BarChart3 className="w-5 h-5 text-purple-400" />
-                                    </div>
-                                </div>
-                                <div className="text-3xl font-black text-white tracking-tight">{formatCurrency(summary.current_value)}</div>
-                                <div className={`text-[10px] font-black uppercase tracking-widest mt-4 flex items-center gap-2 ${isProfit ? 'text-emerald-400' : 'text-rose-400'}`}>
-                                    {isProfit ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                                    {formatPercent(summary.total_returns_percent)} Total Return
-                                </div>
+                            <div className="bg-zinc-900/40 border border-zinc-800/60 backdrop-blur-xl rounded-2xl p-5">
+                                <p className="text-zinc-500 text-xs mb-2">Current Value</p>
+                                <p className="text-2xl font-bold text-white">{formatCurrency(summary.current_value)}</p>
                             </div>
 
                             {/* Net P&L */}
-                            <div className={`bg-zinc-900/40 border border-zinc-800/60 backdrop-blur-xl rounded-[2rem] p-8 hover:bg-zinc-900/60 transition-all group shadow-2xl shadow-black/40 ${isProfit ? 'hover:border-emerald-500/30' : 'hover:border-rose-500/30'}`}>
-                                <div className="flex items-center justify-between mb-4">
-                                    <span className="text-zinc-500 text-xs font-bold uppercase tracking-widest">Net Profit/Loss</span>
-                                    <div className={`p-2 rounded-xl group-hover:scale-110 transition-transform ${isProfit ? 'bg-emerald-500/10' : 'bg-rose-500/10'}`}>
-                                        {isProfit ? <TrendingUp className="w-5 h-5 text-emerald-400" /> : <TrendingDown className="w-5 h-5 text-rose-400" />}
-                                    </div>
-                                </div>
-                                <div className={`text-3xl font-black tracking-tight ${isProfit ? 'text-emerald-400' : 'text-rose-400'}`}>
+                            <div className="bg-zinc-900/40 border border-zinc-800/60 backdrop-blur-xl rounded-2xl p-5">
+                                <p className="text-zinc-500 text-xs mb-2">Net Profit/Loss</p>
+                                <p className={`text-2xl font-bold ${isProfit ? 'text-emerald-400' : 'text-rose-400'}`}>
                                     {isProfit ? '+' : ''}{formatCurrency(summary.total_returns)}
-                                </div>
-                                <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-4">Real-time Performance</div>
+                                </p>
                             </div>
 
                             {/* XIRR */}
-                            <div className="bg-gradient-to-br from-blue-600/10 to-emerald-600/10 border border-blue-500/20 backdrop-blur-xl rounded-[2rem] p-8 shadow-2xl shadow-blue-500/5 group hover:bg-blue-600/20 transition-all">
-                                <div className="flex items-center justify-between mb-4">
-                                    <span className="text-blue-200/60 text-xs font-bold uppercase tracking-widest">Portfolio XIRR</span>
-                                    <div className="p-2 bg-emerald-500/10 rounded-xl group-hover:scale-110 transition-transform">
-                                        <Activity className="w-5 h-5 text-emerald-400" />
-                                    </div>
-                                </div>
-                                <div className={`text-3xl font-black tracking-tight ${summary.xirr && summary.xirr >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                            <div className="bg-zinc-900/40 border border-zinc-800/60 backdrop-blur-xl rounded-2xl p-5">
+                                <p className="text-zinc-500 text-xs mb-2">Portfolio XIRR</p>
+                                <p className={`text-2xl font-bold ${summary.xirr && summary.xirr >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                                     {summary.xirr ? `${summary.xirr.toFixed(2)}%` : 'N/A'}
-                                </div>
-                                <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-4">Annualized Return (IRR)</div>
+                                </p>
                             </div>
                         </div>
 
                         {/* Analysis & Benchmarking */}
                         <div className="grid grid-cols-1 lg:grid-cols-1 gap-8">
-                            <div className="bg-zinc-900/40 border border-zinc-800/60 backdrop-blur-xl rounded-[2.5rem] p-10 shadow-2xl shadow-black/60 relative overflow-hidden group">
-                                <div className="absolute top-0 right-0 p-10 opacity-5 group-hover:opacity-10 transition-opacity">
+                            <div className="bg-zinc-900/40 border border-zinc-800/60 backdrop-blur-xl rounded-2xl p-8">
+                                <div className="absolute top-0 right-0 p-10 opacity-5">
                                     <Target className="w-48 h-48" />
                                 </div>
 
@@ -252,14 +218,17 @@ export default function MFOverviewPage() {
                                                 <div className="text-2xl font-black text-white">{formatPercent(summary.nifty_xirr)}</div>
                                             </div>
 
+
                                             <div className="pt-6">
-                                                <Button
-                                                    onClick={() => router.push('/mf-portfolio/summary')}
-                                                    className="w-full bg-zinc-800 hover:bg-zinc-700 text-white font-bold h-14 rounded-2xl flex items-center justify-center gap-3 transition-all"
-                                                >
-                                                    <PieChart size={20} />
-                                                    Full Allocation Breakdown
-                                                </Button>
+                                                <div className="bg-gradient-to-r from-blue-500 to-emerald-500 rounded-xl p-0.5">
+                                                    <Button
+                                                        onClick={() => router.push('/mf-portfolio/summary')}
+                                                        className="w-full bg-black hover:bg-zinc-900 text-white font-semibold h-10 rounded-[11px] flex items-center justify-center gap-2 transition-colors"
+                                                    >
+                                                        <PieChart size={18} />
+                                                        Full Allocation Breakdown
+                                                    </Button>
+                                                </div>
                                             </div>
                                         </div>
 
@@ -311,6 +280,6 @@ export default function MFOverviewPage() {
                     scrollbar-width: none;
                 }
             `}</style>
-        </div>
+        </div >
     )
 }
