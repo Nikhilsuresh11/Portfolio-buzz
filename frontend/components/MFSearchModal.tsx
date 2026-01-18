@@ -84,7 +84,7 @@ export default function MFSearchModal({ isOpen, onClose, onAddFund }: MFSearchMo
             }
         }
 
-        const debounce = setTimeout(searchFunds, 500) // Reduced debounce for better feel
+        const debounce = setTimeout(searchFunds, 1000) // Increased debounce to 1s as requested
         return () => clearTimeout(debounce)
     }, [query])
 

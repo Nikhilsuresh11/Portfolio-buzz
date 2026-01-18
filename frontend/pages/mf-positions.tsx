@@ -1,13 +1,19 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useRouter } from 'next/router'
 import Header from '../components/Header'
 import { useAuth } from '../lib/auth-context'
 import { usePortfolio } from '../lib/portfolio-context'
 import { buildApiUrl, buildPublicApiUrl, getApiHeaders } from '../lib/api-helpers'
-import { Plus, Trash2, RefreshCw, Search, Calendar, Package, ArrowUpRight, TrendingUp, TrendingDown, X, Activity } from 'lucide-react'
+import { Plus, Trash2, RefreshCw, Search, Calendar, Package, ArrowUpRight, TrendingUp, TrendingDown, X, Activity, ChevronDown, ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { WatchlistLoader } from '@/components/ui/watchlist-loader'
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 type MFPosition = {
     position_id: string
@@ -50,6 +56,72 @@ export default function MFPositionsPage() {
     // Delete Modal State
     const [positionToDelete, setPositionToDelete] = useState<string | null>(null)
     const [isDeleting, setIsDeleting] = useState(false)
+
+    // Transactions Modal State
+    const [selectedFundForTxns, setSelectedFundForTxns] = useState<string | null>(null)
+
+    const fundFilter = router.query.fund as string
+
+    // Grouping logic (always show grouped in main list, drill down via modal)
+    const displayPositions = useMemo(() => {
+        const map = new Map<string, any>()
+        positions.forEach(p => {
+            if (map.has(p.scheme_code)) {
+                const existing = map.get(p.scheme_code)
+                existing.units += p.units
+                existing.invested_amount += p.invested_amount
+                existing.current_value += p.current_value
+                existing.returns += p.returns
+                // Weighted average avg nav
+                existing.purchase_avg_nav = existing.invested_amount / existing.units
+                existing.returns_percent = (existing.returns / existing.invested_amount) * 100
+                existing.txn_count = (existing.txn_count || 1) + 1
+            } else {
+                map.set(p.scheme_code, { ...p, txn_count: 1, purchase_avg_nav: p.purchase_nav })
+            }
+        })
+        return Array.from(map.values())
+    }, [positions])
+
+    // Get individual transactions for a specific fund
+    const transactionsForSelectedFund = useMemo(() => {
+        if (!selectedFundForTxns) return []
+        return positions.filter(p => p.scheme_code === selectedFundForTxns)
+            .sort((a, b) => new Date(b.purchase_date).getTime() - new Date(a.purchase_date).getTime())
+    }, [positions, selectedFundForTxns])
+
+    const selectedFundDetails = useMemo(() => {
+        if (!selectedFundForTxns) return null
+        return displayPositions.find(p => p.scheme_code === selectedFundForTxns)
+    }, [displayPositions, selectedFundForTxns])
+
+    // Handle initial fund from query
+    useEffect(() => {
+        if (fundFilter && positions.length > 0) {
+            const found = positions.find(p =>
+                p.scheme_name.toLowerCase().includes(fundFilter.toLowerCase()) ||
+                p.fund_house.toLowerCase().includes(fundFilter.toLowerCase())
+            )
+            if (found) {
+                setSelectedFundForTxns(found.scheme_code)
+            }
+        }
+    }, [fundFilter, positions])
+
+    // Extract unique existing holdings for the dropdown
+    const existingHoldings = useMemo(() => {
+        const uniqueFunds = new Map()
+        positions.forEach(p => {
+            if (!uniqueFunds.has(p.scheme_code)) {
+                uniqueFunds.set(p.scheme_code, {
+                    scheme_code: p.scheme_code,
+                    scheme_name: p.scheme_name,
+                    fund_house: p.fund_house
+                })
+            }
+        })
+        return Array.from(uniqueFunds.values())
+    }, [positions])
 
     useEffect(() => {
         if (!authLoading && !userEmail) {
@@ -132,6 +204,14 @@ export default function MFPositionsPage() {
             setFormData(prev => ({ ...prev, units: '', purchase_nav: '' }))
         }
     }, [selectedFund])
+
+    // Debounced search effect
+    useEffect(() => {
+        const timeoutId = setTimeout(() => {
+            searchFunds(searchQuery)
+        }, 1000)
+        return () => clearTimeout(timeoutId)
+    }, [searchQuery])
 
     const searchFunds = async (query: string) => {
         if (query.length < 2) {
@@ -236,7 +316,7 @@ export default function MFPositionsPage() {
             <div className="absolute top-0 right-0 -mr-20 -mt-20 w-[600px] h-[600px] bg-blue-500/5 rounded-full blur-[120px] pointer-events-none z-0" />
             <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-[500px] h-[500px] bg-emerald-500/5 rounded-full blur-[120px] pointer-events-none z-0" />
 
-            <div className="flex-1 px-6 md:px-8 pb-8 overflow-y-auto scrollbar-hide max-w-[1600px] mx-auto w-full relative z-10">
+            <div className={`flex-1 px-6 md:px-8 pb-8 overflow-y-auto scrollbar-hide max-w-[1600px] mx-auto w-full relative z-10 transition-opacity duration-300 ${loading ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
                 {/* Header Section */}
                 <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10 pt-4">
                     <div>
@@ -244,6 +324,16 @@ export default function MFPositionsPage() {
                             MF Positions
                         </h1>
                         <p className="text-zinc-400 mt-3 text-lg font-medium">Manage and track individual buy transactions.</p>
+                        {fundFilter && (
+                            <Button
+                                variant="ghost"
+                                onClick={() => router.push('/mf-portfolio')}
+                                className="mt-4 text-xs font-black uppercase tracking-[0.2em] text-blue-400 hover:text-blue-300 p-0 flex items-center gap-2 group"
+                            >
+                                <ArrowLeft size={14} className="group-hover:-translate-x-1 transition-transform" />
+                                Back to MF Overview
+                            </Button>
+                        )}
                     </div>
 
                     <div className="flex items-center gap-3">
@@ -266,7 +356,11 @@ export default function MFPositionsPage() {
                 </div>
 
                 {/* Table Section */}
-                {positions.length === 0 ? (
+                {loading && positions.length === 0 ? (
+                    <div className="flex-1 flex items-center justify-center py-40">
+                        <WatchlistLoader />
+                    </div>
+                ) : positions.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-24 bg-zinc-900/20 border border-zinc-800/50 border-dashed rounded-[2rem] text-center">
                         <div className="bg-zinc-900/50 p-8 rounded-full mb-8">
                             <Package size={48} className="text-zinc-700" />
@@ -281,69 +375,151 @@ export default function MFPositionsPage() {
                         </Button>
                     </div>
                 ) : (
-                    <div className="bg-zinc-900/40 border border-zinc-800/60 backdrop-blur-xl rounded-[2rem] overflow-hidden shadow-2xl shadow-black/40">
-                        <div className="overflow-x-auto">
+                    <div className="relative group">
+                        {loading && (
+                            <div className="absolute inset-0 bg-black/20 backdrop-blur-[2px] z-50 flex items-center justify-center rounded-[2rem]">
+                                <div className="flex flex-col items-center gap-4 bg-zinc-900/80 p-8 rounded-[2rem] border border-zinc-800 shadow-2xl">
+                                    <RefreshCw className="w-10 h-10 text-blue-500 animate-spin" />
+                                    <div className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] animate-pulse">Updating Portfolio...</div>
+                                </div>
+                            </div>
+                        )}
+                        <div className="bg-zinc-900/40 border border-zinc-800/60 backdrop-blur-xl rounded-[2rem] overflow-hidden shadow-2xl shadow-black/40">
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left border-collapse">
+                                    <thead>
+                                        <tr className="border-b border-zinc-800/50 bg-zinc-900/30">
+                                            <th className="p-6 text-zinc-500 font-bold text-[10px] uppercase tracking-[0.15em]">Fund House / Name</th>
+                                            <th className="p-6 text-zinc-500 font-bold text-[10px] uppercase tracking-[0.15em] text-right">Units</th>
+                                            <th className="p-6 text-zinc-500 font-bold text-[10px] uppercase tracking-[0.15em] text-right">Transactions</th>
+                                            <th className="p-6 text-zinc-500 font-bold text-[10px] uppercase tracking-[0.15em] text-right">Invested</th>
+                                            <th className="p-6 text-zinc-500 font-bold text-[10px] uppercase tracking-[0.15em] text-right">Current Value</th>
+                                            <th className="p-6 text-zinc-500 font-bold text-[10px] uppercase tracking-[0.15em] text-right">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-zinc-800/30">
+                                        {displayPositions.map((position) => (
+                                            <tr
+                                                key={position.scheme_code}
+                                                onClick={() => setSelectedFundForTxns(position.scheme_code)}
+                                                className="group/row transition-all cursor-pointer hover:bg-zinc-800/30"
+                                            >
+                                                <td className="p-6">
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400 group-hover/row:scale-110 transition-transform">
+                                                            <Package size={20} />
+                                                        </div>
+                                                        <div className="min-w-0">
+                                                            <div className="text-[10px] text-zinc-500 font-black uppercase tracking-widest mb-0.5">{position.fund_house}</div>
+                                                            <div className="font-black text-white text-base group-hover/row:text-blue-400 transition-colors uppercase tracking-tight truncate max-w-[300px]">{position.scheme_name}</div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td className="p-6 text-right tabular-nums">
+                                                    <div className="font-black text-white text-base tracking-tight">{position.units.toLocaleString('en-IN', { minimumFractionDigits: 3 })}</div>
+                                                    <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-1">Units Allotted</div>
+                                                </td>
+                                                <td className="p-6 text-right tabular-nums">
+                                                    <div className="font-bold text-zinc-300">₹{position.invested_amount.toLocaleString('en-IN')}</div>
+                                                    <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-1">
+                                                        @ ₹{position.purchase_avg_nav.toFixed(2)}
+                                                    </div>
+                                                </td>
+                                                <td className="p-6 text-right tabular-nums">
+                                                    <div className="font-black text-white text-base tracking-tight">₹{position.current_value.toLocaleString('en-IN')}</div>
+                                                    <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-1">Current NAV</div>
+                                                </td>
+                                                <td className="p-6 text-right tabular-nums">
+                                                    <div className={`flex items-center justify-end gap-1.5 font-black text-base ${position.returns >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                                        {position.returns >= 0 ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
+                                                        {Math.abs(position.returns_percent).toFixed(2)}%
+                                                    </div>
+                                                    <div className={`text-[10px] font-bold uppercase tracking-widest mt-0.5 ${position.returns >= 0 ? 'text-emerald-500/50' : 'text-rose-500/50'}`}>
+                                                        {position.returns >= 0 ? '+' : ''}₹{Math.abs(position.returns).toLocaleString('en-IN')}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            {/* Transactions Modal */}
+            {selectedFundForTxns && selectedFundDetails && (
+                <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black/90 backdrop-blur-sm" onClick={() => setSelectedFundForTxns(null)} />
+                    <div className="relative w-full max-w-4xl bg-[#0a0a0a] border border-zinc-800/50 rounded-[2.5rem] shadow-[0_0_100px_rgba(0,0,0,1)] overflow-hidden">
+
+                        {/* Modal Header */}
+                        <div className="p-10 pb-6 flex justify-between items-start border-b border-zinc-800/30">
+                            <div>
+                                <h3 className="text-3xl font-black text-white uppercase tracking-tight mb-2">
+                                    {selectedFundDetails.scheme_name} <span className="text-zinc-600 ml-2">Transactions</span>
+                                </h3>
+                                <div className="flex items-center gap-4">
+                                    <div className="text-xs text-zinc-500 font-bold uppercase tracking-widest">
+                                        {selectedFundDetails.txn_count} transactions • Total Invested: <span className="text-white">₹{selectedFundDetails.invested_amount.toLocaleString('en-IN')}</span>
+                                    </div>
+                                    <div className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest ${selectedFundDetails.returns >= 0 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>
+                                        {selectedFundDetails.returns >= 0 ? '+' : ''}{selectedFundDetails.returns_percent.toFixed(2)}%
+                                    </div>
+                                </div>
+                            </div>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setSelectedFundForTxns(null)}
+                                className="h-10 w-10 bg-zinc-900/50 hover:bg-zinc-800 text-zinc-500 hover:text-white rounded-xl transition-all"
+                            >
+                                <X size={20} />
+                            </Button>
+                        </div>
+
+                        {/* Modal Content */}
+                        <div className="p-10 pt-6 max-h-[70vh] overflow-y-auto scrollbar-hide">
                             <table className="w-full text-left border-collapse">
                                 <thead>
-                                    <tr className="border-b border-zinc-800/50 bg-zinc-900/30">
-                                        <th className="p-6 text-zinc-500 font-bold text-[10px] uppercase tracking-[0.15em]">Fund House / Name</th>
-                                        <th className="p-6 text-zinc-500 font-bold text-[10px] uppercase tracking-[0.15em] text-right">Units</th>
-                                        <th className="p-6 text-zinc-500 font-bold text-[10px] uppercase tracking-[0.15em] text-right">Purchase Date</th>
-                                        <th className="p-6 text-zinc-500 font-bold text-[10px] uppercase tracking-[0.15em] text-right">Invested</th>
-                                        <th className="p-6 text-zinc-500 font-bold text-[10px] uppercase tracking-[0.15em] text-right">Current Value</th>
-                                        <th className="p-6 text-zinc-500 font-bold text-[10px] uppercase tracking-[0.15em] text-right">Status</th>
-                                        <th className="p-6 text-zinc-500 font-bold text-[10px] uppercase tracking-[0.15em] text-right">Actions</th>
+                                    <tr className="text-zinc-600 font-bold text-[10px] uppercase tracking-[0.2em] border-b border-zinc-800/30">
+                                        <th className="py-4 px-2">Date</th>
+                                        <th className="py-4 px-2 text-right">Units</th>
+                                        <th className="py-4 px-2 text-right">NAV</th>
+                                        <th className="py-4 px-2 text-right">Amount</th>
+                                        <th className="py-4 px-2 text-right">Action</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-zinc-800/30">
-                                    {positions.map((position) => (
-                                        <tr key={position.position_id} className="group/row hover:bg-zinc-800/30 transition-all">
-                                            <td className="p-6">
-                                                <div className="flex items-center gap-4">
-                                                    <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400 group-hover/row:scale-110 transition-transform">
-                                                        <Package size={20} />
-                                                    </div>
-                                                    <div className="min-w-0">
-                                                        <div className="text-[10px] text-zinc-500 font-black uppercase tracking-widest mb-0.5">{position.fund_house}</div>
-                                                        <div className="font-black text-white text-base group-hover/row:text-blue-400 transition-colors uppercase tracking-tight truncate max-w-[300px]">{position.scheme_name}</div>
-                                                    </div>
+                                <tbody className="divide-y divide-zinc-800/20">
+                                    {transactionsForSelectedFund.map((txn) => (
+                                        <tr key={txn.position_id} className="group hover:bg-white/[0.02] transition-colors">
+                                            <td className="py-5 px-2">
+                                                <div className="flex items-center gap-3 text-sm font-bold text-zinc-400 group-hover:text-blue-400 transition-colors">
+                                                    <Calendar size={14} className="opacity-50" />
+                                                    {new Date(txn.purchase_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
                                                 </div>
                                             </td>
-                                            <td className="p-6 text-right tabular-nums">
-                                                <div className="font-black text-white text-base tracking-tight">{position.units.toLocaleString('en-IN', { minimumFractionDigits: 3 })}</div>
-                                                <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-1">Units Allotted</div>
+                                            <td className="py-5 px-2 text-right tabular-nums text-white font-bold text-sm">
+                                                {txn.units.toLocaleString('en-IN', { minimumFractionDigits: 3 })}
                                             </td>
-                                            <td className="p-6 text-right tabular-nums">
-                                                <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-zinc-800/50 rounded-lg text-zinc-300 font-bold text-xs uppercase tracking-tight">
-                                                    <Calendar size={12} className="text-zinc-500" />
-                                                    {new Date(position.purchase_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
-                                                </div>
+                                            <td className="py-5 px-2 text-right tabular-nums text-zinc-500 font-bold text-sm">
+                                                ₹{txn.purchase_nav?.toFixed(2)}
                                             </td>
-                                            <td className="p-6 text-right tabular-nums">
-                                                <div className="font-bold text-zinc-300">₹{position.invested_amount.toLocaleString('en-IN')}</div>
-                                                <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-1">@ ₹{position.purchase_nav?.toFixed(2)}</div>
+                                            <td className="py-5 px-2 text-right tabular-nums">
+                                                <div className="text-emerald-400 font-black text-sm">₹{txn.invested_amount.toLocaleString('en-IN')}</div>
                                             </td>
-                                            <td className="p-6 text-right tabular-nums">
-                                                <div className="font-black text-white text-base tracking-tight">₹{position.current_value.toLocaleString('en-IN')}</div>
-                                                <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-1">Current NAV</div>
-                                            </td>
-                                            <td className="p-6 text-right tabular-nums">
-                                                <div className={`flex items-center justify-end gap-1.5 font-black text-base ${position.returns >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                                                    {position.returns >= 0 ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
-                                                    {Math.abs(position.returns_percent).toFixed(2)}%
-                                                </div>
-                                                <div className={`text-[10px] font-bold uppercase tracking-widest mt-0.5 ${position.returns >= 0 ? 'text-emerald-500/50' : 'text-rose-500/50'}`}>
-                                                    {position.returns >= 0 ? '+' : ''}₹{Math.abs(position.returns).toLocaleString('en-IN')}
-                                                </div>
-                                            </td>
-                                            <td className="p-6 text-right">
+                                            <td className="py-5 px-2 text-right">
                                                 <Button
-                                                    onClick={() => setPositionToDelete(position.position_id)}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation()
+                                                        setPositionToDelete(txn.position_id)
+                                                    }}
                                                     variant="ghost"
                                                     size="icon"
-                                                    className="h-9 w-9 text-zinc-500 hover:text-rose-400 hover:bg-rose-400/10 rounded-xl transition-all"
+                                                    className="h-8 w-8 text-zinc-700 hover:text-rose-500 hover:bg-rose-500/10 rounded-lg transition-all"
                                                 >
-                                                    <Trash2 size={18} />
+                                                    <Trash2 size={16} />
                                                 </Button>
                                             </td>
                                         </tr>
@@ -352,8 +528,8 @@ export default function MFPositionsPage() {
                             </table>
                         </div>
                     </div>
-                )}
-            </div>
+                </div>
+            )}
 
             {/* Add Position Modal */}
             {isAddModalOpen && (
@@ -376,18 +552,56 @@ export default function MFPositionsPage() {
                             </div>
 
                             <form onSubmit={handleAddPosition} className="space-y-6">
-                                {/* Fund Search */}
+                                {/* Fund Selection */}
                                 <div className="space-y-3">
-                                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] px-1">Select Mutual Fund</label>
+                                    <div className="flex justify-between items-center px-1">
+                                        <label className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em]">Select Mutual Fund</label>
+                                        <div className="flex items-center gap-2">
+                                            {loading && (
+                                                <div className="flex items-center gap-1.5 px-2 py-1 bg-blue-500/5 rounded-lg border border-blue-500/10">
+                                                    <RefreshCw size={10} className="text-blue-500 animate-spin" />
+                                                    <span className="text-[9px] font-black text-blue-400 uppercase tracking-widest">Syncing</span>
+                                                </div>
+                                            )}
+                                            {existingHoldings.length > 0 && (
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="h-7 px-3 bg-zinc-800/30 hover:bg-zinc-800 text-[10px] font-black uppercase tracking-wider text-blue-400 rounded-lg flex items-center gap-1.5"
+                                                        >
+                                                            Use Existing Holding <ChevronDown size={12} />
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end" className="bg-zinc-900 border-zinc-800 w-64 max-h-60 overflow-y-auto scrollbar-hide p-2 shadow-2xl z-[301]">
+                                                        <div className="text-[9px] font-black text-zinc-500 uppercase tracking-widest p-2 mb-1 border-b border-zinc-800/50">Your Portfolio Funds</div>
+                                                        {existingHoldings.map((fund) => (
+                                                            <DropdownMenuItem
+                                                                key={fund.scheme_code}
+                                                                onSelect={() => {
+                                                                    setSelectedFund(fund)
+                                                                    setSearchQuery('')
+                                                                    setSearchResults([])
+                                                                }}
+                                                                className="flex flex-col items-start p-3 hover:bg-zinc-800 cursor-pointer rounded-xl focus:bg-zinc-800 focus:text-white"
+                                                            >
+                                                                <div className="font-bold text-white text-xs uppercase truncate w-full">{fund.scheme_name}</div>
+                                                                <div className="text-[9px] text-zinc-500 font-black uppercase mt-0.5">{fund.fund_house}</div>
+                                                            </DropdownMenuItem>
+                                                        ))}
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+                                            )}
+                                        </div>
+                                    </div>
+
                                     <div className="relative">
                                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500" />
                                         <Input
                                             value={searchQuery}
-                                            onChange={(e) => {
-                                                setSearchQuery(e.target.value)
-                                                searchFunds(e.target.value)
-                                            }}
-                                            placeholder="Search by fund name..."
+                                            onChange={(e) => setSearchQuery(e.target.value)}
+                                            placeholder={selectedFund ? "Search to change fund..." : "Type to search new fund..."}
                                             className="bg-zinc-800/50 border-zinc-800 text-white pl-12 h-14 rounded-2xl focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/5 transition-all"
                                         />
                                     </div>
@@ -517,7 +731,7 @@ export default function MFPositionsPage() {
 
             {/* Delete Confirmation Modal */}
             {positionToDelete && (
-                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+                <div className="fixed inset-0 z-[400] flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setPositionToDelete(null)} />
                     <div className="relative w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-[2rem] shadow-2xl p-8">
                         <div className="bg-rose-500/10 w-16 h-16 rounded-2xl flex items-center justify-center text-rose-500 mb-6">

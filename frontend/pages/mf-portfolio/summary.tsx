@@ -64,16 +64,36 @@ export default function MFSummaryPage() {
         }
     }
 
-    const insights = useMemo(() => {
-        if (positions.length === 0) return null
+    const aggregatedPositions = useMemo(() => {
+        const map = new Map<string, any>()
 
-        const highestInvested = positions.reduce((max, p) => p.invested_amount > max.invested_amount ? p : max)
-        const bestReturn = positions.reduce((max, p) => p.returns_percent > max.returns_percent ? p : max)
-        const worstReturn = positions.reduce((min, p) => p.returns_percent < min.returns_percent ? p : min)
-        const largestValue = positions.reduce((max, p) => p.current_value > max.current_value ? p : max)
+        positions.forEach(p => {
+            if (map.has(p.scheme_code)) {
+                const existing = map.get(p.scheme_code)
+                existing.invested_amount += p.invested_amount
+                existing.current_value += p.current_value
+                existing.returns += p.returns
+                // Recalculate returns percent for the aggregated position
+                existing.returns_percent = (existing.returns / existing.invested_amount) * 100
+                existing.units += p.units
+            } else {
+                map.set(p.scheme_code, { ...p })
+            }
+        })
+
+        return Array.from(map.values())
+    }, [positions])
+
+    const insights = useMemo(() => {
+        if (aggregatedPositions.length === 0) return null
+
+        const highestInvested = aggregatedPositions.reduce((max, p) => p.invested_amount > max.invested_amount ? p : max)
+        const bestReturn = aggregatedPositions.reduce((max, p) => p.returns_percent > max.returns_percent ? p : max)
+        const worstReturn = aggregatedPositions.reduce((min, p) => p.returns_percent < min.returns_percent ? p : min)
+        const largestValue = aggregatedPositions.reduce((max, p) => p.current_value > max.current_value ? p : max)
 
         return { highestInvested, bestReturn, worstReturn, largestValue }
-    }, [positions])
+    }, [aggregatedPositions])
 
     const chartColors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#14b8a6', '#6366f1']
 
@@ -177,7 +197,7 @@ export default function MFSummaryPage() {
                             <ResponsiveContainer width="100%" height="100%">
                                 <RechartsPieChart>
                                     <Pie
-                                        data={positions.map(p => ({ name: p.scheme_name, value: p.current_value }))}
+                                        data={aggregatedPositions.map(p => ({ name: p.scheme_name, value: p.current_value }))}
                                         cx="50%"
                                         cy="50%"
                                         innerRadius={90}
@@ -221,8 +241,8 @@ export default function MFSummaryPage() {
                             Portfolio Weightage
                         </h3>
                         <div className="space-y-6">
-                            {positions.map((p, index) => (
-                                <div key={p.position_id} className="flex flex-col gap-2 group/item">
+                            {aggregatedPositions.map((p, index) => (
+                                <div key={p.scheme_code} className="flex flex-col gap-2 group/item">
                                     <div className="flex justify-between items-center text-sm font-bold uppercase tracking-widest text-zinc-400">
                                         <span className="truncate max-w-[180px] group-hover/item:text-white transition-colors uppercase">{p.scheme_name}</span>
                                         <span className="text-white font-black text-base">
@@ -268,8 +288,12 @@ export default function MFSummaryPage() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-zinc-800/30">
-                                {positions.map((p) => (
-                                    <tr key={p.position_id} className="group/row hover:bg-zinc-800/30 transition-all">
+                                {aggregatedPositions.map((p) => (
+                                    <tr
+                                        key={p.scheme_code}
+                                        onClick={() => router.push(`/mf-positions?fund=${encodeURIComponent(p.fund_house)}`)}
+                                        className="group/row hover:bg-zinc-800/30 transition-all cursor-pointer"
+                                    >
                                         <td className="px-8 py-6">
                                             <div className="text-[10px] text-zinc-500 font-black uppercase tracking-widest mb-1">{p.fund_house}</div>
                                             <div className="font-black text-white text-base group-hover/row:text-blue-400 transition-colors uppercase tracking-tight">{p.scheme_name}</div>
