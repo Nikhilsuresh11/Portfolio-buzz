@@ -3,9 +3,10 @@ import { useRouter } from 'next/router';
 import { useAuth } from '../lib/auth-context';
 import { usePortfolio } from '../lib/portfolio-context';
 import { buildApiUrl, getApiHeaders } from '../lib/api-helpers';
-import { Plus, Trash2, Calendar, Package, X } from 'lucide-react';
+import { Plus, Trash2, Calendar, Package, X, Loader2 } from 'lucide-react';
 import { PageLoader } from '../components/ui/page-loader';
 import { Button } from '@/components/ui/button';
+import { Tabs } from '@/components/ui/vercel-tabs';
 import StockSearchModal from '../components/StockSearchModal';
 import DeleteConfirmModal from '../components/DeleteConfirmModal';
 
@@ -63,8 +64,14 @@ export default function MyPositionsPage() {
             router.push('/select-portfolio');
         } else if (userEmail && currentPortfolio) {
             fetchPositions();
+            // Check if we should auto-open the add modal
+            if (router.query.add === 'true') {
+                setIsAddModalOpen(true);
+            }
         }
     }, [userEmail, currentPortfolio, isAuthLoading, router]);
+
+    const isEmbedded = router.query.embedded === 'true';
 
     const fetchPositions = async () => {
         if (!currentPortfolio || !userEmail) return;
@@ -138,6 +145,7 @@ export default function MyPositionsPage() {
 
     const handleStockSelect = async (ticker: string) => {
         setSelectedStock(ticker);
+        setFormData(prev => ({ ...prev, symbol: ticker }));
         setIsStockSearchOpen(false);
         setIsAddModalOpen(true);
         return Promise.resolve();
@@ -145,7 +153,16 @@ export default function MyPositionsPage() {
 
     const handleAddPosition = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!currentPortfolio || !userEmail || !selectedStock) return;
+
+        if (!currentPortfolio || !userEmail) {
+            setError('Portfolio or User not loaded');
+            return;
+        }
+
+        if (!formData.symbol || !formData.quantity || !formData.buy_date || !formData.invested_amount) {
+            setError('Please fill in all fields');
+            return;
+        }
 
         try {
             setSubmitting(true);
@@ -233,13 +250,30 @@ export default function MyPositionsPage() {
         <div className="flex flex-col h-screen relative overflow-hidden bg-black">
             <div className="flex-none p-6 md:p-8 pb-0 z-10 max-w-[1600px] mx-auto w-full">
                 {/* Header */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                <div className="mb-4 flex items-start justify-between">
                     <div>
-                        <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-white via-blue-100 to-emerald-100 bg-clip-text text-transparent">
+                        <h1 className="text-2xl md:text-3xl font-bold mb-1.5 bg-gradient-to-r from-white via-blue-100 to-emerald-100 bg-clip-text text-transparent">
                             My Positions
                         </h1>
-                        <p className="text-zinc-400">Track and manage all your stock transactions</p>
+                        <p className="text-zinc-400 text-sm">Track and manage all your transactions</p>
                     </div>
+                </div>
+
+                {/* Tabs below header */}
+                <div className="flex items-center justify-between gap-2 px-6 md:px-8">
+                    <Tabs
+                        tabs={[
+                            { id: 'stocks', label: 'Stock Positions' },
+                            { id: 'mutual-funds', label: 'Mutual Fund Positions' }
+                        ]}
+                        activeTab='stocks'
+                        onTabChange={(tabId: string) => {
+                            if (tabId === 'mutual-funds') {
+                                router.push('/mf-positions');
+                            }
+                        }}
+                        className="[&>div>div>div]:h-[42px] [&>div>div>div]:px-5 [&>div>div>div]:text-[15px]"
+                    />
                     <div className="bg-gradient-to-r from-blue-500 to-emerald-500 rounded-xl p-0.5">
                         <Button
                             onClick={() => setIsAddModalOpen(true)}
@@ -587,9 +621,14 @@ export default function MyPositionsPage() {
                                     <button
                                         type="submit"
                                         disabled={submitting}
-                                        className="w-full bg-black hover:bg-zinc-900 text-white font-semibold py-[9px] rounded-[11px] transition-colors disabled:opacity-50"
+                                        className="w-full bg-black hover:bg-zinc-900 text-white font-semibold py-[9px] rounded-[11px] transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                                     >
-                                        {submitting ? 'Adding...' : 'Add Position'}
+                                        {submitting ? (
+                                            <>
+                                                <Loader2 size={16} className="animate-spin" />
+                                                Adding...
+                                            </>
+                                        ) : 'Add Position'}
                                     </button>
                                 </div>
                             </div>

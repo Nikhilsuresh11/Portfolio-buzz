@@ -18,3 +18,4 @@ yfinance
 google-auth>=2.16.0
 mftool
 deprecated
+pytz

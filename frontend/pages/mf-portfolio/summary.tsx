@@ -20,6 +20,8 @@ type MFPosition = {
     current_value: number
     returns: number
     returns_percent: number
+    day_change: number
+    day_change_percent: number
     fund_house: string
     fund_xirr?: number | null
 }
@@ -74,6 +76,7 @@ export default function MFSummaryPage() {
                 existing.invested_amount += p.invested_amount
                 existing.current_value += p.current_value
                 existing.returns += p.returns
+                existing.day_change += p.day_change
                 // Recalculate returns percent for the aggregated position
                 existing.returns_percent = (existing.returns / existing.invested_amount) * 100
                 existing.units += p.units
@@ -88,12 +91,12 @@ export default function MFSummaryPage() {
     const insights = useMemo(() => {
         if (aggregatedPositions.length === 0) return null
 
-        const highestInvested = aggregatedPositions.reduce((max, p) => p.invested_amount > max.invested_amount ? p : max)
-        const bestReturn = aggregatedPositions.reduce((max, p) => p.returns_percent > max.returns_percent ? p : max)
-        const worstReturn = aggregatedPositions.reduce((min, p) => p.returns_percent < min.returns_percent ? p : min)
-        const largestValue = aggregatedPositions.reduce((max, p) => p.current_value > max.current_value ? p : max)
+        const bestDailyPct = aggregatedPositions.reduce((max, p) => p.day_change_percent > max.day_change_percent ? p : max)
+        const worstDailyPct = aggregatedPositions.reduce((min, p) => p.day_change_percent < min.day_change_percent ? p : min)
+        const bestDailyRupee = aggregatedPositions.reduce((max, p) => p.day_change > max.day_change ? p : max)
+        const worstDailyRupee = aggregatedPositions.reduce((min, p) => p.day_change < min.day_change ? p : min)
 
-        return { highestInvested, bestReturn, worstReturn, largestValue }
+        return { bestDailyPct, worstDailyPct, bestDailyRupee, worstDailyRupee }
     }, [aggregatedPositions])
 
     const chartColors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#14b8a6', '#6366f1']
@@ -128,55 +131,80 @@ export default function MFSummaryPage() {
             <div className="flex-1 px-6 md:px-8 pb-8 overflow-y-auto scrollbar-hide max-w-[1600px] mx-auto w-full relative z-10">
 
                 {/* Header */}
-                <div className="mb-10">
-                    <h1 className="text-2xl md:text-3xl font-bold text-white mb-2 pt-8">
-                        MF Summary
-                    </h1>
-                    <p className="text-zinc-400 text-sm">Deep dive into your mutual fund allocations and performance metrics.</p>
+                {/* Header Section */}
+                <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8 pt-8">
+                    <div>
+                        <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-white via-blue-100 to-emerald-100 bg-clip-text text-transparent">
+                            MF Summary
+                        </h1>
+                        <p className="text-neutral-400">Deep dive into your mutual fund allocations and performance metrics.</p>
+                    </div>
+
+                    <div className="bg-gradient-to-r from-blue-500 to-emerald-500 rounded-xl p-0.5">
+                        <button
+                            onClick={() => router.push('/mf-portfolio')}
+                            className="bg-black hover:bg-zinc-900 text-white gap-2 font-semibold text-sm h-9 px-5 rounded-[11px] flex items-center transition-colors"
+                        >
+                            <ArrowLeft size={16} />
+                            View Global Overview
+                        </button>
+                    </div>
                 </div>
 
-                {insights && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-                        {/* Highest Invested */}
-                        <div className="bg-zinc-900/40 border border-zinc-800/60 p-5 rounded-2xl">
-                            <div className="flex items-center gap-2 text-zinc-500 text-xs mb-3">
-                                <DollarSign size={14} className="text-blue-400" />
-                                Highest Invested
+                {insights && summary && (
+                    <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+                        {/* Overall Today G/L */}
+                        <div className="bg-zinc-900/40 border border-zinc-800/60 backdrop-blur-xl rounded-2xl p-4">
+                            <div className="flex items-center gap-2 text-zinc-400 text-[9px] uppercase mb-2 font-medium tracking-wider">
+                                <Activity className="w-3.5 h-3.5 text-blue-400" />
+                                Today's G/L
                             </div>
-                            <div className="text-lg font-semibold text-white truncate">{insights.highestInvested.scheme_name}</div>
-                            <div className="text-sm text-zinc-500 mt-2">₹{insights.highestInvested.invested_amount.toLocaleString('en-IN')}</div>
+                            <div className={`text-[15px] font-bold ${summary.total_day_change >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                ₹{summary.total_day_change.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </div>
+                            <div className={`text-[9px] mt-0.5 font-medium ${summary.total_day_change >= 0 ? 'text-green-500/80' : 'text-red-500/80'}`}>
+                                {summary.total_day_change_percent.toFixed(2)}% today
+                            </div>
                         </div>
 
-                        {/* Best Performer */}
-                        <div className="bg-zinc-900/40 border border-emerald-500/20 p-5 rounded-2xl">
-                            <div className="flex items-center gap-2 text-emerald-500/60 text-xs mb-3">
-                                <Trophy size={14} className="text-emerald-400" />
-                                Best Return
+                        {/* Best Pct */}
+                        <div className="bg-zinc-900/40 border border-emerald-500/10 backdrop-blur-xl rounded-2xl p-4">
+                            <div className="flex items-center gap-2 text-zinc-400 text-[9px] uppercase mb-2 font-medium tracking-wider">
+                                <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
+                                Best Performance %
                             </div>
-                            <div className="text-lg font-semibold text-emerald-400 truncate">{insights.bestReturn.scheme_name}</div>
-                            <div className="text-sm text-zinc-500 mt-2">+{insights.bestReturn.returns_percent.toFixed(2)}% absolute return</div>
+                            <div className="text-[14px] font-bold text-white truncate">{insights.bestDailyPct.scheme_name}</div>
+                            <div className="text-[10px] text-emerald-400 mt-0.5">{insights.bestDailyPct.day_change_percent.toFixed(2)}%</div>
                         </div>
 
-                        {/* Lagging Fund */}
-                        <div className="bg-zinc-900/40 border border-rose-500/20 p-5 rounded-2xl">
-                            <div className="flex items-center gap-2 text-rose-500/60 text-xs mb-3">
-                                <TrendingDown size={14} className="text-rose-400" />
-                                Lowest Return
+                        {/* Worst Pct */}
+                        <div className="bg-zinc-900/40 border border-rose-500/10 backdrop-blur-xl rounded-2xl p-4">
+                            <div className="flex items-center gap-2 text-zinc-400 text-[9px] uppercase mb-2 font-medium tracking-wider">
+                                <TrendingDown className="w-3.5 h-3.5 text-rose-400" />
+                                Worst Performance %
                             </div>
-                            <div className="text-lg font-semibold text-rose-400 truncate">{insights.worstReturn.scheme_name}</div>
-                            <div className="text-sm text-zinc-500 mt-2">{insights.worstReturn.returns_percent.toFixed(2)}% absolute return</div>
+                            <div className="text-[14px] font-bold text-white truncate">{insights.worstDailyPct.scheme_name}</div>
+                            <div className="text-[10px] text-rose-400 mt-0.5">{insights.worstDailyPct.day_change_percent.toFixed(2)}%</div>
                         </div>
 
-                        {/* Largest Holding */}
-                        <div className="bg-zinc-900/40 border border-purple-500/20 p-5 rounded-2xl">
-                            <div className="flex items-center gap-2 text-purple-500/60 text-xs mb-3">
-                                <Target size={14} className="text-purple-400" />
-                                Concentration
+                        {/* Best Rupee */}
+                        <div className="bg-zinc-900/40 border border-emerald-500/10 backdrop-blur-xl rounded-2xl p-4">
+                            <div className="flex items-center gap-2 text-zinc-400 text-[9px] uppercase mb-2 font-medium tracking-wider">
+                                <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
+                                Top Gainer (₹)
                             </div>
-                            <div className="text-lg font-semibold text-purple-400 truncate">{insights.largestValue.scheme_name}</div>
-                            <div className="text-sm text-zinc-500 mt-2">
-                                Weight: {summary?.current_value ? ((insights.largestValue.current_value / summary.current_value) * 100).toFixed(1) : '0.0'}% of total
+                            <div className="text-[14px] font-bold text-white truncate">{insights.bestDailyRupee.scheme_name}</div>
+                            <div className="text-[10px] text-emerald-400 mt-0.5">+₹{insights.bestDailyRupee.day_change.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                        </div>
+
+                        {/* Worst Rupee */}
+                        <div className="bg-zinc-900/40 border border-rose-500/10 backdrop-blur-xl rounded-2xl p-4">
+                            <div className="flex items-center gap-2 text-zinc-400 text-[9px] uppercase mb-2 font-medium tracking-wider">
+                                <TrendingDown className="w-3.5 h-3.5 text-rose-400" />
+                                Top Loser (₹)
                             </div>
+                            <div className="text-[14px] font-bold text-white truncate">{insights.worstDailyRupee.scheme_name}</div>
+                            <div className="text-[10px] text-rose-400 mt-0.5">₹{insights.worstDailyRupee.day_change.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                         </div>
                     </div>
                 )}
@@ -184,7 +212,7 @@ export default function MFSummaryPage() {
                 {/* Fund-wise Performance Table */}
                 <div className="bg-zinc-900/30 border border-zinc-800/50 backdrop-blur-xl rounded-2xl shadow-2xl shadow-black/20 overflow-hidden flex flex-col mb-10">
                     <div className="p-4 border-b border-white/10 bg-zinc-900/50">
-                        <h3 className="text-lg font-bold flex items-center gap-2">
+                        <h3 className="text-base font-bold flex items-center gap-2">
                             <BarChart3 className="w-5 h-5 text-blue-400" />
                             Fund Performance
                         </h3>
@@ -193,10 +221,11 @@ export default function MFSummaryPage() {
                         {/* Sticky Header */}
                         <table className="w-full border-collapse text-left table-fixed">
                             <thead className="sticky top-0 z-10 bg-zinc-900/95 backdrop-blur-sm">
-                                <tr className="border-b border-white/10 text-[10px] font-black uppercase tracking-wider text-zinc-500">
+                                <tr className="border-b border-white/10 text-[11px] font-bold uppercase tracking-wider text-zinc-500">
                                     <th className="px-4 py-3 w-[350px]">Mutual Fund Scheme</th>
                                     <th className="px-3 py-3 text-right w-[140px]">Invested</th>
                                     <th className="px-3 py-3 text-right w-[140px]">Current Value</th>
+                                    <th className="px-3 py-3 text-right w-[110px]">Day G/L</th>
                                     <th className="px-3 py-3 text-right w-[110px]">XIRR</th>
                                     <th className="px-3 py-3 text-right w-[160px]">Total Return</th>
                                     <th className="px-3 py-3 text-right w-[130px]">Allocation</th>
@@ -231,36 +260,46 @@ export default function MFSummaryPage() {
                                                         </div>
                                                         <div className="min-w-0 flex-1">
                                                             <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-0.5 truncate">{p.fund_house}</div>
-                                                            <div className="font-bold text-gray-100 text-sm group-hover:text-blue-400 transition-colors truncate uppercase tracking-tight">{p.scheme_name}</div>
+                                                            <div className="font-semibold text-gray-100 text-[12px] group-hover:text-blue-400 transition-colors truncate uppercase tracking-tight">{p.scheme_name}</div>
                                                         </div>
                                                     </div>
                                                 </td>
 
                                                 {/* Invested */}
-                                                <td className="px-3 py-4 text-right tabular-nums text-sm text-zinc-300 font-semibold w-[140px]">
-                                                    ₹{p.invested_amount.toLocaleString('en-IN')}
+                                                <td className="px-3 py-4 text-right tabular-nums text-sm text-zinc-300 font-medium w-[140px]">
+                                                    ₹{p.invested_amount.toLocaleString('en-IN', { minimumFractionDigits: 1, maximumFractionDigits: 2 })}
                                                 </td>
 
                                                 {/* Current Value */}
-                                                <td className="px-3 py-4 text-right tabular-nums font-bold text-[15px] text-white w-[140px]">
-                                                    ₹{p.current_value.toLocaleString('en-IN')}
+                                                <td className="px-3 py-4 text-right tabular-nums font-bold text-sm text-white w-[140px]">
+                                                    ₹{p.current_value.toLocaleString('en-IN', { minimumFractionDigits: 1, maximumFractionDigits: 2 })}
+                                                </td>
+
+                                                {/* Day G/L */}
+                                                <td className="px-3 py-4 text-right w-[110px]">
+                                                    <div className={`text-sm font-semibold ${p.day_change >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                                        {p.day_change >= 0 ? '+' : ''}{p.day_change_percent.toFixed(2)}%
+                                                    </div>
+                                                    <div className={`text-[10px] ${p.day_change >= 0 ? 'text-emerald-500/80' : 'text-rose-500/80'}`}>
+                                                        {p.day_change >= 0 ? '+' : ''}₹{Math.abs(p.day_change).toFixed(2)}
+                                                    </div>
                                                 </td>
 
                                                 {/* XIRR */}
                                                 <td className="px-3 py-4 text-right w-[110px]">
-                                                    <div className={`text-sm font-bold ${p.fund_xirr && p.fund_xirr >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                                    <div className={`text-sm font-semibold ${p.fund_xirr && p.fund_xirr >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                                                         {p.fund_xirr ? `${p.fund_xirr.toFixed(1)}%` : 'N/A'}
                                                     </div>
-                                                    <div className="text-[9px] text-zinc-600 font-bold uppercase tracking-widest mt-0.5">Annualized</div>
+                                                    <div className="text-[10px] text-zinc-500/60 uppercase font-medium">Annualized</div>
                                                 </td>
 
                                                 {/* Total Return */}
                                                 <td className="px-3 py-4 text-right w-[160px]">
-                                                    <div className={`text-sm font-bold ${isPositive ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                                    <div className={`text-sm font-semibold ${isPositive ? 'text-emerald-400' : 'text-rose-400'}`}>
                                                         {isPositive ? '+' : ''}{p.returns_percent.toFixed(2)}%
                                                     </div>
-                                                    <div className={`text-[10px] font-bold uppercase tracking-tight ${isPositive ? 'text-emerald-500/50' : 'text-rose-500/50'}`}>
-                                                        {isPositive ? '+' : ''}₹{Math.abs(p.returns).toLocaleString('en-IN')}
+                                                    <div className={`text-[10px] ${isPositive ? 'text-emerald-500/80' : 'text-rose-500/80'}`}>
+                                                        {isPositive ? '+' : ''}₹{Math.abs(p.returns).toLocaleString('en-IN', { minimumFractionDigits: 1, maximumFractionDigits: 2 })}
                                                     </div>
                                                 </td>
 
@@ -355,11 +394,11 @@ export default function MFSummaryPage() {
                             <div className="space-y-6">
                                 {aggregatedPositions.map((p, index) => (
                                     <div key={p.scheme_code} className="flex flex-col gap-2 group/item">
-                                        <div className="flex justify-between items-center text-sm font-bold uppercase tracking-widest text-zinc-400">
+                                        <div className="flex justify-between items-center text-xs font-bold uppercase tracking-widest text-zinc-400">
                                             <span className="truncate max-w-[180px] group-hover/item:text-white transition-colors uppercase">{p.scheme_name}</span>
-                                            <span className="text-white font-black text-base">
+                                            <span className="text-white font-bold text-sm">
                                                 {summary?.current_value ? ((p.current_value / summary.current_value) * 100).toFixed(1) : '0.0'}
-                                                <span className="text-xs text-zinc-500 ml-0.5">%</span>
+                                                <span className="text-[10px] text-zinc-500 ml-0.5">%</span>
                                             </span>
                                         </div>
                                         <div className="w-full bg-zinc-800/50 rounded-full h-2.5 overflow-hidden">
@@ -388,7 +427,7 @@ export default function MFSummaryPage() {
                         Back to Global Overview
                     </Button>
                 </div>
-            </div>
+            </div >
 
             <style jsx global>{`
                     .scrollbar-hide::-webkit-scrollbar {
@@ -399,6 +438,6 @@ export default function MFSummaryPage() {
                         scrollbar-width: none;
                     }
                 `}</style>
-        </div>
+        </div >
     );
 }
