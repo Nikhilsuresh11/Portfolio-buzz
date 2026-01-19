@@ -7,7 +7,7 @@ import { TrendingUp, TrendingDown, DollarSign, BarChart3, PieChart, Activity, Ar
 import { PageLoader } from '../../components/ui/page-loader';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
-type SortField = 'symbol' | 'quantity' | 'avg_price' | 'invested_amount' | 'current_value' | 'profit' | 'return_percent' | 'allocation_percent';
+type SortField = 'symbol' | 'quantity' | 'avg_price' | 'invested_amount' | 'current_value' | 'profit' | 'return_percent' | 'allocation_percent' | 'day_change' | 'day_change_percent';
 type SortDirection = 'asc' | 'desc';
 
 export default function PortfolioSummaryPage() {
@@ -108,26 +108,31 @@ export default function PortfolioSummaryPage() {
             item.invested_amount > max.invested_amount ? item : max
         );
 
-        // Best return percentage
-        const bestReturn = allocations.reduce((max: any, item: any) =>
-            item.return_percent > max.return_percent ? item : max
+        // Best daily performer (%)
+        const bestDailyPct = allocations.reduce((max: any, item: any) =>
+            item.day_change_percent > max.day_change_percent ? item : max
         );
 
-        // Worst return percentage
-        const worstReturn = allocations.reduce((min: any, item: any) =>
-            item.return_percent < min.return_percent ? item : min
+        // Worst daily performer (%)
+        const worstDailyPct = allocations.reduce((min: any, item: any) =>
+            item.day_change_percent < min.day_change_percent ? item : min
         );
 
-        // Smallest allocation
-        const smallestAllocation = allocations.reduce((min: any, item: any) =>
-            item.allocation_percent < min.allocation_percent ? item : min
+        // Best daily performer (Rupee)
+        const bestDailyRupee = allocations.reduce((max: any, item: any) =>
+            item.day_change > max.day_change ? item : max
+        );
+
+        // Worst daily performer (Rupee)
+        const worstDailyRupee = allocations.reduce((min: any, item: any) =>
+            item.day_change < min.day_change ? item : min
         );
 
         return {
-            highestInvested,
-            bestReturn,
-            worstReturn,
-            smallestAllocation
+            bestDailyPct,
+            worstDailyPct,
+            bestDailyRupee,
+            worstDailyRupee
         };
     }, [data?.symbol_allocations]);
 
@@ -160,13 +165,14 @@ export default function PortfolioSummaryPage() {
     return (
         <div className="flex flex-col h-screen relative overflow-hidden bg-black">
             <div className="flex-none p-6 md:p-8 pb-0 z-10 max-w-[1600px] mx-auto w-full">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
                     <div>
                         <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-white via-blue-100 to-emerald-100 bg-clip-text text-transparent">
                             Portfolio Summary
                         </h1>
                         <p className="text-neutral-400">Detailed breakdown of your current holdings</p>
                     </div>
+
                     <div className="bg-gradient-to-r from-blue-500 to-emerald-500 rounded-xl p-0.5">
                         <button
                             onClick={() => router.push('/portfolio/metrics')}
@@ -184,41 +190,59 @@ export default function PortfolioSummaryPage() {
 
                 {/* Insights Cards */}
                 {insights && (
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                        <div className="bg-zinc-900/40 border border-zinc-800/60 backdrop-blur-xl rounded-2xl p-5">
-                            <div className="flex items-center gap-2 text-zinc-400 text-xs uppercase mb-2">
-                                <DollarSign className="w-4 h-4" />
-                                Highest Invested
+                    <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+                        {/* Overall Today G/L */}
+                        <div className="bg-zinc-900/40 border border-zinc-800/60 backdrop-blur-xl rounded-2xl p-4">
+                            <div className="flex items-center gap-2 text-zinc-400 text-[10px] uppercase mb-2 font-medium tracking-wider">
+                                <Activity className="w-3.5 h-3.5 text-blue-400" />
+                                Today's G/L
                             </div>
-                            <div className="text-xl font-bold text-white">{insights.highestInvested.symbol}</div>
-                            <div className="text-sm text-green-400 mt-1">{formatPercent(insights.highestInvested.return_percent)}</div>
+                            <div className={`text-lg font-bold ${data.total_day_change >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                {formatCurrency(data.total_day_change)}
+                            </div>
+                            <div className={`text-[10px] mt-1 font-medium ${data.total_day_change >= 0 ? 'text-green-500/80' : 'text-red-500/80'}`}>
+                                {formatPercent(data.total_day_change_percent)} today
+                            </div>
                         </div>
 
-                        <div className="bg-zinc-900/40 border border-green-500/30 backdrop-blur-xl rounded-2xl p-5">
-                            <div className="flex items-center gap-2 text-zinc-400 text-xs uppercase mb-2">
-                                <Trophy className="w-4 h-4 text-green-400" />
-                                Best Return
+                        {/* Best Pct */}
+                        <div className="bg-zinc-900/40 border border-green-500/10 backdrop-blur-xl rounded-2xl p-4">
+                            <div className="flex items-center gap-2 text-zinc-400 text-[10px] uppercase mb-2 font-medium tracking-wider">
+                                <TrendingUp className="w-3.5 h-3.5 text-green-400" />
+                                Best Performance %
                             </div>
-                            <div className="text-xl font-bold text-green-400">{insights.bestReturn.symbol}</div>
-                            <div className="text-sm text-zinc-400 mt-1">{formatPercent(insights.bestReturn.return_percent)}</div>
+                            <div className="text-lg font-bold text-white truncate">{insights.bestDailyPct.symbol}</div>
+                            <div className="text-xs text-green-400 mt-1">{formatPercent(insights.bestDailyPct.day_change_percent)}</div>
                         </div>
 
-                        <div className="bg-zinc-900/40 border border-red-500/30 backdrop-blur-xl rounded-2xl p-5">
-                            <div className="flex items-center gap-2 text-zinc-400 text-xs uppercase mb-2">
-                                <TrendingDown className="w-4 h-4 text-red-400" />
-                                Worst Return
+                        {/* Worst Pct */}
+                        <div className="bg-zinc-900/40 border border-red-500/10 backdrop-blur-xl rounded-2xl p-4">
+                            <div className="flex items-center gap-2 text-zinc-400 text-[10px] uppercase mb-2 font-medium tracking-wider">
+                                <TrendingDown className="w-3.5 h-3.5 text-red-400" />
+                                Worst Performance %
                             </div>
-                            <div className="text-xl font-bold text-red-400">{insights.worstReturn.symbol}</div>
-                            <div className="text-sm text-zinc-400 mt-1">{formatPercent(insights.worstReturn.return_percent)}</div>
+                            <div className="text-lg font-bold text-white truncate">{insights.worstDailyPct.symbol}</div>
+                            <div className="text-xs text-red-400 mt-1">{formatPercent(insights.worstDailyPct.day_change_percent)}</div>
                         </div>
 
-                        <div className="bg-zinc-900/40 border border-yellow-500/30 backdrop-blur-xl rounded-2xl p-5">
-                            <div className="flex items-center gap-2 text-zinc-400 text-xs uppercase mb-2">
-                                <Target className="w-4 h-4 text-yellow-400" />
-                                Smallest Holding
+                        {/* Best Rupee */}
+                        <div className="bg-zinc-900/40 border border-emerald-500/10 backdrop-blur-xl rounded-2xl p-4">
+                            <div className="flex items-center gap-2 text-zinc-400 text-[10px] uppercase mb-2 font-medium tracking-wider">
+                                <ArrowUp className="w-3.5 h-3.5 text-emerald-400" />
+                                Top Gainer (₹)
                             </div>
-                            <div className="text-xl font-bold text-yellow-400">{insights.smallestAllocation.symbol}</div>
-                            <div className="text-sm text-zinc-400 mt-1">{insights.smallestAllocation.allocation_percent.toFixed(2)}%</div>
+                            <div className="text-lg font-bold text-white truncate">{insights.bestDailyRupee.symbol}</div>
+                            <div className="text-xs text-emerald-400 mt-1">+{formatCurrency(insights.bestDailyRupee.day_change)}</div>
+                        </div>
+
+                        {/* Worst Rupee */}
+                        <div className="bg-zinc-900/40 border border-amber-500/10 backdrop-blur-xl rounded-2xl p-4">
+                            <div className="flex items-center gap-2 text-zinc-400 text-[10px] uppercase mb-2 font-medium tracking-wider">
+                                <ArrowDown className="w-3.5 h-3.5 text-red-400" />
+                                Top Loser (₹)
+                            </div>
+                            <div className="text-lg font-bold text-white truncate">{insights.worstDailyRupee.symbol}</div>
+                            <div className="text-xs text-red-400 mt-1">{formatCurrency(insights.worstDailyRupee.day_change)}</div>
                         </div>
                     </div>
                 )}
@@ -267,10 +291,16 @@ export default function PortfolioSummaryPage() {
                                         Current
                                     </th>
                                     <th
+                                        className="px-3 py-3 bg-transparent text-right cursor-pointer hover:text-white transition-colors w-[120px]"
+                                        onClick={() => handleSort('day_change')}
+                                    >
+                                        Day G/L
+                                    </th>
+                                    <th
                                         className="px-3 py-3 bg-transparent text-right cursor-pointer hover:text-white transition-colors w-[110px]"
                                         onClick={() => handleSort('profit')}
                                     >
-                                        P/L
+                                        Total G/L
                                     </th>
                                     <th
                                         className="px-3 py-3 bg-transparent text-right cursor-pointer hover:text-white transition-colors w-[100px]"
@@ -345,11 +375,23 @@ export default function PortfolioSummaryPage() {
                                                     {formatCurrency(pos.current_value)}
                                                 </td>
 
-                                                {/* P/L */}
+                                                {/* Day G/L */}
+                                                <td className="px-3 py-4 text-right w-[120px]">
+                                                    <div className="flex flex-col items-end">
+                                                        <span className={`text-sm font-semibold ${pos.day_change >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                                            {formatCurrency(pos.day_change)}
+                                                        </span>
+                                                        <span className={`text-[10px] ${pos.day_change >= 0 ? 'text-green-500/80' : 'text-red-500/80'}`}>
+                                                            {formatPercent(pos.day_change_percent)}
+                                                        </span>
+                                                    </div>
+                                                </td>
+
+                                                {/* Total G/L */}
                                                 <td className="px-3 py-4 text-right w-[110px]">
                                                     <div className={`
                                                     inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-semibold
-                                                    ${isPositive ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}
+                                                    ${isPositive ? 'text-green-400 bg-green-500/10' : 'text-red-400 bg-red-500/10'}
                                                 `}>
                                                         {formatCurrency(pos.profit)}
                                                     </div>
