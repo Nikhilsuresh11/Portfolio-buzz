@@ -318,13 +318,14 @@ class MFPortfolioService:
                     "summary": {
                         "total_invested": 0, "current_value": 0, "total_returns": 0,
                         "total_returns_percent": 0, "xirr": None, "nifty_xirr": None,
-                        "alpha": None, "position_count": 0
+                        "alpha": None, "position_count": 0, "total_day_change": 0,
+                        "total_day_change_percent": 0
                     }
                 }
 
-            # Grouping and aggregating
             total_invested = 0
             total_current_value = 0
+            total_day_change = 0
             cashflows = []
             scheme_codes = list(set(p.get("scheme_code") for p in positions if p.get("scheme_code")))
             
@@ -360,9 +361,12 @@ class MFPortfolioService:
                 
                 nav_data = nav_map.get(scheme_code)
                 current_nav = nav_data.get("nav", 0) if nav_data else 0
+                day_nav_change = nav_data.get("change", 0) if nav_data else 0
                 
                 total_invested += invested_amount
-                total_current_value += (units * current_nav)
+                current_val = units * current_nav
+                total_current_value += current_val
+                total_day_change += (units * day_nav_change)
                 
                 if purchase_date_str:
                     try:
@@ -394,7 +398,9 @@ class MFPortfolioService:
                     "xirr": xirr,
                     "nifty_xirr": nifty_xirr,
                     "alpha": alpha,
-                    "position_count": len(positions)
+                    "position_count": len(positions),
+                    "total_day_change": total_day_change,
+                    "total_day_change_percent": (total_day_change / (total_current_value - total_day_change) * 100) if (total_current_value - total_day_change) > 0 else 0
                 }
             }
         except Exception as e:
@@ -427,7 +433,9 @@ class MFPortfolioService:
                         "total_returns": 0,
                         "total_returns_percent": 0,
                         "xirr": None,
-                        "position_count": 0
+                        "position_count": 0,
+                        "total_day_change": 0,
+                        "total_day_change_percent": 0
                     }
                 }
             
@@ -463,6 +471,7 @@ class MFPortfolioService:
             enriched_positions = []
             total_invested = 0
             total_current_value = 0
+            total_day_change = 0
             cashflows = []  # For XIRR calculation
             
             # For per-fund XIRR
@@ -478,15 +487,21 @@ class MFPortfolioService:
                 # Get current NAV from optimized map
                 fund_data = nav_map.get(scheme_code)
                 current_nav = fund_data.get("nav", 0) if fund_data else 0
+                day_nav_change = fund_data.get("change", 0) if fund_data else 0
+                day_change_percent = fund_data.get("change_percent", 0) if fund_data else 0
                 
                 # Calculate current value and returns
                 current_value = units * current_nav
                 returns = current_value - invested_amount
                 returns_percent = (returns / invested_amount * 100) if invested_amount > 0 else 0
                 
+                # Day change logic
+                day_change = units * day_nav_change
+                
                 # Add to totals
                 total_invested += invested_amount
                 total_current_value += current_value
+                total_day_change += day_change
                 
                 if scheme_code not in fund_groups:
                     fund_groups[scheme_code] = {"cashflows": [], "current_value": 0}
@@ -509,6 +524,8 @@ class MFPortfolioService:
                     "current_value": current_value,
                     "returns": returns,
                     "returns_percent": returns_percent,
+                    "day_change": day_change,
+                    "day_change_percent": day_change_percent,
                     "fund_name": fund_data.get("scheme_name", position.get("scheme_name", "")) if fund_data else position.get("scheme_name", ""),
                     "fund_house": fund_data.get("fund_house", "") if fund_data else ""
                 }
@@ -555,7 +572,9 @@ class MFPortfolioService:
                 "xirr": xirr,
                 "nifty_xirr": nifty_xirr,
                 "alpha": alpha,
-                "position_count": len(positions)
+                "position_count": len(positions),
+                "total_day_change": total_day_change,
+                "total_day_change_percent": (total_day_change / (total_current_value - total_day_change) * 100) if (total_current_value - total_day_change) > 0 else 0
             }
             
             return {

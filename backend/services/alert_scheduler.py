@@ -23,15 +23,34 @@ class AlertScheduler:
     def check_all_users_alerts(self):
         """Check all users' watchlists and send alerts for stocks below -3%"""
         try:
+            # Get current time in IST
+            ist = pytz.timezone('Asia/Kolkata')
+            current_time = datetime.now(ist)
+            
             print(f"\n{'='*60}")
-            print(f"🔔 Running scheduled alert check at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+            print(f"🔔 Running scheduled alert check at {current_time.strftime('%Y-%m-%d %H:%M:%S %Z')}")
             print(f"{'='*60}")
             
             # Skip weekends (Saturday=5, Sunday=6)
-            current_day = datetime.now().weekday()
+            current_day = current_time.weekday()
             if current_day >= 5:  # 5 = Saturday, 6 = Sunday
                 day_name = "Saturday" if current_day == 5 else "Sunday"
                 print(f"⏸️  Skipping alerts - Today is {day_name} (markets closed)")
+                print(f"{'='*60}\n")
+                return
+            
+            # Check if current time is within market hours (9:15 AM to 3:30 PM IST)
+            current_hour = current_time.hour
+            current_minute = current_time.minute
+            
+            # Convert to minutes since midnight for easier comparison
+            current_minutes = current_hour * 60 + current_minute
+            market_open = 9 * 60 + 15  # 9:15 AM = 555 minutes
+            market_close = 15 * 60 + 30  # 3:30 PM = 930 minutes
+            
+            if current_minutes < market_open or current_minutes > market_close:
+                print(f"⏸️  Skipping alerts - Outside market hours (9:15 AM - 3:30 PM IST)")
+                print(f"   Current time: {current_time.strftime('%I:%M %p')}")
                 print(f"{'='*60}\n")
                 return
             
@@ -132,31 +151,25 @@ class AlertScheduler:
             print("⚠️  Scheduler is already running")
             return
         
-        # Run every 30 minutes
+        # Run only during market hours (9:15 AM - 3:30 PM IST, Mon-Fri)
+        ist = pytz.timezone('Asia/Kolkata')
+        
+        # Schedule to run every 15 minutes during market hours
+        # Market hours: 9:15 AM to 3:30 PM
+        # We'll schedule it to run at :00, :15, :30, :45 of each hour
+        # between 9 AM and 3 PM (the time check in check_all_users_alerts will filter out times before 9:15 and after 3:30)
         self.scheduler.add_job(
             self.check_all_users_alerts,
-            'interval',
-            seconds=1800, 
+            trigger=CronTrigger(
+                day_of_week='mon-fri',  # Monday to Friday
+                hour='9-15',  # 9 AM to 3 PM (covers 9:15 AM to 3:30 PM with our time check)
+                minute='*/30',  # Every 30 minutes (0, 15, 30, 45)
+                timezone=ist
+            ),
             id='stock_alert_check',
-            name='Stock Alert Check (Every 30 minutes)',
+            name='Stock Alert Check (Market Hours)',
             replace_existing=True
         )
-        
-        # ALTERNATIVE: Run only during market hours (9 AM - 4 PM IST, Mon-Fri)
-        # Uncomment this and comment out the interval trigger above for market-hours-only:
-        # ist = pytz.timezone('Asia/Kolkata')
-        # self.scheduler.add_job(
-        #     self.check_all_users_alerts,
-        #     trigger=CronTrigger(
-        #         day_of_week='mon-fri',  # Monday to Friday
-        #         hour='9-16',  # 9 AM to 4 PM
-        #         minute='*/15',  # Every 15 minutes
-        #         timezone=ist
-        #     ),
-        #     id='stock_alert_check',
-        #     name='Stock Alert Check',
-        #     replace_existing=True
-        # )
         
         self.scheduler.start()
         self.is_running = True
@@ -164,10 +177,11 @@ class AlertScheduler:
         print("\n" + "="*60)
         print("🚀 Alert Scheduler Started!")
         print("="*60)
-        print("⏰ Running every 30 minutes")
+        print("⏰ Running every 30 minutes during market hours")
+        print("📅 Monday to Friday only")
+        print("🕐 Market hours: 9:15 AM - 3:30 PM IST")
         print("📧 Will check all users per cycle") 
         print("🎯 Alert threshold: -3% or more")
-        print("📅 Skips weekends (Saturday & Sunday)")
         print("="*60 + "\n")
     
     def stop(self):

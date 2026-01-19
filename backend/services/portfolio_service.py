@@ -10,33 +10,45 @@ logger = logging.getLogger(__name__)
 class PortfolioService:
     
     @staticmethod
+    def _fetch_price_data_yahoo(symbol: str):
+        """Fetch current price and previous close using yfinance"""
+        try:
+            ticker_sym = symbol
+            if symbol != "^NSEI" and "." not in symbol:
+                ticker_sym = f"{symbol}.NS"
+            
+            ticker = yf.Ticker(ticker_sym)
+            hist = ticker.history(period="2d")
+            
+            if hist.empty and symbol != "^NSEI" and "." not in symbol:
+                ticker_sym = f"{symbol}.BO"
+                ticker = yf.Ticker(ticker_sym)
+                hist = ticker.history(period="2d")
+
+            if len(hist) >= 2:
+                current_price = hist['Close'].iloc[-1]
+                prev_close = hist['Close'].iloc[-2]
+                return {
+                    "current_price": float(current_price),
+                    "previous_close": float(prev_close)
+                }
+            elif len(hist) == 1:
+                current_price = hist['Close'].iloc[-1]
+                return {
+                    "current_price": float(current_price),
+                    "previous_close": float(current_price)
+                }
+            
+            return None
+        except Exception as e:
+            logger.error(f"Error fetching price data for {symbol}: {e}")
+            return None
+
+    @staticmethod
     def _fetch_price_yahoo(symbol: str) -> float:
         """Fetch current price using yfinance"""
-        try:
-            # Map common indices if needed
-            if symbol == "^NSEI":
-                ticker = yf.Ticker("^NSEI")
-            elif "." not in symbol:
-                # Try .NS first, then .BO
-                ticker = yf.Ticker(f"{symbol}.NS")
-                info = ticker.fast_info
-                if info.last_price is None:
-                     ticker = yf.Ticker(f"{symbol}.BO")
-            else:
-                ticker = yf.Ticker(symbol)
-                
-            # Use fast_info for speed if available, else history
-            price = ticker.fast_info.last_price
-            if price is None:
-                # Fallback to history
-                hist = ticker.history(period="1d")
-                if not hist.empty:
-                    price = hist['Close'].iloc[-1]
-            
-            return float(price) if price else None
-        except Exception as e:
-            logger.error(f"Error fetching price for {symbol}: {e}")
-            return None
+        data = PortfolioService._fetch_price_data_yahoo(symbol)
+        return data['current_price'] if data else None
 
     @staticmethod
     def _fetch_historical_price_yahoo(symbol: str, date_str: str) -> float:
@@ -146,6 +158,7 @@ class PortfolioService:
         
         total_invested = 0.0
         total_current = 0.0
+        total_day_change = 0.0
         details = []
         
         # Cache current prices
@@ -157,14 +170,20 @@ class PortfolioService:
             invested = p.get('invested_amount', 0)
             
             if symbol not in price_cache:
-                price = PortfolioService._fetch_price_yahoo(symbol)
-                price_cache[symbol] = price if price else 0.0
+                price_data = PortfolioService._fetch_price_data_yahoo(symbol)
+                price_cache[symbol] = price_data if price_data else {"current_price": 0.0, "previous_close": 0.0}
             
-            current_price = price_cache[symbol]
+            current_price = price_cache[symbol]["current_price"]
+            previous_close = price_cache[symbol]["previous_close"]
             current_val = qty * current_price
+            
+            # Day change calculations
+            day_change = (current_price - previous_close) * qty
+            day_change_percent = ((current_price - previous_close) / previous_close * 100) if previous_close > 0 else 0
             
             total_invested += invested
             total_current += current_val
+            total_day_change += day_change
             
             profit = current_val - invested
             ret_pct = (profit / invested * 100) if invested > 0 else 0
@@ -172,9 +191,12 @@ class PortfolioService:
             details.append({
                 **p,
                 "current_price": current_price,
+                "previous_close": previous_close,
                 "current_value": current_val,
                 "profit": profit,
-                "return_percent": ret_pct
+                "return_percent": ret_pct,
+                "day_change": day_change,
+                "day_change_percent": day_change_percent
             })
             
         # Symbol allocations
@@ -187,13 +209,16 @@ class PortfolioService:
                     "quantity": 0,
                     "invested_amount": 0,
                     "current_value": 0,
+                    "day_change": 0,
                     "position_count": 0,
-                    "current_price": d['current_price']
+                    "current_price": d['current_price'],
+                    "previous_close": d['previous_close']
                 }
             g = symbol_groups[sym]
             g['quantity'] += d['quantity']
             g['invested_amount'] += d['invested_amount']
             g['current_value'] += d['current_value']
+            g['day_change'] += d['day_change']
             g['position_count'] += 1
             
         symbol_allocations = []
@@ -201,6 +226,7 @@ class PortfolioService:
             profit = g['current_value'] - g['invested_amount']
             ret_pct = (profit / g['invested_amount'] * 100) if g['invested_amount'] > 0 else 0
             alloc_pct = (g['current_value'] / total_current * 100) if total_current > 0 else 0
+            day_ret_pct = (g['day_change'] / (g['current_value'] - g['day_change']) * 100) if (g['current_value'] - g['day_change']) > 0 else 0
             
             symbol_allocations.append({
                 "symbol": sym,
@@ -211,6 +237,8 @@ class PortfolioService:
                 "profit": profit,
                 "return_percent": ret_pct,
                 "allocation_percent": alloc_pct,
+                "day_change": g['day_change'],
+                "day_change_percent": day_ret_pct,
                 "position_count": g['position_count']
             })
             
@@ -222,6 +250,8 @@ class PortfolioService:
             "total_invested": total_invested,
             "total_current_value": total_current,
             "total_profit": total_current - total_invested,
+            "total_day_change": total_day_change,
+            "total_day_change_percent": (total_day_change / (total_current - total_day_change) * 100) if (total_current - total_day_change) > 0 else 0,
             "return_percent": ((total_current - total_invested) / total_invested * 100) if total_invested > 0 else 0,
             "positions": details,
             "symbol_allocations": symbol_allocations
