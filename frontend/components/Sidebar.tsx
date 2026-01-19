@@ -103,20 +103,20 @@ export default function Sidebar({ onSearchClick }: { onSearchClick?: () => void 
 
     const menuItems = {
         main: [
-            { id: 'watchlist', icon: Dashboard, label: 'Watchlist', href: '/watchlist' },
             { id: 'my-positions', icon: UserRoleIcon, label: 'My Positions', href: '/my-positions' },
             { id: 'research', icon: Report, label: 'Deep Research', href: '/research' },
-        ],
-        mutualFunds: [
-            { id: 'mf-overview', icon: PortfolioIcon, label: 'Overview', href: '/mf-portfolio' },
-            { id: 'mf-summary', icon: ChartBar, label: 'Summary', href: '/mf-portfolio/summary' },
-            { id: 'mf-watchlist', icon: Dashboard, label: 'Watchlist', href: '/mf-watchlist' },
+            { id: 'portfolios', icon: Folder, label: 'Portfolios', href: '/portfolios' }
         ],
         portfolio: [
-            { id: 'portfolios', icon: Folder, label: 'Portfolios', href: '/portfolios' },
+            { id: 'watchlist', icon: Dashboard, label: 'Watchlist', href: '/watchlist' },
             { id: 'overview', icon: PortfolioIcon, label: 'Overview', href: '/portfolio' },
             { id: 'summary', icon: ChartBar, label: 'Summary', href: '/portfolio/summary' },
             { id: 'metrics', icon: Analytics, label: 'Risk Metrics', href: '/portfolio/metrics' },
+        ],
+        mutualFunds: [
+            { id: 'mf-watchlist', icon: Dashboard, label: 'Watchlist', href: '/mf-watchlist' },
+            { id: 'mf-overview', icon: PortfolioIcon, label: 'Overview', href: '/mf-portfolio' },
+            { id: 'mf-summary', icon: ChartBar, label: 'Summary', href: '/mf-portfolio/summary' },
         ],
         bottom: [
             { id: 'notifications', icon: NotificationIcon, label: 'Notifications', href: '/notifications' },
@@ -176,10 +176,32 @@ export default function Sidebar({ onSearchClick }: { onSearchClick?: () => void 
                         "px-3 mb-2 text-[9px] font-bold text-neutral-600 uppercase tracking-[0.2em] transition-all duration-300 h-3 overflow-hidden",
                         isCollapsed ? "opacity-0" : "opacity-100"
                     )}>
-                        Market
+                        Markets
                     </div>
                     <div className="space-y-1">
                         {menuItems.main.map((item) => (
+                            <NavItem
+                                key={item.id}
+                                icon={item.icon}
+                                label={item.label}
+                                isActive={currentPath === item.href}
+                                onClick={() => handleNavigate(item.href)}
+                                isCollapsed={isCollapsed}
+                            />
+                        ))}
+                    </div>
+                </div>
+
+                {/* Stocks */}
+                <div>
+                    <div className={cn(
+                        "px-3 mb-2 text-[9px] font-bold text-neutral-600 uppercase tracking-[0.2em] transition-all duration-300 h-3 overflow-hidden",
+                        isCollapsed ? "opacity-0" : "opacity-100"
+                    )}>
+                        Stocks
+                    </div>
+                    <div className="space-y-1">
+                        {menuItems.portfolio.map((item) => (
                             <NavItem
                                 key={item.id}
                                 icon={item.icon}
@@ -202,28 +224,6 @@ export default function Sidebar({ onSearchClick }: { onSearchClick?: () => void 
                     </div>
                     <div className="space-y-1">
                         {menuItems.mutualFunds.map((item) => (
-                            <NavItem
-                                key={item.id}
-                                icon={item.icon}
-                                label={item.label}
-                                isActive={currentPath === item.href}
-                                onClick={() => handleNavigate(item.href)}
-                                isCollapsed={isCollapsed}
-                            />
-                        ))}
-                    </div>
-                </div>
-
-                {/* Portfolio Management */}
-                <div>
-                    <div className={cn(
-                        "px-3 mb-2 text-[9px] font-bold text-neutral-600 uppercase tracking-[0.2em] transition-all duration-300 h-3 overflow-hidden",
-                        isCollapsed ? "opacity-0" : "opacity-100"
-                    )}>
-                        Portfolio
-                    </div>
-                    <div className="space-y-1">
-                        {menuItems.portfolio.map((item) => (
                             <NavItem
                                 key={item.id}
                                 icon={item.icon}
