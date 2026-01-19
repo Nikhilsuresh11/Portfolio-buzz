@@ -19,6 +19,18 @@ import { cn } from "@/lib/utils";
 
 const softSpringEasing = "cubic-bezier(0.4, 0, 0.2, 1)";
 
+const GeminiIcon = ({ size = 20, className = "" }: { size?: number, className?: string }) => (
+    <svg
+        viewBox="0 0 24 24"
+        fill="currentColor"
+        width={size}
+        height={size}
+        className={className}
+    >
+        <path d="M12 2L14.85 9.15L22 12L14.85 14.85L12 22L9.15 14.85L2 12L9.15 9.15L12 2Z" />
+    </svg>
+);
+
 /* ----------------------------- Components ----------------------------- */
 
 function BrandLogo({ isCollapsed }: { isCollapsed: boolean }) {
@@ -104,7 +116,7 @@ export default function Sidebar({ onSearchClick }: { onSearchClick?: () => void 
     const menuItems = {
         main: [
             { id: 'my-positions', icon: UserRoleIcon, label: 'My Positions', href: '/my-positions' },
-            { id: 'research', icon: Report, label: 'Deep Research', href: '/research' },
+            { id: 'research', icon: GeminiIcon, label: 'Deep Research', href: '/research' },
             { id: 'portfolios', icon: Folder, label: 'Portfolios', href: '/portfolios' }
         ],
         portfolio: [
