@@ -3,10 +3,11 @@ import { useRouter } from 'next/router'
 import { useAuth } from '../lib/auth-context'
 import { usePortfolio } from '../lib/portfolio-context'
 import { buildApiUrl, buildPublicApiUrl, getApiHeaders } from '../lib/api-helpers'
-import { Plus, Trash2, RefreshCw, Search, Calendar, Package, X, ChevronDown, Info } from 'lucide-react'
+import { Plus, Trash2, RefreshCw, Search, Calendar, Package, X, ChevronDown, Info, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { PageLoader } from '@/components/ui/page-loader'
+import { Tabs } from '@/components/ui/vercel-tabs'
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -174,8 +175,14 @@ export default function MFPositionsPage() {
             router.push('/select-portfolio')
         } else if (userEmail && currentPortfolio) {
             fetchPositions()
+            // Check if we should auto-open the add modal
+            if (router.query.add === 'true') {
+                setIsAddModalOpen(true)
+            }
         }
     }, [authLoading, userEmail, currentPortfolio, portfolioLoading, router])
+
+    const isEmbedded = router.query.embedded === 'true'
 
     const fetchPositions = async () => {
         if (!userEmail || !currentPortfolio) return
@@ -319,30 +326,38 @@ export default function MFPositionsPage() {
         <div className="flex flex-col h-screen relative overflow-hidden bg-black">
             <div className="flex-none p-6 md:p-8 pb-0 z-10 max-w-[1600px] mx-auto w-full">
                 {/* Header */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                <div className="mb-4 flex items-start justify-between">
                     <div>
-                        <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-white via-blue-100 to-emerald-100 bg-clip-text text-transparent">
-                            MF Positions
+                        <h1 className="text-2xl md:text-3xl font-bold mb-1.5 bg-gradient-to-r from-white via-blue-100 to-emerald-100 bg-clip-text text-transparent">
+                            My Positions
                         </h1>
-                        <p className="text-zinc-400">Track and manage all your mutual fund transactions</p>
+                        <p className="text-zinc-400 text-sm">Track and manage all your transactions</p>
                     </div>
-                    <div className="flex items-center gap-3">
+                </div>
+
+                {/* Tabs below header */}
+                <div className="flex items-center justify-between gap-2 px-6 md:px-8">
+                    <Tabs
+                        tabs={[
+                            { id: 'stocks', label: 'Stock Positions' },
+                            { id: 'mutual-funds', label: 'Mutual Fund Positions' }
+                        ]}
+                        activeTab='mutual-funds'
+                        onTabChange={(tabId: string) => {
+                            if (tabId === 'stocks') {
+                                router.push('/positions');
+                            }
+                        }}
+                        className="[&>div>div>div]:h-[42px] [&>div>div>div]:px-5 [&>div>div>div]:text-[15px]"
+                    />
+                    <div className="bg-gradient-to-r from-blue-500 to-emerald-500 rounded-xl p-0.5">
                         <Button
-                            onClick={handleRefresh}
-                            disabled={isRefreshing}
-                            className="bg-zinc-900/50 border border-zinc-800 text-zinc-300 hover:bg-zinc-800 transition-all h-9 w-9 p-0 rounded-lg"
+                            onClick={() => setIsAddModalOpen(true)}
+                            className="bg-black hover:bg-zinc-900 text-white gap-2 font-semibold text-sm h-9 px-5 rounded-[11px]"
                         >
-                            <RefreshCw size={16} className={isRefreshing ? 'animate-spin' : ''} />
+                            <Plus size={16} />
+                            Add Position
                         </Button>
-                        <div className="bg-gradient-to-r from-blue-500 to-emerald-500 rounded-xl p-0.5">
-                            <Button
-                                onClick={() => setIsAddModalOpen(true)}
-                                className="bg-black hover:bg-zinc-900 text-white gap-2 font-semibold text-sm h-9 px-5 rounded-[11px]"
-                            >
-                                <Plus size={16} />
-                                Add Position
-                            </Button>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -630,9 +645,14 @@ export default function MFPositionsPage() {
                                             <button
                                                 onClick={handleAddPosition}
                                                 disabled={isAdding || !formData.units || !formData.purchase_nav}
-                                                className="w-full bg-black hover:bg-zinc-900 text-white font-semibold py-[9px] rounded-[11px] transition-colors disabled:opacity-50"
+                                                className="w-full bg-black hover:bg-zinc-900 text-white font-semibold py-[9px] rounded-[11px] transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                                             >
-                                                {isAdding ? 'Adding...' : !formData.units || !formData.purchase_nav ? 'Calculating...' : 'Add Position'}
+                                                {isAdding ? (
+                                                    <>
+                                                        <Loader2 size={16} className="animate-spin" />
+                                                        Adding...
+                                                    </>
+                                                ) : !formData.units || !formData.purchase_nav ? 'Calculating...' : 'Add Position'}
                                             </button>
                                         </div>
                                     </div>

@@ -104,17 +104,16 @@ export default function Sidebar({ onSearchClick }: { onSearchClick?: () => void 
     const menuItems = {
         main: [
             { id: 'watchlist', icon: Dashboard, label: 'Watchlist', href: '/watchlist' },
+            { id: 'my-positions', icon: UserRoleIcon, label: 'My Positions', href: '/my-positions' },
             { id: 'research', icon: Report, label: 'Deep Research', href: '/research' },
         ],
         mutualFunds: [
-            { id: 'mf-positions', icon: UserRoleIcon, label: 'My Positions', href: '/mf-positions' },
             { id: 'mf-overview', icon: PortfolioIcon, label: 'Overview', href: '/mf-portfolio' },
             { id: 'mf-summary', icon: ChartBar, label: 'Summary', href: '/mf-portfolio/summary' },
             { id: 'mf-watchlist', icon: Dashboard, label: 'Watchlist', href: '/mf-watchlist' },
         ],
         portfolio: [
             { id: 'portfolios', icon: Folder, label: 'Portfolios', href: '/portfolios' },
-            { id: 'positions', icon: UserRoleIcon, label: 'My Positions', href: '/positions' },
             { id: 'overview', icon: PortfolioIcon, label: 'Overview', href: '/portfolio' },
             { id: 'summary', icon: ChartBar, label: 'Summary', href: '/portfolio/summary' },
             { id: 'metrics', icon: Analytics, label: 'Risk Metrics', href: '/portfolio/metrics' },
