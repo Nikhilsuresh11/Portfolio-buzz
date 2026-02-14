@@ -2,34 +2,28 @@
 
 import React, { useState, useMemo } from "react";
 import {
-    Dashboard,
-    Folder,
-    Settings as SettingsIcon,
-    User as UserIcon,
-    ChartBar,
-    Report,
-    Analytics,
+    LayoutDashboard,
+    FolderOpen,
+    Settings,
+    UserCircle,
+    PieChart,
+    FileText,
+    TrendingUp,
     Search as SearchIcon,
-    Notification as NotificationIcon,
-    Portfolio as PortfolioIcon,
-    UserRole as UserRoleIcon,
-} from "@carbon/icons-react";
+    Bell,
+    Briefcase,
+    BrainCircuit,
+    ChevronLeft,
+    ChevronRight,
+    ChevronsLeft,
+    ChevronsRight,
+    Menu
+} from "lucide-react";
 import { useRouter } from 'next/router';
 import { cn } from "@/lib/utils";
 
 const softSpringEasing = "cubic-bezier(0.4, 0, 0.2, 1)";
 
-const GeminiIcon = ({ size = 20, className = "" }: { size?: number, className?: string }) => (
-    <svg
-        viewBox="0 0 24 24"
-        fill="currentColor"
-        width={size}
-        height={size}
-        className={className}
-    >
-        <path d="M12 2L14.85 9.15L22 12L14.85 14.85L12 22L9.15 14.85L2 12L9.15 9.15L12 2Z" />
-    </svg>
-);
 
 /* ----------------------------- Components ----------------------------- */
 
@@ -108,34 +102,70 @@ function NavItem({
 
 export default function Sidebar({ onSearchClick }: { onSearchClick?: () => void }) {
     const router = useRouter();
-    const [isHovered, setIsHovered] = useState(false);
-    const isCollapsed = !isHovered;
+    const [isCollapsed, setIsCollapsed] = useState(false);
+    const [expandedMenus, setExpandedMenus] = useState<string[]>(['holdings']);
 
     const currentPath = router.pathname;
 
-    const menuItems = {
-        main: [
-            { id: 'my-positions', icon: UserRoleIcon, label: 'My Positions', href: '/my-positions' },
-            { id: 'research', icon: GeminiIcon, label: 'Deep Research', href: '/research' },
-            { id: 'portfolios', icon: Folder, label: 'Portfolios', href: '/portfolios' }
-        ],
-        portfolio: [
-            { id: 'watchlist', icon: Dashboard, label: 'Watchlist', href: '/watchlist' },
-            { id: 'overview', icon: PortfolioIcon, label: 'Overview', href: '/portfolio' },
-            { id: 'summary', icon: ChartBar, label: 'Summary', href: '/portfolio/summary' },
-            { id: 'metrics', icon: Analytics, label: 'Risk Metrics', href: '/portfolio/metrics' },
-        ],
-        mutualFunds: [
-            { id: 'mf-watchlist', icon: Dashboard, label: 'Watchlist', href: '/mf-watchlist' },
-            { id: 'mf-overview', icon: PortfolioIcon, label: 'Overview', href: '/mf-portfolio' },
-            { id: 'mf-summary', icon: ChartBar, label: 'Summary', href: '/mf-portfolio/summary' },
-        ],
-        bottom: [
-            { id: 'notifications', icon: NotificationIcon, label: 'Notifications', href: '/notifications' },
-            { id: 'settings', icon: SettingsIcon, label: 'Settings', href: '/settings' },
-        ]
+    const toggleMenu = (id: string) => {
+        setExpandedMenus(prev =>
+            prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+        );
     };
 
+    const handleSidebarClick = () => {
+        if (isCollapsed) {
+            setIsCollapsed(false);
+        }
+    };
+
+    const handleToggleClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setIsCollapsed(!isCollapsed);
+    };
+
+    const menuItems = {
+        main: [
+            {
+                id: 'holdings',
+                icon: Briefcase,
+                label: 'Holdings',
+                href: '#',
+                subItems: [
+                    { id: 'stocks', label: 'Stocks', href: '/positions' },
+                    { id: 'mutual-funds', label: 'Mutual Funds', href: '/mf-positions' }
+                ]
+            },
+            { id: 'research', icon: BrainCircuit, label: 'Deep Research', href: '/research' },
+            { id: 'portfolios', icon: FolderOpen, label: 'Portfolios', href: '/portfolios' },
+            {
+                id: 'stocks-menu',
+                icon: TrendingUp,
+                label: 'Stocks',
+                subItems: [
+                    { id: 'watchlist', label: 'Watchlist', href: '/watchlist' },
+                    { id: 'overview', label: 'Overview', href: '/portfolio' },
+                    { id: 'summary', label: 'Summary', href: '/portfolio/summary' },
+                    { id: 'metrics', label: 'Risk Metrics', href: '/portfolio/metrics' },
+                ]
+            },
+            {
+                id: 'mutual-funds-menu',
+                icon: PieChart,
+                label: 'Mutual Funds',
+                subItems: [
+                    { id: 'mf-watchlist', label: 'Watchlist', href: '/mf-watchlist' },
+                    { id: 'mf-overview', label: 'Overview', href: '/mf-portfolio' },
+                    { id: 'mf-summary', label: 'Summary', href: '/mf-portfolio/summary' },
+                    { id: 'mf-metrics', label: 'Risk Metrics', href: '/mf-portfolio/metrics' },
+                ]
+            }
+        ],
+        bottom: [
+            { id: 'notifications', icon: Bell, label: 'Notifications', href: '/notifications' },
+            { id: 'settings', icon: Settings, label: 'Settings', href: '/settings' },
+        ]
+    };
 
     const handleNavigate = (path: string) => {
         router.push(path);
@@ -143,11 +173,10 @@ export default function Sidebar({ onSearchClick }: { onSearchClick?: () => void 
 
     return (
         <aside
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
+            onClick={handleSidebarClick}
             className={cn(
                 "h-screen flex flex-col bg-black border-r border-white/5 transition-all duration-300 z-[100] relative overflow-hidden",
-                isHovered ? "w-[240px]" : "w-20"
+                isCollapsed ? "w-20 cursor-pointer hover:bg-zinc-900/50" : "w-[240px]"
             )}
             style={{ transitionTimingFunction: softSpringEasing }}
         >
@@ -156,17 +185,20 @@ export default function Sidebar({ onSearchClick }: { onSearchClick?: () => void 
             <div className="absolute bottom-0 left-0 -ml-16 -mb-16 w-48 h-48 bg-emerald-500/10 rounded-full blur-[80px] pointer-events-none z-0" />
 
             {/* Header / Brand */}
-            <div className="p-4 mb-2 z-10">
+            <div className="p-4 mb-2 z-10 shrink-0">
                 <BrandLogo isCollapsed={isCollapsed} />
             </div>
 
-            {/* Search Trigger */}
-            <div className="px-3 mb-4 z-10">
+            {/* Search Trigger & Toggle */}
+            <div className="px-3 mb-4 z-10 flex items-center gap-2">
                 <button
-                    onClick={onSearchClick}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onSearchClick?.();
+                    }}
                     className={cn(
-                        "flex items-center w-full h-10 rounded-xl bg-white/[0.03] border border-white/[0.05] text-neutral-500 transition-all hover:bg-white/[0.06] hover:border-white/10 group/search",
-                        isCollapsed ? "justify-center px-0" : "px-3"
+                        "flex-1 flex items-center h-10 rounded-xl bg-white/[0.03] border border-white/[0.05] text-neutral-500 transition-all hover:bg-white/[0.06] hover:border-white/10 group/search",
+                        isCollapsed ? "justify-center px-0 w-10 shrink-0" : "px-3"
                     )}
                 >
                     <SearchIcon size={18} className="shrink-0 transition-colors group-hover/search:text-blue-400" />
@@ -177,6 +209,16 @@ export default function Sidebar({ onSearchClick }: { onSearchClick?: () => void 
                         Search...
                     </span>
                     {!isCollapsed && <span className="ml-auto text-[10px] opacity-40 uppercase tracking-tighter">⌘K</span>}
+                </button>
+
+                <button
+                    onClick={handleToggleClick}
+                    className="flex items-center justify-center size-8 text-neutral-500 hover:text-white hover:bg-white/10 rounded-lg transition-colors shrink-0"
+                    title={isCollapsed ? "Expand" : "Collapse"}
+                >
+                    <div className={cn("transition-transform duration-300", isCollapsed ? "rotate-180" : "rotate-0")}>
+                        <ChevronsLeft size={16} />
+                    </div>
                 </button>
             </div>
 
@@ -191,60 +233,97 @@ export default function Sidebar({ onSearchClick }: { onSearchClick?: () => void 
                         Markets
                     </div>
                     <div className="space-y-1">
-                        {menuItems.main.map((item) => (
-                            <NavItem
-                                key={item.id}
-                                icon={item.icon}
-                                label={item.label}
-                                isActive={currentPath === item.href}
-                                onClick={() => handleNavigate(item.href)}
-                                isCollapsed={isCollapsed}
-                            />
-                        ))}
-                    </div>
-                </div>
+                        {menuItems.main.map((item) => {
+                            if (item.subItems) {
+                                const isExpanded = expandedMenus.includes(item.id);
+                                const isParentActive = item.subItems.some(sub => currentPath === sub.href);
 
-                {/* Stocks */}
-                <div>
-                    <div className={cn(
-                        "px-3 mb-2 text-[9px] font-bold text-neutral-600 uppercase tracking-[0.2em] transition-all duration-300 h-3 overflow-hidden",
-                        isCollapsed ? "opacity-0" : "opacity-100"
-                    )}>
-                        Stocks
-                    </div>
-                    <div className="space-y-1">
-                        {menuItems.portfolio.map((item) => (
-                            <NavItem
-                                key={item.id}
-                                icon={item.icon}
-                                label={item.label}
-                                isActive={currentPath === item.href}
-                                onClick={() => handleNavigate(item.href)}
-                                isCollapsed={isCollapsed}
-                            />
-                        ))}
-                    </div>
-                </div>
+                                return (
+                                    <div key={item.id} className="space-y-1">
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                !isCollapsed && toggleMenu(item.id);
+                                            }}
+                                            className={cn(
+                                                "group relative flex items-center w-full h-12 rounded-xl transition-all duration-300",
+                                                isParentActive && !isExpanded
+                                                    ? "bg-white/10 text-white"
+                                                    : "text-neutral-500 hover:text-neutral-200 hover:bg-white/5",
+                                                isCollapsed ? "px-3 justify-center" : "px-4"
+                                            )}
+                                        >
+                                            <div className={cn(
+                                                "transition-transform duration-300 shrink-0",
+                                                (isParentActive && !isExpanded) ? "scale-110 text-blue-400" : "group-hover:scale-110",
+                                                isCollapsed ? "" : "mr-3"
+                                            )}>
+                                                <item.icon size={20} />
+                                            </div>
 
-                {/* Mutual Funds */}
-                <div>
-                    <div className={cn(
-                        "px-3 mb-2 text-[9px] font-bold text-neutral-600 uppercase tracking-[0.2em] transition-all duration-300 h-3 overflow-hidden",
-                        isCollapsed ? "opacity-0" : "opacity-100"
-                    )}>
-                        Mutual Funds
-                    </div>
-                    <div className="space-y-1">
-                        {menuItems.mutualFunds.map((item) => (
-                            <NavItem
-                                key={item.id}
-                                icon={item.icon}
-                                label={item.label}
-                                isActive={currentPath === item.href}
-                                onClick={() => handleNavigate(item.href)}
-                                isCollapsed={isCollapsed}
-                            />
-                        ))}
+                                            <span className={cn(
+                                                "flex-1 text-left text-sm font-medium tracking-wide truncate transition-all duration-300 overflow-hidden",
+                                                isCollapsed ? "w-0 opacity-0" : "w-auto opacity-100"
+                                            )}>
+                                                {item.label}
+                                            </span>
+
+                                            {!isCollapsed && (
+                                                <div className={cn(
+                                                    "transition-transform duration-300",
+                                                    isExpanded ? "rotate-90" : "rotate-0"
+                                                )}>
+                                                    <ChevronRight size={12} className="text-neutral-500" />
+                                                </div>
+                                            )}
+
+                                            {isCollapsed && (
+                                                <div className="absolute left-16 px-3 py-2 bg-zinc-900 border border-zinc-800 text-white text-xs font-medium rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-[110]">
+                                                    {item.label}
+                                                </div>
+                                            )}
+                                        </button>
+
+                                        {/* Dropdown Items */}
+                                        <div className={cn(
+                                            "overflow-hidden transition-all duration-300 ease-in-out",
+                                            isExpanded && !isCollapsed ? "max-h-[300px] opacity-100" : "max-h-0 opacity-0"
+                                        )}>
+                                            <div className="pl-11 pr-2 space-y-1 py-1">
+                                                {item.subItems.map((subItem) => (
+                                                    <button
+                                                        key={subItem.id || subItem.label}
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleNavigate(subItem.href);
+                                                        }}
+                                                        className={cn(
+                                                            "flex items-center w-full h-9 rounded-lg transition-colors text-sm",
+                                                            currentPath === subItem.href
+                                                                ? "text-blue-400 bg-blue-500/10 font-medium px-3"
+                                                                : "text-neutral-500 hover:text-neutral-300 hover:bg-white/5 px-3"
+                                                        )}
+                                                    >
+                                                        {subItem.label}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            }
+
+                            return (
+                                <NavItem
+                                    key={item.id}
+                                    icon={item.icon}
+                                    label={item.label}
+                                    isActive={currentPath === item.href}
+                                    onClick={() => handleNavigate(item.href)}
+                                    isCollapsed={isCollapsed}
+                                />
+                            );
+                        })}
                     </div>
                 </div>
             </div>
@@ -261,26 +340,7 @@ export default function Sidebar({ onSearchClick }: { onSearchClick?: () => void 
                         isCollapsed={isCollapsed}
                     />
                 ))}
-
-                <div className={cn(
-                    "flex items-center h-10 rounded-xl bg-white/[0.02] transition-all duration-300 overflow-hidden border border-white/5",
-                    isCollapsed ? "px-2 justify-center" : "px-2 mt-2"
-                )}>
-                    <div className="size-7 rounded-lg bg-zinc-800 flex items-center justify-center shrink-0 border border-white/10">
-                        <UserIcon size={14} className="text-zinc-400" />
-                    </div>
-                    <div className={cn(
-                        "ml-2.5 flex flex-col min-w-0 transition-all duration-300",
-                        isCollapsed ? "w-0 opacity-0" : "w-auto opacity-100"
-                    )}>
-                        <span className="text-[11px] font-bold text-white truncate leading-tight whitespace-nowrap">Premium User</span>
-                        <span className="text-[8px] text-zinc-500 uppercase font-black leading-tight whitespace-nowrap tracking-tighter">
-                            Pro Plan Active
-                        </span>
-                    </div>
-                </div>
             </div>
         </aside>
     );
 }
-
