@@ -127,18 +127,6 @@ export default function Sidebar({ onSearchClick }: { onSearchClick?: () => void 
     const menuItems = {
         main: [
             {
-                id: 'holdings',
-                icon: Briefcase,
-                label: 'Holdings',
-                href: '#',
-                subItems: [
-                    { id: 'stocks', label: 'Stocks', href: '/positions' },
-                    { id: 'mutual-funds', label: 'Mutual Funds', href: '/mf-positions' }
-                ]
-            },
-            { id: 'research', icon: BrainCircuit, label: 'Deep Research', href: '/research' },
-            { id: 'portfolios', icon: FolderOpen, label: 'Portfolios', href: '/portfolios' },
-            {
                 id: 'stocks-menu',
                 icon: TrendingUp,
                 label: 'Stocks',
@@ -158,6 +146,18 @@ export default function Sidebar({ onSearchClick }: { onSearchClick?: () => void 
                     { id: 'mf-overview', label: 'Overview', href: '/mf-portfolio' },
                     { id: 'mf-summary', label: 'Summary', href: '/mf-portfolio/summary' },
                     { id: 'mf-metrics', label: 'Risk Metrics', href: '/mf-portfolio/metrics' },
+                ]
+            },
+            { id: 'research', icon: BrainCircuit, label: 'Deep Research', href: '/research' },
+            { id: 'portfolios', icon: FolderOpen, label: 'Portfolios', href: '/portfolios' },
+            {
+                id: 'holdings',
+                icon: Briefcase,
+                label: 'Holdings',
+                href: '#',
+                subItems: [
+                    { id: 'stocks', label: 'Stocks', href: '/positions' },
+                    { id: 'mutual-funds', label: 'Mutual Funds', href: '/mf-positions' }
                 ]
             }
         ],
