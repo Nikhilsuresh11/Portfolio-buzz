@@ -1,4 +1,4 @@
-# Portfolio Buzz
+# Portfolio Buzz.
 
 ## Overview
 A professional financial news analysis tool with AI-powered insights from 30+ global sources. Features secure user authentication with MongoDB and advanced sentiment analysis using GROQ's Llama model.
